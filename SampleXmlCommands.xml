@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- IDs in query are mandatory -->
+<root>
+  <!-- Server services discovery -->
+  <iq type='get' to='dessange-international.com' id='disco1'>
+    <query xmlns='http://jabber.org/protocol/disco#info'/>
+  </iq>
+
+  <iq type='get' to='dessange-international.com' id='disco2'>
+    <query xmlns='http://jabber.org/protocol/disco#items'/>
+  </iq>
+
+  <iq type='get' to='dessange-international.com' id='pubsub1'>
+    <query xmlns='http://jabber.org/protocol/pubsub#presence-subscribe'/>
+  </iq>
+
+  <!-- Ping Server -->
+  <iq type='get' to='dessange-international.com' id='ping1'>
+    <ping xmlns='urn:xmpp:ping'/>
+  </iq>
+
+  <!-- -->
+  <iq type='get' to='conference.dessange-international.com' id='browse1'>
+    <q xmlns='jabber:iq:browse'/>
+  </iq>
+
+  <!-- -->
+  <iq type='get' to='dessange-international.com' id='browse2'>
+    <query xmlns='jabber:iq:browse'/>
+  </iq>
+</root>

@@ -1,0 +1,117 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>
+    </ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{931706EF-155A-4E2B-828D-ED75D68A7D72}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Tests</RootNamespace>
+    <AssemblyName>Tests</AssemblyName>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <ProjectTypeGuids>{3AC096D0-A1C2-E12C-1390-A8335801FDAB};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Microsoft.VisualStudio.QualityTools.UnitTestFramework, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL" />
+    <Reference Include="Rhino.Mocks">
+      <HintPath>..\packages\RhinoMocks.3.6.1\lib\net\Rhino.Mocks.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core">
+      <RequiredTargetFramework>3.5</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <CodeAnalysisDependentAssemblyPaths Condition=" '$(VS100COMNTOOLS)' != '' " Include="$(VS100COMNTOOLS)..\IDE\PrivateAssemblies">
+      <Visible>False</Visible>
+    </CodeAnalysisDependentAssemblyPaths>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Bedrock\Collections\ByteStackTest.cs" />
+    <Compile Include="Bedrock\Collections\SetTest.cs" />
+    <Compile Include="Bedrock\Collections\SkipListTest.cs" />
+    <Compile Include="Bedrock\Collections\StringSet.cs" />
+    <Compile Include="Bedrock\Collections\TreeTest.cs" />
+    <Compile Include="Bedrock\Collections\TrieNodeTest.cs" />
+    <Compile Include="Bedrock\Collections\TrieTest.cs" />
+    <Compile Include="Bedrock\IO\ZlibStream.cs" />
+    <Compile Include="Bedrock\Net\AsyncSocketTest.cs" />
+    <Compile Include="Bedrock\Net\HttpSocketTest.cs" />
+    <Compile Include="Bedrock\Net\HttpUploadTest.cs" />
+    <Compile Include="Bedrock\Net\SSLAsyncSocketTest.cs" />
+    <Compile Include="Bedrock\Util\GetOptBaseTest.cs" />
+    <Compile Include="Bedrock\Util\VersionTest.cs" />
+    <Compile Include="Jabber\Client\PresenceManagerTest.cs" />
+    <Compile Include="Jabber\Client\RosterManagerTest.cs" />
+    <Compile Include="Jabber\Connection\CapsManagerTest.cs" />
+    <Compile Include="Jabber\Connection\ConferenceManagerTest.cs" />
+    <Compile Include="Jabber\Connection\DiscoManagerTest.cs" />
+    <Compile Include="Jabber\Connection\FileMap.cs" />
+    <Compile Include="Jabber\Connection\PubSubManagerTest.cs" />
+    <Compile Include="Jabber\Connection\SASL\MD5Processor.cs" />
+    <Compile Include="Jabber\JIDTest.cs" />
+    <Compile Include="Jabber\Protocol\Accept\RouteTest.cs" />
+    <Compile Include="Jabber\Protocol\Client\IQTest.cs" />
+    <Compile Include="Jabber\Protocol\Client\MessageTest.cs" />
+    <Compile Include="Jabber\Protocol\Client\PresenceTest.cs" />
+    <Compile Include="Jabber\Protocol\ElementListTest.cs" />
+    <Compile Include="Jabber\Protocol\ElementStreamTest.cs" />
+    <Compile Include="Jabber\Protocol\EnumParserTest.cs" />
+    <Compile Include="Jabber\Protocol\IQ\AgentTest.cs" />
+    <Compile Include="Jabber\Protocol\IQ\AuthTest.cs" />
+    <Compile Include="Jabber\Protocol\IQ\PubSubTest.cs" />
+    <Compile Include="Jabber\Protocol\IQ\RegisterTest.cs" />
+    <Compile Include="Jabber\Protocol\IQ\RosterTest.cs" />
+    <Compile Include="Jabber\Protocol\IQ\TimeTest.cs" />
+    <Compile Include="Jabber\Protocol\PacketTest.cs" />
+    <Compile Include="Jabber\Protocol\Stream\FactoryTest.cs" />
+    <Compile Include="Jabber\Protocol\Stream\StreamTest.cs" />
+    <Compile Include="Jabber\Protocol\X\DataTest.cs" />
+    <Compile Include="Jabber\Protocol\X\EventTest.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="StringPrep\TestDraft.cs" />
+    <Compile Include="StringPrep\TestNameprep.cs" />
+    <Compile Include="StringPrep\TestNFKC.cs" />
+    <Compile Include="StringPrep\TestNodeprep.cs" />
+    <Compile Include="StringPrep\TestResourceprep.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Jabber\JabberNet.csproj">
+      <Project>{6CAE854A-F202-4D2B-B10E-E8D8E81E5EF5}</Project>
+      <Name>JabberNet</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
