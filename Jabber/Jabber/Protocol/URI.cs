@@ -135,6 +135,10 @@ namespace Jabber.Protocol
         /// </summary>
         public const string BROWSE   = "jabber:iq:browse";
         /// <summary>
+        /// Ping
+        /// </summary>
+        public const string PING     = "urn:xmpp:ping";
+        /// <summary>
         /// Profile information
         /// </summary>
         public const string VCARD    = "vcard-temp";

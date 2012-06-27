@@ -142,11 +142,23 @@ namespace Jabber.Protocol.Client
 #endif
 
         /// <summary>
-        /// Swap the to and from, set the type to result.
+        /// Swap the to and from, set the type to result and append Query Element to response
         /// </summary>
         /// <param name="doc"></param>
         /// <returns></returns>
         public IQ GetResponse(XmlDocument doc)
+        {
+            return this.GetResponse(doc, true);
+        }
+
+        /// <summary>
+        /// Swap the to and from, set the type to result and append Query element if needed 
+        /// For example XEP-0199 (Ping) do not add Query Element to response
+        /// </summary>
+        /// <param name="doc"></param>
+        /// <param name="appendQuery"></param>
+        /// <returns></returns>
+        public IQ GetResponse(XmlDocument doc, Boolean appendQuery)
         {
             IQ resp = new IQ(doc);
             resp.From = this.To;
@@ -154,13 +166,16 @@ namespace Jabber.Protocol.Client
             resp.ID = this.ID;
             resp.Type = IQType.result;
 
-            XmlElement q = this.Query;
-            if (q != null)
+            if (appendQuery)
             {
-                if (q is Element)
-                    resp.AppendChild((XmlElement)((Element)q).CloneNode(true, doc));
-                else
-                    resp.AppendChild(doc.ImportNode(q, true));
+                XmlElement q = this.Query;
+                if (q != null)
+                {
+                    if (q is Element)
+                        resp.AppendChild((XmlElement)((Element)q).CloneNode(true, doc));
+                    else
+                        resp.AppendChild(doc.ImportNode(q, true));
+                }
             }
 
             this.Handled = true;
