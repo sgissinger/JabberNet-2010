@@ -31,18 +31,13 @@ namespace Jabber.Connection
     /// Manages the entity capabilities information for the local connection as well as remote ones.
     /// See XEP-0115, version 1.5 for details.
     /// </summary>
-    public class CapsManager: StreamComponent
+    public partial class CapsManager : StreamComponent
     {
         /// <summary>
         /// Defines the default hash function to use for calculating ver attributes.
         /// </summary>
         public const string DEFAULT_HASH = "sha-1";
         private const string SEP = "<";
-
-        /// <summary>
-        /// Required designer variable.
-        /// </summary>
-        private System.ComponentModel.IContainer components = null;
 
         private DiscoNode m_disco;
         private string m_hash = DEFAULT_HASH;
@@ -54,15 +49,16 @@ namespace Jabber.Connection
         /// <summary>
         /// Creates a new capability manager.
         /// </summary>
-        public CapsManager() : this((DiscoNode)null)
-        {
-        }
+        public CapsManager()
+            : this((DiscoNode)null)
+        { }
 
         /// <summary>
         /// Creates a new capability manager and associates it with a container.
         /// </summary>
         /// <param name="container">Parent container.</param>
-        public CapsManager(IContainer container) : this((DiscoNode)null)
+        public CapsManager(IContainer container)
+            : this((DiscoNode)null)
         {
             container.Add(this);
         }
@@ -75,27 +71,13 @@ namespace Jabber.Connection
         public CapsManager(DiscoNode node)
         {
             InitializeComponent();
+
             this.OnStreamChanged += new Bedrock.ObjectHandler(CapsManager_OnStreamChanged);
 
             if (node == null)
                 m_disco = new DiscoNode(new JID(null, "placeholder", null), null);
             else
                 m_disco = node;
-        }
-
-        /// <summary>
-        /// Performs tasks associated with freeing, releasing, or resetting resources.
-        /// </summary>
-        /// <param name="disposing">
-        /// True if managed resources should be disposed; otherwise, false.
-        /// </param>
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing && (components != null))
-            {
-                components.Dispose();
-            }
-            base.Dispose(disposing);
         }
 
         /// <summary>
@@ -552,18 +534,5 @@ namespace Jabber.Connection
             Debug.Assert(Node != null, "Node is required");
             pres.AppendChild(GetCaps(pres.OwnerDocument));
         }
-
-        #region Component Designer generated code
-
-        /// <summary>
-        /// Required method for Designer support - do not modify
-        /// the contents of this method with the code editor.
-        /// </summary>
-        private void InitializeComponent()
-        {
-            components = new System.ComponentModel.Container();
-        }
-
-        #endregion
     }
 }

@@ -23,7 +23,6 @@ using Jabber.Protocol.X;
 
 namespace Jabber.Connection
 {
-
     /// <summary>
     /// An error occurred with a presence sent to a room.
     /// </summary>
@@ -70,22 +69,29 @@ namespace Jabber.Connection
     /// <summary>
     /// Manages a set of conference rooms
     /// </summary>
-    public class ConferenceManager : StreamComponent
+    public partial class ConferenceManager : StreamComponent
     {
-        /// <summary>
-        /// Required designer variable.
-        /// </summary>
-        private System.ComponentModel.IContainer components = null;
         private Hashtable m_rooms = new Hashtable();
         private string m_nick = null;
+
+        /// <summary>
+        /// Creates a new conference manager in a container
+        /// </summary>
+        /// <param name="container">Parent container.</param>
+        public ConferenceManager(IContainer container)
+            : this()
+        {
+            container.Add(this);
+        }
 
         /// <summary>
         /// Creates a new conference manager.
         /// </summary>
         public ConferenceManager()
         {
-            this.OnStreamChanged += new Bedrock.ObjectHandler(ConferenceManager_OnStreamChanged);
             InitializeComponent();
+
+            this.OnStreamChanged += new Bedrock.ObjectHandler(ConferenceManager_OnStreamChanged);
         }
 
         private void ConferenceManager_OnStreamChanged(object sender)
@@ -126,41 +132,6 @@ namespace Jabber.Connection
             Room r = GetRoom(msg.From);
             OnInvite(r, msg);
         }
-
-        /// <summary>
-        /// Creates a new conference manager in a container
-        /// </summary>
-        /// <param name="container">Parent container.</param>
-        public ConferenceManager(IContainer container) : this()
-        {
-            container.Add(this);
-        }
-
-        /// <summary>
-        /// Performs tasks associated with freeing, releasing, or resetting resources.
-        /// </summary>
-        /// <param name="disposing">True if managed resources should be disposed; otherwise, false.</param>
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing && (components != null))
-            {
-                components.Dispose();
-            }
-            base.Dispose(disposing);
-        }
-
-        #region Component Designer generated code
-
-        /// <summary>
-        /// Required method for Designer support - do not modify
-        /// the contents of this method with the code editor.
-        /// </summary>
-        private void InitializeComponent()
-        {
-            components = new System.ComponentModel.Container();
-        }
-
-        #endregion
 
         /// <summary>
         /// Finished joining the room, including all potential configuration.

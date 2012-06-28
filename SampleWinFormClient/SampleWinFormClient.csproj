@@ -21,7 +21,7 @@
     <OutputType>WinExe</OutputType>
     <RootNamespace>SampleWinFormClient</RootNamespace>
     <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
-    <StartupObject>SampleWinFormClient.MainForm</StartupObject>
+    <StartupObject>SampleWinFormClient.Program</StartupObject>
     <FileUpgradeFlags>
     </FileUpgradeFlags>
     <UpgradeBackupLocation>
@@ -113,12 +113,37 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Controls\PubSubDisplay.Designer.cs">
+      <DependentUpon>PubSubDisplay.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Controls\ServiceDisplay.Designer.cs">
+      <DependentUpon>ServiceDisplay.cs</DependentUpon>
+    </Compile>
     <Compile Include="Forms\AddContact.cs">
       <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\AddContact.Designer.cs">
+      <DependentUpon>AddContact.cs</DependentUpon>
     </Compile>
     <Compile Include="Forms\AddGroup.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="Forms\AddGroup.Designer.cs">
+      <DependentUpon>AddGroup.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\ConferenceForm.Designer.cs">
+      <DependentUpon>ConferenceForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\PubSubSubscribeForm.Designer.cs">
+      <DependentUpon>PubSubSubscribeForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\SendMessage.Designer.cs">
+      <DependentUpon>SendMessage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="MainForm.Designer.cs">
+      <DependentUpon>MainForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>

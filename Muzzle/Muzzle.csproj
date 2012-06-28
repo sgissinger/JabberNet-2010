@@ -111,6 +111,45 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Controls\BottomScrollRichText.Designer.cs">
+      <DependentUpon>BottomScrollRichText.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Controls\ChatHistory.Designer.cs">
+      <DependentUpon>ChatHistory.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Controls\JidMulti.Designer.cs">
+      <DependentUpon>JidMulti.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Controls\Litmus.Designer.cs">
+      <DependentUpon>Litmus.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Controls\RosterTree.Designer.cs">
+      <DependentUpon>RosterTree.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Controls\StreamControl.Designer.cs">
+      <DependentUpon>StreamControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Controls\StripChart.Designer.cs">
+      <DependentUpon>StripChart.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Controls\XmppDebugger.Designer.cs">
+      <DependentUpon>XmppDebugger.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\ClientLogin.Designer.cs">
+      <DependentUpon>ClientLogin.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\ComponentLogin.Designer.cs">
+      <DependentUpon>ComponentLogin.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\InputBox.Designer.cs">
+      <DependentUpon>InputBox.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\OptionForm.Designer.cs">
+      <DependentUpon>OptionForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\XDataForm.Designer.cs">
+      <DependentUpon>XDataForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>

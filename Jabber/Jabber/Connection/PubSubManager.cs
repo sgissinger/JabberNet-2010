@@ -35,7 +35,7 @@ namespace Jabber.Connection
     /// node.AutomatedSubscribe();
     /// </example>
     /// </summary>
-    public class PubSubManager : StreamComponent
+    public partial class PubSubManager : StreamComponent
     {
         private class CBHolder
         {
@@ -56,12 +56,18 @@ namespace Jabber.Connection
             }
         }
 
-        /// <summary>
-        /// Required designer variable.
-        /// </summary>
-        private IContainer components = null;
         private Dictionary<JIDNode, PubSubNode> m_nodes = new Dictionary<JIDNode,PubSubNode>();
         private Dictionary<string, CBHolder> m_callbacks = new Dictionary<string, CBHolder>();
+
+        /// <summary>
+        /// Creates a manager in a container.
+        /// </summary>
+        /// <param name="container">Parent container.</param>
+        public PubSubManager(IContainer container)
+            : this()
+        {
+            container.Add(this);
+        }
 
         /// <summary>
         /// Creates a manager.
@@ -69,16 +75,8 @@ namespace Jabber.Connection
         public PubSubManager()
         {
             InitializeComponent();
-            this.OnStreamChanged += new Bedrock.ObjectHandler(PubSubManager_OnStreamChanged);
-        }
 
-        /// <summary>
-        /// Creates a manager in a container.
-        /// </summary>
-        /// <param name="container">Parent container.</param>
-        public PubSubManager(IContainer container) : this()
-        {
-            container.Add(this);
+            this.OnStreamChanged += new Bedrock.ObjectHandler(PubSubManager_OnStreamChanged);
         }
 
         private void PubSubManager_OnStreamChanged(object sender)
@@ -118,32 +116,6 @@ namespace Jabber.Connection
             }
             psn.FireItems(items);
         }
-
-        /// <summary>
-        /// Performs tasks associated with freeing, releasing, or resetting resources.
-        /// </summary>
-        /// <param name="disposing">True if managed resources should be disposed; otherwise, false.</param>
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing && (components != null))
-            {
-                components.Dispose();
-            }
-            base.Dispose(disposing);
-        }
-
-        #region Component Designer generated code
-
-        /// <summary>
-        /// Required method for Designer support - do not modify
-        /// the contents of this method with the code editor.
-        /// </summary>
-        private void InitializeComponent()
-        {
-            components = new System.ComponentModel.Container();
-        }
-
-        #endregion
 
         /// <summary>
         /// Notifies the client that an error occurred.  If this is set, it will be copied to

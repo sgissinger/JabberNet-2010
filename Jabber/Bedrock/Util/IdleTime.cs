@@ -28,7 +28,7 @@ namespace Bedrock.Util
     /// <summary>
     /// Idle time calculations and notifications.
     /// </summary>
-    public class IdleTime : System.ComponentModel.Component
+    public partial class IdleTime : System.ComponentModel.Component
     {
         [StructLayout(LayoutKind.Sequential)]
         private struct LASTINPUTINFO
@@ -73,25 +73,29 @@ namespace Bedrock.Util
         private ISynchronizeInvoke m_invoker = null;
 
         /// <summary>
-        /// Create an idle timer with the default timouts.
-        /// </summary>
-        public IdleTime()
-        {
-            m_timer = new System.Timers.Timer(DEFAULT_POLL * 1000.0);
-            m_timer.Elapsed += new System.Timers.ElapsedEventHandler(m_timer_Elapsed);
-        }
-
-        /// <summary>
         /// Create an idle timer.  Make sure to set Enabled = true to start.
         /// </summary>
         /// <param name="pollSecs">Every pollSecs seconds, poll to see how long we've been away.</param>
         /// <param name="notifySecs">If we've been away notifySecs seconds, fire notification.</param>
-        public IdleTime(int pollSecs, int notifySecs) : this()
+        public IdleTime(int pollSecs, int notifySecs)
+            : this()
         {
             if (pollSecs > notifySecs)
                 throw new ArgumentException("Poll more often than you notify.");
+
             PollInterval = pollSecs;
             IdleLength = notifySecs;
+        }
+
+        /// <summary>
+        /// Create an idle timer with the default timouts.
+        /// </summary>
+        public IdleTime()
+        {
+            InitializeComponent();
+
+            m_timer = new System.Timers.Timer(DEFAULT_POLL * 1000.0);
+            m_timer.Elapsed += new System.Timers.ElapsedEventHandler(m_timer_Elapsed);
         }
 
         /// <summary>

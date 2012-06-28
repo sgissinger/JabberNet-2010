@@ -24,7 +24,7 @@ namespace Muzzle.Controls
     /// <summary>
     /// A UserControl that references an XmppStream.
     /// </summary>
-    public class StreamControl : System.Windows.Forms.UserControl
+    public partial class StreamControl : System.Windows.Forms.UserControl
     {
         /// <summary>
         /// The XmppStream for this control.  Set at design time when a subclass control is dragged onto a form.
@@ -59,24 +59,19 @@ namespace Muzzle.Controls
                 if ((object)m_stream != (object)value)
                 {
                     m_stream = value;
+
                     if (OnStreamChanged != null)
                         OnStreamChanged(this);
                 }
             }
         }
 
-        private JID m_overrideFrom = null;
-
         /// <summary>
         /// Override the from address that will be stamped on outbound packets.
         /// Unless your server implemets XEP-193, you shouldn't use this for 
         /// client connections.
         /// </summary>
-        public JID OverrideFrom
-        {
-            get { return m_overrideFrom; }
-            set { m_overrideFrom = value; }
-        }
+        public JID OverrideFrom        {            get;            set;        }
 
         /// <summary>
         /// Write the specified stanza to the stream.
@@ -84,8 +79,9 @@ namespace Muzzle.Controls
         /// <param name="elem"></param>
         public void Write(XmlElement elem)
         {
-            if ((m_overrideFrom != null) && (elem.GetAttribute("from") == ""))
-                elem.SetAttribute("from", m_overrideFrom);
+            if ((this.OverrideFrom != null) && (elem.GetAttribute("from") == ""))
+                elem.SetAttribute("from", this.OverrideFrom);
+
             m_stream.Write(elem);
         }
 
@@ -99,8 +95,9 @@ namespace Muzzle.Controls
         ///<param name="cbArg">Arguments to pass to the callback.</param>
         public void BeginIQ(IQ iq, IqCB cb, object cbArg)
         {
-            if ((m_overrideFrom != null) && (iq.From == null))
-                iq.From = m_overrideFrom;
+            if ((this.OverrideFrom != null) && (iq.From == null))
+                iq.From = this.OverrideFrom;
+
             m_stream.Tracker.BeginIQ(iq, cb, cbArg);
         }
     }

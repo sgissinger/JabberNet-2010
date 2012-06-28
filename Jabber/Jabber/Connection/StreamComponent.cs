@@ -23,44 +23,8 @@ namespace Jabber.Connection
     /// <summary>
     /// Manages the XmppStream as a component.
     /// </summary>
-    public abstract class StreamComponent : System.ComponentModel.Component
+    public abstract partial class StreamComponent : System.ComponentModel.Component
     {
-        /// <summary>
-        /// Finds the first component that subclasses XmppStream in Visual Studio
-        /// during runtime.
-        /// </summary>
-        /// <param name="host">
-        /// Calls GetService(typeof(IDesignerHost)) on your control to get this.
-        /// </param>
-        /// <returns>Null if none found</returns>
-        public static XmppStream GetStreamFromHost(IDesignerHost host)
-        {
-            return (XmppStream)GetComponentFromHost(host, typeof(XmppStream));
-        }
-
-        /// <summary>
-        /// Finds the first component that subclasses the given type at runtime.
-        /// </summary>
-        /// <param name="host">Call GetService(typeof(IDesignerHost)) on your control to get this.</param>
-        /// <param name="type">The type to search for.</param>
-        /// <returns>Null if none found</returns>
-        public static Component GetComponentFromHost(IDesignerHost host, Type type)
-        {
-            if (host == null)
-                return null;
-            Debug.Assert(type != null);
-            Component root = host.RootComponent as Component;
-            if (root == null)
-                return null;
-
-            foreach (Component c in root.Container.Components)
-            {
-                if (type.IsAssignableFrom(c.GetType()))
-                    return c;
-            }
-            return null;
-        }
-
         /// <summary>
         /// Retrieves the XmppStream for this control.
         /// Set at design time when a subclass control is dragged onto a form.
@@ -102,17 +66,65 @@ namespace Jabber.Connection
             }
         }
 
-        private JID m_overrideFrom = null;
-
         /// <summary>
         /// Override the from address that will be stamped on outbound packets.
         /// Unless your server implemets XEP-193, you shouldn't use this for 
         /// client connections.
         /// </summary>
-        public JID OverrideFrom
+        public JID OverrideFrom { get; set; }
+
+        /// <summary>
+        /// Creates a new XMPP stream and associates it with the parent control.
+        /// </summary>
+        /// <param name="container">Parent control.</param>
+        public StreamComponent(System.ComponentModel.IContainer container)
+            : this()
         {
-            get { return m_overrideFrom; }
-            set { m_overrideFrom = value; }
+            container.Add(this);
+        }
+
+        /// <summary>
+        /// Creates a new SocketElementStream.
+        /// </summary>
+        public StreamComponent()
+        {
+            InitializeComponent();
+        }
+
+        /// <summary>
+        /// Finds the first component that subclasses XmppStream in Visual Studio
+        /// during runtime.
+        /// </summary>
+        /// <param name="host">
+        /// Calls GetService(typeof(IDesignerHost)) on your control to get this.
+        /// </param>
+        /// <returns>Null if none found</returns>
+        public static XmppStream GetStreamFromHost(IDesignerHost host)
+        {
+            return (XmppStream)GetComponentFromHost(host, typeof(XmppStream));
+        }
+
+        /// <summary>
+        /// Finds the first component that subclasses the given type at runtime.
+        /// </summary>
+        /// <param name="host">Call GetService(typeof(IDesignerHost)) on your control to get this.</param>
+        /// <param name="type">The type to search for.</param>
+        /// <returns>Null if none found</returns>
+        public static Component GetComponentFromHost(IDesignerHost host, Type type)
+        {
+            if (host == null)
+                return null;
+            Debug.Assert(type != null);
+            Component root = host.RootComponent as Component;
+            if (root == null)
+                return null;
+
+            foreach (Component c in root.Container.Components)
+            {
+                if (type.IsAssignableFrom(c.GetType()))
+                    return c;
+            }
+            return null;
         }
 
         /// <summary>
@@ -123,8 +135,8 @@ namespace Jabber.Connection
         /// <param name="elem"></param>
         public void Write(XmlElement elem)
         {
-            if ((m_overrideFrom != null) && (elem.GetAttribute("from") == ""))
-                elem.SetAttribute("from", m_overrideFrom);
+            if ((this.OverrideFrom != null) && (elem.GetAttribute("from") == ""))
+                elem.SetAttribute("from", this.OverrideFrom);
             m_stream.Write(elem);
         }
 
@@ -138,8 +150,8 @@ namespace Jabber.Connection
         ///<param name="cbArg">Arguments to pass to the callback.</param>
         public void BeginIQ(IQ iq, IqCB cb, object cbArg)
         {
-            if ((m_overrideFrom != null) && (iq.From == null))
-                iq.From = m_overrideFrom;
+            if ((this.OverrideFrom != null) && (iq.From == null))
+                iq.From = this.OverrideFrom;
             m_stream.Tracker.BeginIQ(iq, cb, cbArg);
         }
     }

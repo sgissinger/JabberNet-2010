@@ -14,14 +14,12 @@
 using System;
 using System.Drawing;
 
-
-
 namespace Muzzle.Controls
 {
     /// <summary>
     /// Keep track of the history of a conversation or room.
     /// </summary>
-    public class ChatHistory : BottomScrollRichText
+    public partial class ChatHistory : BottomScrollRichText
     {
         // TODO: create a manager class that knows these prefs, and sets them easily every time.
         private Color m_sendColor = Color.Blue;
@@ -29,25 +27,18 @@ namespace Muzzle.Controls
         private Color m_actionColor = Color.Purple;
         private Color m_presenceColor = Color.Green;
 
-        private string m_nick;
-
-
         /// <summary>
         /// Create.  Make sure to set Client and From, at least.
         /// </summary>
         public ChatHistory()
         {
+            InitializeComponent();
         }
-
 
         /// <summary>
         /// Nickname for the associated user.  If null, the resource will be used (e.g. MUC).
         /// </summary>
-        public string Nickname
-        {
-            get { return m_nick; }
-            set { m_nick = value; }
-        }
+        public string Nickname        {            get;            set;        }
 
         /// <summary>
         /// Insert the given message into the history.  The timestamp on the message will be used, if
@@ -58,10 +49,12 @@ namespace Muzzle.Controls
         public void InsertMessage(Jabber.Protocol.Client.Message msg)
         {
             string body = msg.Body;
+
             if (body == null)
                 return;  // typing indicator, e.g.
 
-            string nick = (m_nick == null) ? msg.From.Resource : m_nick;
+            string nick = (this.Nickname == null) ? msg.From.Resource : this.Nickname;
+
             AppendMaybeScroll(m_recvColor, nick + ":", body);
         }
 
@@ -78,18 +71,5 @@ namespace Muzzle.Controls
         {
             throw new Exception("The method or operation is not implemented.");
         }
-
-        #region Component Designer generated code
-
-        /// <summary>
-        /// Required method for Designer support - do not modify
-        /// the contents of this method with the code editor.
-        /// </summary>
-        private void InitializeComponent()
-        {
-
-        }
-        #endregion
-
     }
 }

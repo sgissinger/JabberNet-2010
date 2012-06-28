@@ -12,13 +12,11 @@
  * See LICENSE.txt for details.
  * --------------------------------------------------------------------------*/
 using System;
-
 using System.Collections;
 using System.ComponentModel;
 using System.ComponentModel.Design;
 using System.Drawing;
 using System.Windows.Forms;
-
 using Bedrock.Collections;
 using Jabber;
 using Jabber.Client;
@@ -32,7 +30,7 @@ namespace Muzzle.Controls
     /// form you drop this on has a JabberClient, a PresenceManager, and a RosterManager
     /// on the form first, and this widget will automatically connect to them.
     /// </summary>
-    public class RosterTree : System.Windows.Forms.TreeView
+    public partial class RosterTree : System.Windows.Forms.TreeView
     {
         // image list offsets
         private const int OFFLINE    = 0;
@@ -46,45 +44,25 @@ namespace Muzzle.Controls
 
         private const string UNFILED = "Unfiled";
 
-        private RosterManager   m_roster = null;
-        private PresenceManager m_pres   = null;
-        private JabberClient    m_client = null;
+        private Jabber.Client.RosterManager   m_roster = null;
+        private Jabber.Client.PresenceManager m_pres = null;
+        private Jabber.Client.JabberClient m_client = null;
 
         private IDictionary m_groups = new SkipList();
         private IDictionary m_items  = new SkipList();
 
-        private System.Windows.Forms.ImageList il;
-        private System.Windows.Forms.ToolTip tt;
         private Color m_statusColor = Color.Teal;
-
-        private System.ComponentModel.IContainer components;
 
         /// <summary>
         /// Create a new RosterTree
         /// </summary>
         public RosterTree()
         {
-            // This call is required by the Windows.Forms Form Designer.
             InitializeComponent();
-            this.ImageIndex = 1;
-            this.ImageList = il;
-            this.ShowRootLines = false;
-            this.ShowLines = false;
-            this.Sorted = true;
-
-            this.AllowDrop = true;
-            this.ItemDrag += new ItemDragEventHandler(RosterTree_ItemDrag);
-            this.DragEnter += new DragEventHandler(RosterTree_DragEnter);
-            this.DragOver += new DragEventHandler(RosterTree_DragOver);
-            this.DragDrop += new DragEventHandler(RosterTree_DragDrop);
-            this.AfterSelect += new TreeViewEventHandler(RosterTree_AfterSelect);
-            this.DrawMode = TreeViewDrawMode.OwnerDrawText;
-            this.DrawNode += new DrawTreeNodeEventHandler(RosterTree_DrawNode);
         }
 
         private void RosterTree_AfterSelect(object sender, TreeViewEventArgs e)
-        {
-        }
+        { }
 
         private void DrawGroup(DrawTreeNodeEventArgs e)
         {
@@ -199,52 +177,6 @@ namespace Muzzle.Controls
             if (e.Item is ItemNode)
                 this.DoDragDrop(e.Item, DragDropEffects.Move);
         }
-
-        /// <summary>
-        /// Clean up any resources being used.
-        /// </summary>
-        protected override void Dispose( bool disposing )
-        {
-            if( disposing )
-            {
-                if(components != null)
-                {
-                    components.Dispose();
-                }
-            }
-            base.Dispose( disposing );
-        }
-
-        #region Component Designer generated code
-        /// <summary>
-        /// Required method for Designer support - do not modify
-        /// the contents of this method with the code editor.
-        /// </summary>
-        private void InitializeComponent()
-        {
-            this.components = new System.ComponentModel.Container();
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(RosterTree));
-            this.il = new System.Windows.Forms.ImageList(this.components);
-            this.tt = new System.Windows.Forms.ToolTip(this.components);
-            this.SuspendLayout();
-            //
-            // il
-            //
-            this.il.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("il.ImageStream")));
-            this.il.TransparentColor = System.Drawing.Color.Magenta;
-            this.il.Images.SetKeyName(0, "");
-            this.il.Images.SetKeyName(1, "");
-            this.il.Images.SetKeyName(2, "");
-            this.il.Images.SetKeyName(3, "");
-            this.il.Images.SetKeyName(4, "");
-            this.il.Images.SetKeyName(5, "");
-            this.il.Images.SetKeyName(6, "");
-            this.il.Images.SetKeyName(7, "");
-            this.il.Images.SetKeyName(8, "blank");
-            this.ResumeLayout(false);
-
-        }
-        #endregion
 
         /// <summary>
         /// The RosterManager for this view

@@ -59,7 +59,7 @@ namespace Jabber.Server
     /// <summary>
     /// Summary description for ServerComponent.
     /// </summary>
-    public class JabberService : Jabber.Connection.XmppStream
+    public partial class JabberService : Jabber.Connection.XmppStream
     {
         private static readonly object[][] DEFAULTS = new object[][] {
             new object[] {Options.COMPONENT_DIRECTION, ComponentType.Accept},
@@ -69,7 +69,10 @@ namespace Jabber.Server
 
         private void init()
         {
+            InitializeComponent();
+
             SetDefaults(DEFAULTS);
+
             this.OnStreamInit += new Jabber.Connection.StreamHandler(JabberService_OnStreamInit);
             this.OnSASLStart += new Jabber.Connection.SASL.SASLProcessorHandler(JabberService_OnSASLStart);
         }
@@ -77,7 +80,8 @@ namespace Jabber.Server
         /// <summary>
         /// Create a a connect component.
         /// </summary>
-        public JabberService() : base()
+        public JabberService()
+            : base()
         {
             init();
         }
@@ -89,12 +93,11 @@ namespace Jabber.Server
         /// <param name="port">Jabberd port to connect to</param>
         /// <param name="name">Component name</param>
         /// <param name="secret">Component secret</param>
-        public JabberService(string host,
-            int port,
-            string name,
-            string secret) : base()
+        public JabberService(string host, int port, string name, string secret)
+            : base()
         {
             init();
+
             this.ComponentID = name;
             this.NetworkHost = host;
             this.Port = port;
@@ -109,9 +112,11 @@ namespace Jabber.Server
         /// <param name="port">Port jabberd will connect to</param>
         /// <param name="name">Component name</param>
         /// <param name="secret">Component secret</param>
-        public JabberService(int port, string name, string secret) : base()
+        public JabberService(int port, string name, string secret)
+            : base()
         {
             init();
+
             this.ComponentID = name;
             this.Port = port;
 

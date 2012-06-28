@@ -30,8 +30,8 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{75232836-79DD-4B5E-A2A9-CD031A52A54F}"
 	ProjectSection(SolutionItems) = preProject
 		JabberNet.vsmdi = JabberNet.vsmdi
-		LICENSE.txt = LICENSE.txt
 		Local.testsettings = Local.testsettings
+		README = README
 		SampleXmlCommands.xml = SampleXmlCommands.xml
 		TraceAndTestImpact.testsettings = TraceAndTestImpact.testsettings
 	EndProjectSection

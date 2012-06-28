@@ -830,14 +830,8 @@ namespace Jabber.Connection
     // TODO: once etags are finished, make all of this information cached on disk.
     // TODO: cache XEP-115 client caps data to disk
     // TODO: add negative caching
-    public class DiscoManager : StreamComponent, IEnumerable
+    public partial class DiscoManager : StreamComponent, IEnumerable
     {
-        /// <summary>
-        /// Required designer variable.
-        /// </summary>
-#pragma warning disable 0414
-        private System.ComponentModel.Container components = null;
-#pragma warning restore 0414
         private DiscoNode m_root = null;
         private Tree m_items = new Tree();
 
@@ -845,7 +839,8 @@ namespace Jabber.Connection
         /// Creates a new DiscoManager and associates it with a parent container.
         /// </summary>
         /// <param name="container">Parent container.</param>
-        public DiscoManager(System.ComponentModel.IContainer container) : this()
+        public DiscoManager(IContainer container)
+            : this()
         {
             container.Add(this);
         }
@@ -856,6 +851,7 @@ namespace Jabber.Connection
         public DiscoManager()
         {
             InitializeComponent();
+
             this.OnStreamChanged +=new Bedrock.ObjectHandler(DiscoManager_OnStreamChanged);
         }
 
@@ -1308,16 +1304,5 @@ namespace Jabber.Connection
             FindServiceRequest req = new FindServiceRequest(featureURI, handler);
             BeginGetItems(Root, new DiscoNodeHandler(req.GotRootItems), state);  // hopefully enough to prevent GC.
         }
-
-        #region Component Designer generated code
-        /// <summary>
-        /// Required method for Designer support - do not modify
-        /// the contents of this method with the code editor.
-        /// </summary>
-        private void InitializeComponent()
-        {
-            components = new System.ComponentModel.Container();
-        }
-        #endregion
     }
 }

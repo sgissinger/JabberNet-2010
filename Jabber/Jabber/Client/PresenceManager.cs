@@ -25,7 +25,6 @@ using gen = System.Collections.Generic;
 
 namespace Jabber.Client
 {
-
     /// <summary>
     /// Informs the client of a change of derived primary session for a user.
     /// </summary>
@@ -36,15 +35,8 @@ namespace Jabber.Client
     /// <summary>
     /// Specifies the presence proxy database.
     /// </summary>
-    public class PresenceManager : Jabber.Connection.StreamComponent, IEnumerable
+    public partial class PresenceManager : StreamComponent, IEnumerable
     {
-        /// <summary>
-        /// Required designer variable.
-        /// </summary>
-#pragma warning disable 0414
-        private System.ComponentModel.Container components = null;
-#pragma warning restore 0414
- 
         private Tree m_items = new Tree();
         private CapsManager m_caps = null;
 
@@ -52,7 +44,8 @@ namespace Jabber.Client
         /// Constructs a PresenceManager object and adds it to a container.
         /// </summary>
         /// <param name="container">Parent container.</param>
-        public PresenceManager(System.ComponentModel.IContainer container) : this()
+        public PresenceManager(IContainer container)
+            : this()
         {
             container.Add(this);
         }
@@ -302,18 +295,6 @@ namespace Jabber.Client
                 return new Presence[0];
             return upm.GetAll();
         }
-
-
-        #region Component Designer generated code
-        /// <summary>
-        /// Required method for Designer support - do not modify
-        /// the contents of this method with the code editor.
-        /// </summary>
-        private void InitializeComponent()
-        {
-            components = new System.ComponentModel.Container();
-        }
-        #endregion
 
         /// <summary>
         /// Iterate over all of the JIDs we have not-unavilable presence from.

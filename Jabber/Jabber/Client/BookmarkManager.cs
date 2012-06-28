@@ -33,31 +33,32 @@ namespace Jabber.Client
     /// Manager bookmarks on the server, with the old-style iq:private.
     /// TODO: add support for new-style PEP.
     /// </summary>
-    public class BookmarkManager : Jabber.Connection.StreamComponent
+    public partial class BookmarkManager : StreamComponent
     {
         private bool m_autoPrivate = true;
         private ConferenceManager m_confManager;
         private Dictionary<JID, BookmarkConference> m_conferences = new Dictionary<JID, BookmarkConference>();
 
         /// <summary>
-        /// Create
+        /// Creates a new bookmark manager inside a container.
         /// </summary>
-        public BookmarkManager()
-        {
-            InitializeComponent();
-            this.OnStreamChanged += new Bedrock.ObjectHandler(BookmarkManager_OnStreamChanged);
-        }
-
-        /// <summary>
-        /// Create
-        /// </summary>
-        /// <param name="container"></param>
+        /// <param name="container">Parent container</param>
         public BookmarkManager(IContainer container)
             : this()
         {
             container.Add(this);
         }
 
+        /// <summary>
+        /// Creates a new bookmark manager
+        /// </summary>
+        public BookmarkManager()
+        {
+            InitializeComponent();
+
+            this.OnStreamChanged += new Bedrock.ObjectHandler(BookmarkManager_OnStreamChanged);
+        }
+        
         /// <summary>
         /// Automatically request bookmarks using iq:private on login.
         /// </summary>
@@ -256,36 +257,5 @@ namespace Jabber.Client
             this[jid] = c;
             return c;
         }
-
-        /// <summary>
-        /// Required designer variable.
-        /// </summary>
-        private System.ComponentModel.IContainer components = null;
-
-        /// <summary> 
-        /// Clean up any resources being used.
-        /// </summary>
-        /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing && (components != null))
-            {
-                components.Dispose();
-            }
-            base.Dispose(disposing);
-        }
-
-        #region Component Designer generated code
-
-        /// <summary>
-        /// Required method for Designer support - do not modify
-        /// the contents of this method with the code editor.
-        /// </summary>
-        private void InitializeComponent()
-        {
-            components = new System.ComponentModel.Container();
-        }
-
-        #endregion
     }
 }

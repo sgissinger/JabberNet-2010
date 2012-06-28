@@ -45,7 +45,7 @@ namespace Jabber.Client
     /// You can install this in your Toolbox, drop onto a form, a service, and so on.
     /// This class hooks into the OnProtocol event and calls the Connect() method.
     /// </summary>
-    public class JabberClient : XmppStream
+    public partial class JabberClient : XmppStream
     {
         private static readonly object[][] DEFAULTS = new object[][] {
             //FF
@@ -62,6 +62,8 @@ namespace Jabber.Client
 
         private void init()
         {
+            InitializeComponent();
+
             SetDefaults(DEFAULTS);
 
             this.OnSASLStart += new Jabber.Connection.SASL.SASLProcessorHandler(JabberClient_OnSASLStart);
@@ -72,20 +74,19 @@ namespace Jabber.Client
 
         /// <summary>
         /// Creates a new Jabber client and associates it with the parent window.
-        /// Required for Windows.Forms Class Composition Designer support
         /// </summary>
         /// <param name="container">Parent container.</param>
-        public JabberClient(System.ComponentModel.IContainer container) :
-            base(container)
+        public JabberClient(IContainer container)
+            : base(container)
         {
             init();
         }
 
         /// <summary>
         /// Creates a new JabberClient.
-        /// Required for Windows.Forms Class Composition Designer support.
         /// </summary>
-        public JabberClient() : base()
+        public JabberClient()
+            : base()
         {
             init();
         }
@@ -95,7 +96,8 @@ namespace Jabber.Client
         /// Create a new JabberClient, reusing an existing SocketWatcher.
         /// </summary>
         /// <param name="watcher">SocketWatcher to use.</param>
-        public JabberClient(SocketWatcher watcher) : base(watcher)
+        public JabberClient(SocketWatcher watcher)
+            : base(watcher)
         {
             init();
         }

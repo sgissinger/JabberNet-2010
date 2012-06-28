@@ -12,12 +12,10 @@
  * See LICENSE.txt for details.
  * --------------------------------------------------------------------------*/
 using System;
-
 using System.Collections;
 using System.ComponentModel;
 using System.Drawing;
 using System.Drawing.Drawing2D;
-
 
 namespace Muzzle.Controls
 {
@@ -42,42 +40,22 @@ namespace Muzzle.Controls
     ///
     /// Good gracious.  Did I really take the time to write this?
     /// </summary>
-    public class Litmus : System.Windows.Forms.UserControl
+    public partial class Litmus : System.Windows.Forms.UserControl
     {
         private int               m_hist  = -1;
         private int               m_max   = 0;
         private bool              m_pause = false;
         private Queue             m_list  = new Queue(100);
         private LitmusColorScheme m_scheme = LitmusColorScheme.Blue;
-        private System.Windows.Forms.PictureBox pictureBox1;
-        /// <summary>
-        /// Required designer variable.
-        /// </summary>
-        private System.ComponentModel.Container components = null;
 
         /// <summary>
         /// Create a new Litmus object
         /// </summary>
         public Litmus()
         {
-            // This call is required by the Windows.Forms Form Designer.
             InitializeComponent();
         }
 
-        /// <summary>
-        /// Clean up any resources being used.
-        /// </summary>
-        protected override void Dispose( bool disposing )
-        {
-            if( disposing )
-            {
-                if(components != null)
-                {
-                    components.Dispose();
-                }
-            }
-            base.Dispose( disposing );
-        }
         /// <summary>
         /// Color scheme to use.
         /// </summary>
@@ -228,35 +206,7 @@ namespace Muzzle.Controls
             }
             pictureBox1.Image = bm;
         }
-        #region Component Designer generated code
-        /// <summary>
-        /// Required method for Designer support - do not modify
-        /// the contents of this method with the code editor.
-        /// </summary>
-        private void InitializeComponent()
-        {
-            this.pictureBox1 = new System.Windows.Forms.PictureBox();
-            this.SuspendLayout();
-            //
-            // pictureBox1
-            //
-            this.pictureBox1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.pictureBox1.Name = "pictureBox1";
-            this.pictureBox1.Size = new System.Drawing.Size(150, 150);
-            this.pictureBox1.TabIndex = 0;
-            this.pictureBox1.TabStop = false;
-            //
-            // Litmus
-            //
-            this.Controls.AddRange(new System.Windows.Forms.Control[] {
-                                                                          this.pictureBox1});
-            this.Name = "Litmus";
-            this.Resize += new System.EventHandler(this.Litmus_Resize);
-            this.Load += new System.EventHandler(this.Litmus_Load);
-            this.ResumeLayout(false);
 
-        }
-        #endregion
         private void Litmus_Load(object sender, System.EventArgs e)
         {
             ReDraw();

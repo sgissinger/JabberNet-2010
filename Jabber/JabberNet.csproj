@@ -133,11 +133,50 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Bedrock\Util\IdleTime.Designer.cs">
+      <DependentUpon>IdleTime.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Jabber\Client\BookmarkManager.Designer.cs">
+      <DependentUpon>BookmarkManager.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Jabber\Client\JabberClient.Designer.cs">
+      <DependentUpon>JabberClient.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Jabber\Client\PresenceManager.Designer.cs">
+      <DependentUpon>PresenceManager.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Jabber\Client\RosterManager.Designer.cs">
+      <DependentUpon>RosterManager.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Jabber\Connection\CapsManager.Designer.cs">
+      <DependentUpon>CapsManager.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Jabber\Connection\CertificatePrompt.Designer.cs">
+      <DependentUpon>CertificatePrompt.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Jabber\Connection\ConferenceManager.Designer.cs">
+      <DependentUpon>ConferenceManager.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Jabber\Connection\DiscoManager.Designer.cs">
+      <DependentUpon>DiscoManager.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Jabber\Connection\PubSubManager.Designer.cs">
+      <DependentUpon>PubSubManager.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Jabber\Connection\StreamComponent.Designer.cs">
+      <DependentUpon>StreamComponent.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Jabber\Connection\XmppStream.Designer.cs">
+      <DependentUpon>XmppStream.cs</DependentUpon>
+    </Compile>
     <Compile Include="Jabber\Protocol\IQ\Jingle.cs" />
     <Compile Include="Jabber\Protocol\IQ\JingleErrors.cs" />
     <Compile Include="Jabber\Protocol\IQ\JingleIce.cs" />
     <Compile Include="Jabber\Protocol\IQ\JingleReasons.cs" />
     <Compile Include="Jabber\Protocol\IQ\Ping.cs" />
+    <Compile Include="Jabber\Server\JabberService.Designer.cs">
+      <DependentUpon>JabberService.cs</DependentUpon>
+    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -477,6 +516,9 @@
       <DependentUpon>JabberClient.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Jabber\Client\PresenceManager.bmp" />
+    <EmbeddedResource Include="Jabber\Client\PresenceManager.resx">
+      <DependentUpon>PresenceManager.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Jabber\Client\RosterManager.bmp" />
     <EmbeddedResource Include="Jabber\Client\RosterManager.resx">
       <DependentUpon>RosterManager.cs</DependentUpon>

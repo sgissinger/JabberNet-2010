@@ -70,14 +70,8 @@ namespace Jabber.Client
     /// <summary>
     /// Manages the roster of the client.
     /// </summary>
-    public class RosterManager : Jabber.Connection.StreamComponent, IEnumerable
+    public partial class RosterManager : Jabber.Connection.StreamComponent, IEnumerable
     {
-        /// <summary>
-        /// Required designer variable.
-        /// </summary>
-#pragma warning disable 0414
-        private System.ComponentModel.Container components = null;
-#pragma warning restore 0414
         private Tree m_items = new Tree();
         private AutoSubscriptionHanding m_autoAllow = AutoSubscriptionHanding.NONE;
         private bool m_autoSubscribe = false;
@@ -86,9 +80,9 @@ namespace Jabber.Client
         /// Creates a new roster manager inside a container.
         /// </summary>
         /// <param name="container">Parent container</param>
-        public RosterManager(System.ComponentModel.IContainer container) : this()
+        public RosterManager(IContainer container)
+            : this()
         {
-            // Required for Windows.Forms Class Composition Designer support
             container.Add(this);
         }
 
@@ -97,8 +91,8 @@ namespace Jabber.Client
         /// </summary>
         public RosterManager()
         {
-            // Required for Windows.Forms Class Composition Designer support
             InitializeComponent();
+
             this.OnStreamChanged += new Bedrock.ObjectHandler(RosterManager_OnStreamChanged);
         }
 
@@ -420,17 +414,6 @@ C: <iq from='juliet@example.com/balcony' type='set' id='delete_1'>
             r.AppendChild(item);
             Write(iq);  // ignore response
         }
-
-        #region Component Designer generated code
-        /// <summary>
-        /// Required method for Designer support - do not modify
-        /// the contents of this method with the code editor.
-        /// </summary>
-        private void InitializeComponent()
-        {
-            components = new System.ComponentModel.Container();
-        }
-        #endregion
 
         #region IEnumerable Members
 

@@ -20,7 +20,6 @@ using System.Drawing.Drawing2D;
 using System.Threading;
 using System.Windows.Forms;
 
-
 namespace Muzzle.Controls
 {
     /// <summary>
@@ -47,7 +46,7 @@ namespace Muzzle.Controls
     /// A StripChart is a scrolling window showing a set number of data points.
     /// As new points are added, old points get shifted along.
     /// </summary>
-    public class StripChart : System.Windows.Forms.UserControl
+    public partial class StripChart : System.Windows.Forms.UserControl
     {
         private bool       m_first     = true;
         private float      m_min       = 0F;
@@ -70,7 +69,6 @@ namespace Muzzle.Controls
         private Color      m_textColor = Color.Red;
         private Color      m_zeroColor = Color.Black;
         private Color      m_statsColor = Color.Wheat;
-        private System.Windows.Forms.PictureBox pictureBox1;
 
         private static float[] s_sampleData = new float[] {
             .9800F,
@@ -85,30 +83,11 @@ namespace Muzzle.Controls
             .0264F };
 
         /// <summary>
-        /// Required designer variable.
-        /// </summary>
-        private System.ComponentModel.Container components = null;
-
-        /// <summary>
         /// Create a stripchart.
         /// </summary>
         public StripChart()
         {
-            // This call is required by the Windows.Forms Form Designer.
             InitializeComponent();
-        }
-
-        /// <summary>
-        /// Clean up any resources being used.
-        /// </summary>
-        protected override void Dispose( bool disposing )
-        {
-            if( disposing )
-            {
-                if( components != null )
-                    components.Dispose();
-            }
-            base.Dispose( disposing );
         }
 
         /// <summary>
@@ -690,37 +669,6 @@ namespace Muzzle.Controls
                     BitBlt(bm);
             }
         }
-
-        #region Component Designer generated code
-        /// <summary>
-        /// Required method for Designer support - do not modify
-        /// the contents of this method with the code editor.
-        /// </summary>
-        private void InitializeComponent()
-        {
-            this.pictureBox1 = new System.Windows.Forms.PictureBox();
-            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
-            this.SuspendLayout();
-            //
-            // pictureBox1
-            //
-            this.pictureBox1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.pictureBox1.Location = new System.Drawing.Point(0, 0);
-            this.pictureBox1.Name = "pictureBox1";
-            this.pictureBox1.Size = new System.Drawing.Size(150, 150);
-            this.pictureBox1.TabIndex = 0;
-            this.pictureBox1.TabStop = false;
-            this.pictureBox1.Paint += new System.Windows.Forms.PaintEventHandler(this.pictureBox1_Paint);
-            //
-            // StripChart
-            //
-            this.Controls.Add(this.pictureBox1);
-            this.Name = "StripChart";
-            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
-            this.ResumeLayout(false);
-
-        }
-        #endregion
 
         /// <summary>
         /// The control has been resized.  Redraw.

@@ -213,9 +213,7 @@ namespace Jabber.Connection
     /// <summary>
     /// Manages the XMPP stream of the connection.
     /// </summary>
-    abstract public class XmppStream :
-        System.ComponentModel.Component,
-        IStanzaEventListener
+    public abstract partial class XmppStream : System.ComponentModel.Component, IStanzaEventListener
     {
         private static readonly object[][] DEFAULTS = new object[][] {
             new object[] {Options.TO, "jabber.com"},
@@ -270,21 +268,27 @@ namespace Jabber.Connection
         private SASLProcessor m_saslProc = null;
         private Features m_features = null; // the last features tag received.
 
-
-        /// <summary>
-        /// Required designer variable.
-        /// </summary>
-#pragma warning disable 0414
-        private System.ComponentModel.Container components = new System.ComponentModel.Container();
-#pragma warning restore 0414
-        
         /// <summary>
         /// Creates a new XMPP stream and associates it with the parent control.
         /// </summary>
         /// <param name="container">Parent control.</param>
-        public XmppStream(System.ComponentModel.IContainer container) : this()
+        public XmppStream(System.ComponentModel.IContainer container)
+            : this()
         {
             container.Add(this);
+        }
+
+        /// <summary>
+        /// Creates a new SocketElementStream.
+        /// </summary>
+        public XmppStream()
+        {
+            InitializeComponent();
+
+            m_ns = new XmlNamespaceManager(m_doc.NameTable);
+            m_tracker = new IQTracker(this);
+
+            SetDefaults(DEFAULTS);
         }
 
         /// <summary>
@@ -297,17 +301,6 @@ namespace Jabber.Connection
             {
                 this[(string)def[0]] = def[1];
             }
-        }
-
-        /// <summary>
-        /// Creates a new SocketElementStream.
-        /// </summary>
-        public XmppStream()
-        {
-            m_ns = new XmlNamespaceManager(m_doc.NameTable);
-            m_tracker = new IQTracker(this);
-
-            SetDefaults(DEFAULTS);
         }
 
         /// <summary>
