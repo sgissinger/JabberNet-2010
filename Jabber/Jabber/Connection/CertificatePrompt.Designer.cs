@@ -1,8 +1,13 @@
 
+#if !__MonoCS__
+    #define UI_OK
+#endif
+
 namespace Jabber.Connection
 {
     public partial class CertificatePrompt
     {
+#if UI_OK
         /// <summary>
         /// Required designer variable.
         /// </summary>
@@ -169,5 +174,6 @@ namespace Jabber.Connection
         private System.Windows.Forms.Button btnAllow;
         private System.Windows.Forms.Button btnShow;
         private System.Windows.Forms.Panel panel2;
+#endif
     }
 }

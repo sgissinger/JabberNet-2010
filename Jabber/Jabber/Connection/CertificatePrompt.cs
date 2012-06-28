@@ -16,19 +16,18 @@
     #define UI_OK
 #endif
 
-namespace Jabber.Connection
-{
-    using System;
-
+using System;
 
 #if UI_OK
-    using System.Security.Cryptography.X509Certificates;
-    using System.Net.Security;
-    using System.Windows.Forms;
-    using System.Drawing;
-    using System.Diagnostics;
+using System.Security.Cryptography.X509Certificates;
+using System.Net.Security;
+using System.Windows.Forms;
+using System.Drawing;
+using System.Diagnostics;
 #endif
 
+namespace Jabber.Connection
+{
     /// <summary>
     /// Intentionally-ugly form to deal with bad certificates.  Because you don't like it, you should catch XmppStream.OnInvalidCertificate,
     /// and do something better.
@@ -72,6 +71,5 @@ namespace Jabber.Connection
                 this.DialogResult = DialogResult.OK;
         }
 #endif
-
     }
 }
