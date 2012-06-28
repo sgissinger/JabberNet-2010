@@ -199,7 +199,7 @@ namespace Jabber.Protocol
         }
 
         /// <summary>
-        /// Gett he text contents of the first sub-element with the specified type
+        /// Get the text contents of the first sub-element with the specified type
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
@@ -522,6 +522,91 @@ namespace Jabber.Protocol
                 return;
             }
             SetAttribute(name, EnumParser.ToString(value));
+        }
+
+        /// <summary>
+        /// Get the value of a given attribute, as a byte. Returns 0 for
+        /// most errors.   TODO: should this throw exceptions?
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        protected byte GetByteAttr(string name)
+        {
+            string a = this.GetAttribute(name);
+
+            if (String.IsNullOrEmpty(a))
+                return 0;
+
+            try
+            {
+                return byte.Parse(a);
+            }
+            catch (FormatException)
+            {
+                return 0;
+            }
+            catch (OverflowException)
+            {
+                return 0;
+            }
+        }
+        /// <summary>
+        /// Set the value of a given attribute, as a byte.  Use 0
+        /// to remove the attribute.
+        /// </summary>
+        /// <param name="name">The attribute name</param>
+        /// <param name="val">The byte to set</param>
+        /// <returns></returns>
+        protected void SetByteAttr(string name, byte val)
+        {
+            if (val == 0)
+                // testing shows this is safe for non-existing attributes.
+                RemoveAttribute(name);
+            else
+                SetAttribute(name, val.ToString());
+        }
+
+        /// <summary>
+        /// Get the value of a given attribute, as an unsigned short. Returns 0 for
+        /// most errors.   TODO: should this throw exceptions?
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        protected ushort GetUShortAttr(string name)
+        {
+            string a = this.GetAttribute(name);
+
+            if (String.IsNullOrEmpty(a))
+                return 0;
+
+            try
+            {
+                return ushort.Parse(a);
+            }
+            catch (FormatException)
+            {
+                return 0;
+            }
+            catch (OverflowException)
+            {
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// Set the value of a given attribute, as an unsigned short. Use 0
+        /// to remove the attribute.
+        /// </summary>
+        /// <param name="name">The attribute name</param>
+        /// <param name="val">The unsigned short to set</param>
+        /// <returns></returns>
+        protected void SetUShortAttr(string name, ushort val)
+        {
+            if (val == 0)
+                // testing shows this is safe for non-existing attributes.
+                RemoveAttribute(name);
+            else
+                SetAttribute(name, val.ToString());
         }
 
         /// <summary>

@@ -101,7 +101,7 @@ namespace Jabber.Protocol.IQ
         }
 
         /// <summary>
-        /// Create a pubsub IQ, with a pubusub query element and the given subelement.
+        /// Create a pubsub IQ, with a pubsub query element and the given subelement.
         /// </summary>
         /// <param name="doc">Document to create in</param>
         /// <param name="command">The pubsub command</param>

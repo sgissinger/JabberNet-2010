@@ -133,13 +133,13 @@ namespace Jabber.Protocol.IQ
     /// <summary>
     /// Affiliations of all folks associated with a node
     /// </summary>
-    public class OwnerAffliliations : PubSubCommand
+    public class OwnerAffiliations : PubSubCommand
     {
         /// <summary>
         /// Create for outbound.
         /// </summary>
         /// <param name="doc"></param>
-        public OwnerAffliliations(XmlDocument doc)
+        public OwnerAffiliations(XmlDocument doc)
             : base("affiliations", URI.PUBSUB_OWNER, doc)
         {
         }
@@ -150,7 +150,7 @@ namespace Jabber.Protocol.IQ
         /// <param name="prefix"></param>
         /// <param name="qname"></param>
         /// <param name="doc"></param>
-        public OwnerAffliliations(string prefix, XmlQualifiedName qname, XmlDocument doc)
+        public OwnerAffiliations(string prefix, XmlQualifiedName qname, XmlDocument doc)
             : base(prefix, qname, doc)
         {
         }

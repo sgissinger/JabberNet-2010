@@ -37,13 +37,48 @@ namespace Jabber.Protocol.IQ
             new QnameType("item",  URI.BROWSE,   typeof(Jabber.Protocol.IQ.Browse)),
             new QnameType("ping",  URI.PING,     typeof(Jabber.Protocol.IQ.Ping)),
             new QnameType("geoloc",URI.GEOLOC,   typeof(Jabber.Protocol.IQ.GeoLoc)),
-            
-            
+
             new QnameType("query",      URI.PRIVATE,   typeof(Jabber.Protocol.IQ.Private)),
             new QnameType("storage",    URI.BOOKMARKS, typeof(Jabber.Protocol.IQ.Bookmarks)),
             new QnameType("url",        URI.BOOKMARKS, typeof(Jabber.Protocol.IQ.BookmarkURL)),
             new QnameType("conference", URI.BOOKMARKS, typeof(Jabber.Protocol.IQ.BookmarkConference)),
             new QnameType("note",       URI.BOOKMARKS, typeof(Jabber.Protocol.IQ.BookmarkNote)),
+
+            // Jingle
+            new QnameType("jingle",  URI.JINGLE, typeof(Jabber.Protocol.IQ.Jingle)),
+            new QnameType("reason",  URI.JINGLE, typeof(Jabber.Protocol.IQ.JingleReason)),
+            new QnameType("content", URI.JINGLE, typeof(Jabber.Protocol.IQ.JingleContent)),
+
+            // Jingle Reasons
+            new QnameType("alternative-session",      URI.JINGLE, typeof(Jabber.Protocol.IQ.AlternativeSession)),
+            new QnameType("busy",                     URI.JINGLE, typeof(Jabber.Protocol.IQ.Busy)),
+            new QnameType("cancel",                   URI.JINGLE, typeof(Jabber.Protocol.IQ.Cancel)),
+            new QnameType("connectivity-error",       URI.JINGLE, typeof(Jabber.Protocol.IQ.ConnectivityError)),
+            new QnameType("decline",                  URI.JINGLE, typeof(Jabber.Protocol.IQ.JingleDecline)),
+            new QnameType("expired",                  URI.JINGLE, typeof(Jabber.Protocol.IQ.Expired)),
+            new QnameType("failed-application",       URI.JINGLE, typeof(Jabber.Protocol.IQ.FailedApplication)),
+            new QnameType("failed-transport",         URI.JINGLE, typeof(Jabber.Protocol.IQ.FailedTransport)),
+            new QnameType("general-error",            URI.JINGLE, typeof(Jabber.Protocol.IQ.GeneralError)),
+            new QnameType("gone",                     URI.JINGLE, typeof(Jabber.Protocol.IQ.Gone)),
+            new QnameType("incompatible-parameters",  URI.JINGLE, typeof(Jabber.Protocol.IQ.IncompatibleParameters)),
+            new QnameType("media-error",              URI.JINGLE, typeof(Jabber.Protocol.IQ.MediaError)),
+            new QnameType("security-error",           URI.JINGLE, typeof(Jabber.Protocol.IQ.SecurityError)),
+            new QnameType("success",                  URI.JINGLE, typeof(Jabber.Protocol.IQ.Success)),
+            new QnameType("timeout",                  URI.JINGLE, typeof(Jabber.Protocol.IQ.Timeout)),
+            new QnameType("unsupported-applications", URI.JINGLE, typeof(Jabber.Protocol.IQ.UnsupportedApplications)),
+            new QnameType("unsupported-transports",   URI.JINGLE, typeof(Jabber.Protocol.IQ.UnsupportedTransports)),
+
+            // Jingle Errors
+            new QnameType("out-of-order",      URI.JINGLE_ERRORS, typeof(Jabber.Protocol.IQ.OutOfOrder)),
+            new QnameType("tie-break",         URI.JINGLE_ERRORS, typeof(Jabber.Protocol.IQ.TieBreak)),
+            new QnameType("unknown-session",   URI.JINGLE_ERRORS, typeof(Jabber.Protocol.IQ.UnknownSession)),
+            new QnameType("unsupported-info",  URI.JINGLE_ERRORS, typeof(Jabber.Protocol.IQ.UnsupportedInfo)),
+            new QnameType("security-required", URI.JINGLE_ERRORS, typeof(Jabber.Protocol.IQ.SecurityRequired)),
+
+            // Jingle ICE
+            new QnameType("transport",        URI.JINGLE_ICE, typeof(Jabber.Protocol.IQ.JingleIce)),
+            new QnameType("candidate",        URI.JINGLE_ICE, typeof(Jabber.Protocol.IQ.JingleIceCandidate)),
+            new QnameType("remote-candidate", URI.JINGLE_ICE, typeof(Jabber.Protocol.IQ.JingleIceRemoteCandidate)),
 
             // VCard
             new QnameType("vCard", URI.VCARD, typeof(Jabber.Protocol.IQ.VCard)),
@@ -53,7 +88,7 @@ namespace Jabber.Protocol.IQ
             new QnameType("EMAIL", URI.VCARD, typeof(Jabber.Protocol.IQ.VCard.VEmail)),
             new QnameType("GEO",   URI.VCARD, typeof(Jabber.Protocol.IQ.VCard.VGeo)),
             new QnameType("PHOTO", URI.VCARD, typeof(Jabber.Protocol.IQ.VCard.VPhoto)),
-            new QnameType("ADR", URI.VCARD, typeof(Jabber.Protocol.IQ.VCard.VAddress)),
+            new QnameType("ADR",   URI.VCARD, typeof(Jabber.Protocol.IQ.VCard.VAddress)),
 
             // Disco
             new QnameType("query",    URI.DISCO_ITEMS, typeof(Jabber.Protocol.IQ.DiscoItems)),
@@ -93,7 +128,7 @@ namespace Jabber.Protocol.IQ
 
             // Pubsub owner use cases
             new QnameType("pubsub",        URI.PUBSUB_OWNER, typeof(Jabber.Protocol.IQ.PubSubOwner)),
-            new QnameType("affiliations",  URI.PUBSUB_OWNER, typeof(Jabber.Protocol.IQ.OwnerAffliliations)),
+            new QnameType("affiliations",  URI.PUBSUB_OWNER, typeof(Jabber.Protocol.IQ.OwnerAffiliations)),
             new QnameType("affiliation",   URI.PUBSUB_OWNER, typeof(Jabber.Protocol.IQ.OwnerAffiliation)),
             new QnameType("configure",     URI.PUBSUB_OWNER, typeof(Jabber.Protocol.IQ.OwnerConfigure)),
             new QnameType("default",       URI.PUBSUB_OWNER, typeof(Jabber.Protocol.IQ.OwnerDefault)),

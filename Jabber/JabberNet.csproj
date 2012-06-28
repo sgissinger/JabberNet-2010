@@ -133,6 +133,10 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Jabber\Protocol\IQ\Jingle.cs" />
+    <Compile Include="Jabber\Protocol\IQ\JingleErrors.cs" />
+    <Compile Include="Jabber\Protocol\IQ\JingleIce.cs" />
+    <Compile Include="Jabber\Protocol\IQ\JingleReasons.cs" />
     <Compile Include="Jabber\Protocol\IQ\Ping.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>

@@ -21,6 +21,7 @@ namespace Jabber.Protocol
     /// </summary>
     public class URI
     {
+        #region CORE
         /// <summary>
         /// Namespace for the prefix "xmlns".
         /// </summary>
@@ -97,7 +98,9 @@ namespace Jabber.Protocol
         /// S2S dialback
         /// </summary>
         public const string DIALBACK = "jabber:server:dialback";
-        // IQ
+        #endregion
+
+        #region IQ
         /// <summary>
         /// Authentication
         /// </summary>
@@ -135,19 +138,36 @@ namespace Jabber.Protocol
         /// </summary>
         public const string BROWSE   = "jabber:iq:browse";
         /// <summary>
-        /// Ping
-        /// </summary>
-        public const string PING     = "urn:xmpp:ping";
-        /// <summary>
         /// Profile information
         /// </summary>
         public const string VCARD    = "vcard-temp";
+        /// <summary>
+        /// Ping
+        /// See XEP-0199 (http://www.xmpp.org/extensions/xep-0199.html)
+        /// </summary>
+        public const string PING     = "urn:xmpp:ping";
 
         /// <summary>
-        /// Geographic locaiotn (lat/long).
+        /// Jingle
+        /// See XEP-0166 (http://www.xmpp.org/extensions/xep-0166.html)
+        /// </summary>
+        public const string JINGLE   = "urn:xmpp:jingle:1";
+        /// <summary>
+        /// Jingle Errors
+        /// See XEP-0166 (http://www.xmpp.org/extensions/xep-0166.html)
+        /// </summary>
+        public const string JINGLE_ERRORS = "urn:xmpp:jingle:errors:1";
+        /// <summary>
+        /// Jingle ICE
+        /// See XEP-0176 (http://www.xmpp.org/extensions/xep-0176.html)
+        /// </summary>
+        public const string JINGLE_ICE  = "urn:xmpp:jingle:transports:ice-udp:1";
+
+        /// <summary>
+        /// Geographic location (lat/long).
         /// See XEP-80 (http://www.xmpp.org/extensions/xep-0080.html)
         /// </summary>
-        public const string GEOLOC   = "http://jabber.org/protocol/geoloc";
+        public const string GEOLOC      = "http://jabber.org/protocol/geoloc";
 
         /// <summary>
         /// Discover items from an entity.
@@ -156,9 +176,10 @@ namespace Jabber.Protocol
         /// <summary>
         /// Discover info about an entity item.
         /// </summary>
-        public const string DISCO_INFO = "http://jabber.org/protocol/disco#info";
+        public const string DISCO_INFO  = "http://jabber.org/protocol/disco#info";
+        #endregion
 
-        // X
+        #region X
         /// <summary>
         /// Offline message timestamping.
         /// </summary>
@@ -184,7 +205,9 @@ namespace Jabber.Protocol
         /// jabber:x:data, as described in XEP-0004.
         /// </summary>
         public const string XDATA = "jabber:x:data";
+        #endregion
 
+        #region MISC
         /// <summary>
         /// jabber:iq:search.
         /// See XEP-55 (http://www.xmpp.org/extensions/xep-0055.html)
@@ -264,5 +287,6 @@ namespace Jabber.Protocol
         /// See XEP-0049 (http://www.xmpp.org/extensions/xep-0049.html)
         /// </summary>
         public const string PRIVATE = "jabber:iq:private";
+        #endregion
     }
 }
