@@ -48,8 +48,6 @@ namespace Jabber.Client
     public partial class JabberClient : XmppStream
     {
         private static readonly object[][] DEFAULTS = new object[][] {
-            //FF
-            new object[] {Options.ANONYMOUS, false},
             new object[] {Options.RESOURCE, "Jabber.Net"},
             new object[] {Options.PRIORITY, 0},
             new object[] {Options.AUTO_LOGIN, true},
@@ -60,11 +58,11 @@ namespace Jabber.Client
             new object[] {Options.SRV_PREFIX, "_xmpp-client._tcp."},
         };
 
-        private void init()
+        private void Init()
         {
             InitializeComponent();
 
-            SetDefaults(DEFAULTS);
+            this.SetDefaults(JabberClient.DEFAULTS);
 
             this.OnSASLStart += new Jabber.Connection.SASL.SASLProcessorHandler(JabberClient_OnSASLStart);
             this.OnSASLEnd += new Jabber.Protocol.Stream.FeaturesHandler(JabberClient_OnSASLEnd);
@@ -79,7 +77,7 @@ namespace Jabber.Client
         public JabberClient(IContainer container)
             : base(container)
         {
-            init();
+            Init();
         }
 
         /// <summary>
@@ -88,7 +86,7 @@ namespace Jabber.Client
         public JabberClient()
             : base()
         {
-            init();
+            Init();
         }
 
         /*
@@ -816,11 +814,11 @@ namespace Jabber.Client
             if (OnIQ != null)
                 OnIQ(this, iq);
 
-            if (!iq.Handled && 
+            if (this.SupportPing && !iq.Handled && 
                 iq.Query != null && iq.Type == IQType.get &&
                 iq.Query.NamespaceURI == Jabber.Protocol.URI.PING)
             {
-                Write(iq.GetResponse(this.Document, false));
+                Write(iq.GetAcknowledge(this.Document));
             }
 
             if (AutoIQErrors)

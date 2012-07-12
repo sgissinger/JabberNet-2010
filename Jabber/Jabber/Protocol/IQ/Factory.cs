@@ -93,9 +93,9 @@ namespace Jabber.Protocol.IQ
             // Disco
             new QnameType("query",    URI.DISCO_ITEMS, typeof(Jabber.Protocol.IQ.DiscoItems)),
             new QnameType("item",     URI.DISCO_ITEMS, typeof(Jabber.Protocol.IQ.DiscoItem)),
-            new QnameType("query",    URI.DISCO_INFO, typeof(Jabber.Protocol.IQ.DiscoInfo)),
-            new QnameType("identity", URI.DISCO_INFO, typeof(Jabber.Protocol.IQ.DiscoIdentity)),
-            new QnameType("feature",  URI.DISCO_INFO, typeof(Jabber.Protocol.IQ.DiscoFeature)),
+            new QnameType("query",    URI.DISCO_INFO,  typeof(Jabber.Protocol.IQ.DiscoInfo)),
+            new QnameType("identity", URI.DISCO_INFO,  typeof(Jabber.Protocol.IQ.DiscoIdentity)),
+            new QnameType("feature",  URI.DISCO_INFO,  typeof(Jabber.Protocol.IQ.DiscoFeature)),
 
             // PubSub
             new QnameType("pubsub",        URI.PUBSUB, typeof(Jabber.Protocol.IQ.PubSub)),

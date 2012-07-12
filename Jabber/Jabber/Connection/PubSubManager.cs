@@ -482,8 +482,9 @@ namespace Jabber.Connection
     public delegate void NodeHandler(PubSubNode node);
 
     /// <summary>
-    /// Manages a node to be subscribed to.  Will keep a maximum number of items.
+    /// Manages a node to be subscribed to. Will keep a maximum number of items.
     /// </summary>
+    [ToolboxItem(false)]
     public class PubSubNode : StreamComponent, IEnumerable
     {
         private enum STATE

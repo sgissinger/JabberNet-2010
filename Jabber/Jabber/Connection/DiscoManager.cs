@@ -862,14 +862,18 @@ namespace Jabber.Connection
         /// the disco#items request has not returned an answer. Register on this
         /// node's OnFeatures callback.
         /// </summary>
+        [Browsable(false)]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public DiscoNode Root
         {
             get 
             {
                 if (m_root != null)
                     return m_root;
+
                 if (m_stream == null)
                     return null;
+
                 // GetNode locks.
                 m_root = GetNode(m_stream.Server);
                 return m_root; 

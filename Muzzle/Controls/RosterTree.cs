@@ -534,10 +534,12 @@ namespace Muzzle.Controls
             {
                 m_item = ri;
                 m_nick = ri.Nickname;
-                if ((m_nick == null) || (m_nick == ""))
+
+                if (String.IsNullOrEmpty(m_nick))
                 {
                     m_nick = ri.JID.User;
-                    if ((m_nick == null) || (m_nick == ""))
+
+                    if (String.IsNullOrEmpty(m_nick))
                         m_nick = ri.JID.ToString(); // punt.
                 }
                 this.Text = m_nick;

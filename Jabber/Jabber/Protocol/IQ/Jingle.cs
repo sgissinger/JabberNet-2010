@@ -8,13 +8,10 @@
  * Jabber-Net is licensed under the LGPL.
  * See LICENSE.txt for details.
  * --------------------------------------------------------------------------*/
-
 using System;
-using System.Collections.Generic;
-using System.Text;
+using System.Diagnostics;
 using System.Xml;
 using Jabber.Protocol.Client;
-using System.Diagnostics;
 
 namespace Jabber.Protocol.IQ
 {
@@ -38,7 +35,7 @@ namespace Jabber.Protocol.IQ
     public class Jingle : Element
     {
         /// <summary>
-        ///
+        /// Create for outbound
         /// </summary>
         /// <param name="doc"></param>
         public Jingle(XmlDocument doc)
@@ -46,7 +43,7 @@ namespace Jabber.Protocol.IQ
         { }
 
         /// <summary>
-        ///
+        /// Create for inbound
         /// </summary>
         /// <param name="prefix"></param>
         /// <param name="qname"></param>
@@ -115,12 +112,31 @@ namespace Jabber.Protocol.IQ
         }
 
         /// <summary>
-        /// Retrieve all of the contents
+        /// Retrieve all of the contents elements
         /// </summary>
         /// <returns></returns>
         public JingleContent[] GetContents()
         {
             return GetElements<JingleContent>().ToArray();
+        }
+
+        /// <summary>
+        /// Retrieve a single content element
+        /// </summary>
+        /// <returns></returns>
+        public JingleContent GetContent(Int32 index)
+        {
+            return GetContents()[index];
+        }
+
+        /// <summary>
+        /// Add a new content to the list
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public JingleContent AddContent(String name)
+        {
+            return AddContent(name, CreatorType.UNSPECIFIED, MailContentDisposition.UNSPECIFIED, SendersType.UNSPECIFIED);
         }
 
         /// <summary>
@@ -137,10 +153,17 @@ namespace Jabber.Protocol.IQ
 
             JingleContent jcnt = CreateChildElement<JingleContent>();
 
-            jcnt.JingleName  = name;
-            jcnt.Creator     = creator == null     ? CreatorType.initiator          : creator;
-            jcnt.Disposition = disposition == null ? MailContentDisposition.session : disposition;
-            jcnt.Senders     = senders == null     ? SendersType.both               : senders;
+            jcnt.ContentName  = name;
+
+            // Set default values
+            jcnt.Creator = creator == CreatorType.UNSPECIFIED ?
+                           CreatorType.initiator : creator;
+
+            jcnt.Disposition = disposition == MailContentDisposition.UNSPECIFIED ?
+                               MailContentDisposition.session : disposition;
+
+            jcnt.Senders = senders == SendersType.UNSPECIFIED ?
+                           SendersType.both : senders;
 
             return jcnt;
         }
@@ -236,7 +259,7 @@ namespace Jabber.Protocol.IQ
     public class JingleReason : Element
     {
         /// <summary>
-        ///
+        /// Create for outbound
         /// </summary>
         /// <param name="doc"></param>
         public JingleReason(XmlDocument doc)
@@ -244,7 +267,7 @@ namespace Jabber.Protocol.IQ
         { }
 
         /// <summary>
-        ///
+        /// Create for inbound
         /// </summary>
         /// <param name="prefix"></param>
         /// <param name="qname"></param>
@@ -280,6 +303,16 @@ namespace Jabber.Protocol.IQ
         { }
 
         /// <summary>
+        /// Create a reason type. Should not be called directly.
+        /// </summary>
+        /// <param name="prefix"></param>
+        /// <param name="ns"></param>
+        /// <param name="doc"></param>
+        protected AbstractJingleReason(string prefix, string ns, XmlDocument doc)
+            : base(prefix, ns, doc)
+        { }
+
+        /// <summary>
         /// Create for outbound, in the namespace of the parent element,
         /// then attach to the parent element.
         /// </summary>
@@ -292,22 +325,9 @@ namespace Jabber.Protocol.IQ
         }
 
         /// <summary>
-        /// Create a reason type. Should not be called directly.
-        /// </summary>
-        /// <param name="prefix"></param>
-        /// <param name="ns"></param>
-        /// <param name="doc"></param>
-        protected AbstractJingleReason(string prefix, string ns, XmlDocument doc)
-            : base(prefix, ns, doc)
-        { }
-
-        /// <summary>
         /// What type of reason
         /// </summary>
-        public abstract ReasonType ReasonType
-        {
-            get;
-        }
+        public abstract ReasonType ReasonType { get; }
 
         /// <summary>
         /// Human-readable information about the reason for the action
@@ -405,7 +425,7 @@ namespace Jabber.Protocol.IQ
     public class JingleContent : Element
     {
         /// <summary>
-        ///
+        /// Create for outbound
         /// </summary>
         /// <param name="doc"></param>
         public JingleContent(XmlDocument doc)
@@ -413,7 +433,7 @@ namespace Jabber.Protocol.IQ
         { }
 
         /// <summary>
-        ///
+        /// Create for inbound
         /// </summary>
         /// <param name="prefix"></param>
         /// <param name="qname"></param>
@@ -448,7 +468,7 @@ namespace Jabber.Protocol.IQ
         /// (e.g., two content types containing video media could differentiate
         ///  between "room-pan" and "slides")
         /// </summary>
-        public String JingleName
+        public String ContentName
         {
             get { return GetAttr("name"); }
             set { SetAttr("name", value); }

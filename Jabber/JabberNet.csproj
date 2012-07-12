@@ -142,6 +142,12 @@
     <Compile Include="Jabber\Client\JabberClient.Designer.cs">
       <DependentUpon>JabberClient.cs</DependentUpon>
     </Compile>
+    <Compile Include="Jabber\Client\JingleManager.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="Jabber\Client\JingleManager.Designer.cs">
+      <DependentUpon>JingleManager.cs</DependentUpon>
+    </Compile>
     <Compile Include="Jabber\Client\PresenceManager.Designer.cs">
       <DependentUpon>PresenceManager.cs</DependentUpon>
     </Compile>
@@ -581,6 +587,15 @@
       <ProductName>Windows Installer 3.1</ProductName>
       <Install>true</Install>
     </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Jabber\Client\JingleManager.bmp" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Jabber\Client\BookmarkManager.bmp" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Bedrock\Util\IdleTime.bmp" />
   </ItemGroup>
   <Import Condition="'$(BuildMono)'==''" Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>

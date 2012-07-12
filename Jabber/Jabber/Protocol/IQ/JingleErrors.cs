@@ -1,11 +1,76 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿/* --------------------------------------------------------------------------
+ * Copyrights
+ *
+ * Portions created by or assigned to Sébastien Gissinger
+ *
+ * License
+ *
+ * Jabber-Net is licensed under the LGPL.
+ * See LICENSE.txt for details.
+ * --------------------------------------------------------------------------*/
+using System;
 using System.Xml;
-using Jabber.Protocol.Client;
 
 namespace Jabber.Protocol.IQ
 {
+    public static class JingleUtilities
+    {
+        #region JINGLE CORE
+        /// <summary>
+        /// 
+        /// </summary>
+        public static String GenerateSid
+        {
+            get { return Guid.NewGuid().ToString("N"); }
+        }
+        #endregion
+
+        #region JINGLE ICE
+        /// <summary>
+        /// 
+        /// </summary>
+        public static String GenerateIcePwd
+        {
+            get { return Guid.NewGuid().ToString("N").Substring(0, 22); }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public static String GenerateIceUfrag
+        {
+            get { return Guid.NewGuid().ToString("N").Substring(0, 4); }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public static String GenerateIceCandidateId
+        {
+            get { return Guid.NewGuid().ToString("N").Substring(0, 10); }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public static UInt32 GenerateIceCandidatePriority
+        {
+            get
+            {
+                Random random = new Random();
+                String r = random.Next(1, 3).ToString();
+
+                Int32 i;
+
+                for (i = 1; i < 10; i++)
+                    r += random.Next(0, 9).ToString();
+
+                return UInt32.Parse(r);
+            }
+        }
+        #endregion
+    }
+
     /// <summary>
     /// The request cannot occur at this point in the state machine
     /// (e.g., session-initiate after session-accept).

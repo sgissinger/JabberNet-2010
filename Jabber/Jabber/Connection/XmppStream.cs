@@ -149,6 +149,10 @@ namespace Jabber.Connection
         /// Sends the presence on connection if set to true.
         /// </summary>
         public const string AUTO_PRESENCE = "auto.presence";
+        /// <summary>
+        /// Sends response to ping requests if set to true.
+        /// </summary>
+        public const string SUPPORT_PING = "suppport.ping";
 
         /// <summary>
         /// Contains the certificate for our side of the SSL/TLS negotiation.
@@ -216,6 +220,8 @@ namespace Jabber.Connection
     public abstract partial class XmppStream : System.ComponentModel.Component, IStanzaEventListener
     {
         private static readonly object[][] DEFAULTS = new object[][] {
+            new object[] {Options.ANONYMOUS, false}, // FF
+            new object[] {Options.SUPPORT_PING, true},
             new object[] {Options.TO, "jabber.com"},
             new object[] {Options.KEEP_ALIVE, 30000},
             new object[] {Options.CURRENT_KEEP_ALIVE, -1},
@@ -461,6 +467,7 @@ namespace Jabber.Connection
         public event System.Net.Security.RemoteCertificateValidationCallback OnInvalidCertificate;
 
         //FF
+        [DefaultValue(false)]
         public bool UseAnonymous
         {
             get { return (bool)this[Options.ANONYMOUS]; }
@@ -876,11 +883,23 @@ namespace Jabber.Connection
         /// <summary>
         /// Gets the version number of the XMPP server.
         /// </summary>
-        [Description("Gets the version number of the XMPP server.")]
-        [DefaultValue(null)]
+        [Browsable(false)]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public string ServerVersion
         {
             get { return m_serverVersion; }
+        }
+
+        /// <summary>
+        /// Sends XMPP Ping response to XMPP Ping request if set to true.
+        /// </summary>
+        [Description("Automatically respond to XMPP Ping requests.")]
+        [DefaultValue(true)]
+        [Category("Automation")]
+        public bool SupportPing
+        {
+            get { return (bool)this[Options.SUPPORT_PING]; }
+            set { this[Options.SUPPORT_PING] = value; }
         }
 
         /// <summary>

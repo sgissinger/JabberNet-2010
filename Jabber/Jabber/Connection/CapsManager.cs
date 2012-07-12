@@ -23,6 +23,7 @@ using Jabber.Protocol;
 using Jabber.Protocol.Client;
 using Jabber.Protocol.IQ;
 using Jabber.Protocol.X;
+using System.IO;
 
 
 namespace Jabber.Connection
@@ -109,25 +110,33 @@ namespace Jabber.Connection
         /// caps queries will not be generated.
         /// </summary>
         [Category("Cache")]
+        [Browsable(false)]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public string FileName
         {
             get
             {
                 if (m_cache == null)
                     return null;
+
                 return m_cache.FileName;
             }
             set
             {
+                String filename = value;
+
+                if (!File.Exists(filename))
+                    filename = Path.GetTempFileName();
+
                 if (m_cache == null)
                 {
                     ElementFactory ef = new ElementFactory();
                     ef.AddType(new Jabber.Protocol.IQ.Factory());
 
-                    m_cache = new FileMap<DiscoInfo>(value, ef);
+                    m_cache = new FileMap<DiscoInfo>(filename, ef);
                 }
                 else
-                    m_cache.FileName = value;
+                    m_cache.FileName = filename;
             }
         }
 
@@ -305,6 +314,8 @@ namespace Jabber.Connection
         /// Returns the calculated hash over all of the caps information.
         /// </summary>
         [Category("Capabilities")]
+        [Browsable(false)]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public string Ver
         {
             get
@@ -330,6 +341,8 @@ namespace Jabber.Connection
         /// Retrieves the node#ver to look for in queries.
         /// </summary>
         [Category("Capabilities")]
+        [Browsable(false)]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public string NodeVer
         {
             get { return Node + "#" + Ver; }

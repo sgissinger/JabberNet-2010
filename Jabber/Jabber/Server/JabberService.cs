@@ -67,11 +67,11 @@ namespace Jabber.Server
             new object[] {Options.OVERRIDE_FROM, null},
         };
 
-        private void init()
+        private void Init()
         {
             InitializeComponent();
 
-            SetDefaults(DEFAULTS);
+            this.SetDefaults(DEFAULTS);
 
             this.OnStreamInit += new Jabber.Connection.StreamHandler(JabberService_OnStreamInit);
             this.OnSASLStart += new Jabber.Connection.SASL.SASLProcessorHandler(JabberService_OnSASLStart);
@@ -83,7 +83,7 @@ namespace Jabber.Server
         public JabberService()
             : base()
         {
-            init();
+            Init();
         }
 
         /// <summary>
@@ -96,7 +96,7 @@ namespace Jabber.Server
         public JabberService(string host, int port, string name, string secret)
             : base()
         {
-            init();
+            Init();
 
             this.ComponentID = name;
             this.NetworkHost = host;
@@ -115,7 +115,7 @@ namespace Jabber.Server
         public JabberService(int port, string name, string secret)
             : base()
         {
-            init();
+            Init();
 
             this.ComponentID = name;
             this.Port = port;

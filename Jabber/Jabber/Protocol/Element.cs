@@ -120,7 +120,8 @@ namespace Jabber.Protocol
             {
                 if (HasAttribute("lang", URI.XML))
                     RemoveAttribute("lang", URI.XML);
-                if (value != null)
+
+                if (!String.IsNullOrEmpty(value))
                 {
                     XmlAttribute attr = OwnerDocument.CreateAttribute("xml:lang", URI.XML);
                     attr.Value = value;
@@ -196,6 +197,16 @@ namespace Jabber.Protocol
             where T : XmlElement
         {
             return new TypedElementList<T>(this);
+        }
+
+        /// <summary>
+        /// Get a single child element that have the specified type.
+        /// </summary>
+        /// <returns></returns>
+        public T GetElement<T>(Int32 index)
+            where T : XmlElement
+        {
+            return GetElements<T>().ToArray()[index];
         }
 
         /// <summary>
@@ -525,7 +536,7 @@ namespace Jabber.Protocol
         }
 
         /// <summary>
-        /// Get the value of a given attribute, as a byte. Returns 0 for
+        /// Get the value of a given attribute, as a byte. Returns 255 for
         /// most errors.   TODO: should this throw exceptions?
         /// </summary>
         /// <param name="name"></param>
@@ -535,7 +546,7 @@ namespace Jabber.Protocol
             string a = this.GetAttribute(name);
 
             if (String.IsNullOrEmpty(a))
-                return 0;
+                return 255;
 
             try
             {
@@ -543,15 +554,15 @@ namespace Jabber.Protocol
             }
             catch (FormatException)
             {
-                return 0;
+                return 255;
             }
             catch (OverflowException)
             {
-                return 0;
+                return 255;
             }
         }
         /// <summary>
-        /// Set the value of a given attribute, as a byte.  Use 0
+        /// Set the value of a given attribute, as a byte. Use 255
         /// to remove the attribute.
         /// </summary>
         /// <param name="name">The attribute name</param>
@@ -559,7 +570,7 @@ namespace Jabber.Protocol
         /// <returns></returns>
         protected void SetByteAttr(string name, byte val)
         {
-            if (val == 0)
+            if (val == 255)
                 // testing shows this is safe for non-existing attributes.
                 RemoveAttribute(name);
             else
@@ -601,6 +612,49 @@ namespace Jabber.Protocol
         /// <param name="val">The unsigned short to set</param>
         /// <returns></returns>
         protected void SetUShortAttr(string name, ushort val)
+        {
+            if (val == 0)
+                // testing shows this is safe for non-existing attributes.
+                RemoveAttribute(name);
+            else
+                SetAttribute(name, val.ToString());
+        }
+
+        /// <summary>
+        /// Get the value of a given attribute, as an unsigned integer. Returns 0 for
+        /// most errors.   TODO: should this throw exceptions?
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        protected uint GetUIntAttr(string name)
+        {
+            string a = this.GetAttribute(name);
+
+            if (String.IsNullOrEmpty(a))
+                return 0;
+
+            try
+            {
+                return uint.Parse(a);
+            }
+            catch (FormatException)
+            {
+                return 0;
+            }
+            catch (OverflowException)
+            {
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// Set the value of a given attribute, as an unsigned integer. Use 0
+        /// to remove the attribute.
+        /// </summary>
+        /// <param name="name">The attribute name</param>
+        /// <param name="val">The unsigned integer to set</param>
+        /// <returns></returns>
+        protected void SetUIntAttr(string name, uint val)
         {
             if (val == 0)
                 // testing shows this is safe for non-existing attributes.

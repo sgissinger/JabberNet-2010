@@ -38,7 +38,7 @@ namespace Muzzle.Controls
     /// This was inspired by DW &amp; Craig&apos;s suggestion that the next generation protocol should
     /// just be shades of blue.
     ///
-    /// Good gracious.  Did I really take the time to write this?
+    /// Good gracious. Did I really take the time to write this?
     /// </summary>
     public partial class Litmus : System.Windows.Forms.UserControl
     {
@@ -64,14 +64,8 @@ namespace Muzzle.Controls
         [Category("Chart")]
         public LitmusColorScheme ColorScheme
         {
-            get
-            {
-                return m_scheme;
-            }
-            set
-            {
-                m_scheme = value;
-            }
+            get { return m_scheme; }
+            set { m_scheme = value; }
         }
         /// <summary>
         /// Number of points to show.  -1 means all
@@ -81,14 +75,8 @@ namespace Muzzle.Controls
         [Category("Chart")]
         public int History
         {
-            get
-            {
-                return m_hist;
-            }
-            set
-            {
-                m_hist = value;
-            }
+            get { return m_hist; }
+            set { m_hist = value; }
         }
         /// <summary>
         /// Don't update the display for now.  Useful for bulk loads.

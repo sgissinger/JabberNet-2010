@@ -8,12 +8,8 @@
  * Jabber-Net is licensed under the LGPL.
  * See LICENSE.txt for details.
  * --------------------------------------------------------------------------*/
-
 using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Xml;
-using Jabber.Protocol.Client;
 
 namespace Jabber.Protocol.IQ
 {

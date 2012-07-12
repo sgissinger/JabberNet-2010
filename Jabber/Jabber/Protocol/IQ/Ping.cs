@@ -37,7 +37,7 @@ namespace Jabber.Protocol.IQ
     public class Ping : Element
     {
         /// <summary>
-        ///
+        /// Create for outbound
         /// </summary>
         /// <param name="doc"></param>
         public Ping(XmlDocument doc)
@@ -45,7 +45,7 @@ namespace Jabber.Protocol.IQ
         { }
 
         /// <summary>
-        ///
+        /// Create for inbound
         /// </summary>
         /// <param name="prefix"></param>
         /// <param name="qname"></param>

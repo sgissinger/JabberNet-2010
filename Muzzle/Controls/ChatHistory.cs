@@ -12,7 +12,9 @@
  * See LICENSE.txt for details.
  * --------------------------------------------------------------------------*/
 using System;
+using System.ComponentModel;
 using System.Drawing;
+using Jabber.Protocol.Client;
 
 namespace Muzzle.Controls
 {
@@ -36,9 +38,10 @@ namespace Muzzle.Controls
         }
 
         /// <summary>
-        /// Nickname for the associated user.  If null, the resource will be used (e.g. MUC).
+        /// Nickname for the associated user. If null, the resource will be used (e.g. MUC)
         /// </summary>
-        public string Nickname        {            get;            set;        }
+        [Description("Gets or sets the nickname who is associated to this History.")]
+        public string Nickname { get; set; }
 
         /// <summary>
         /// Insert the given message into the history.  The timestamp on the message will be used, if
@@ -46,7 +49,7 @@ namespace Muzzle.Controls
         /// Messages without bodies will be ignored.
         /// </summary>
         /// <param name="msg"></param>
-        public void InsertMessage(Jabber.Protocol.Client.Message msg)
+        public void InsertMessage(Message msg)
         {
             string body = msg.Body;
 
@@ -55,7 +58,7 @@ namespace Muzzle.Controls
 
             string nick = (this.Nickname == null) ? msg.From.Resource : this.Nickname;
 
-            AppendMaybeScroll(m_recvColor, nick + ":", body);
+            this.AppendMaybeScroll(m_recvColor, nick + ":", body);
         }
 
         /// <summary>
@@ -64,10 +67,10 @@ namespace Muzzle.Controls
         /// <param name="text"></param>
         public void InsertSend(string text)
         {
-            AppendMaybeScroll(m_sendColor, "Me:", text);
+            this.AppendMaybeScroll(m_sendColor, "Me:", text);
         }
 
-        private void m_cli_OnPresence(object sender, Jabber.Protocol.Client.Presence pres)
+        private void m_cli_OnPresence(object sender, Presence pres)
         {
             throw new Exception("The method or operation is not implemented.");
         }

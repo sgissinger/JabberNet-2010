@@ -8,10 +8,10 @@
  * Jabber-Net is licensed under the LGPL.
  * See LICENSE.txt for details.
  * --------------------------------------------------------------------------*/
-
 using System;
 using System.Collections.Generic;
-using System.Text;
+using System.Diagnostics;
+using System.Net;
 using System.Xml;
 
 namespace Jabber.Protocol.IQ
@@ -23,7 +23,7 @@ namespace Jabber.Protocol.IQ
     public class JingleIce : Element
     {
         /// <summary>
-        ///
+        /// Create for outbound
         /// </summary>
         /// <param name="doc"></param>
         public JingleIce(XmlDocument doc)
@@ -31,7 +31,7 @@ namespace Jabber.Protocol.IQ
         { }
 
         /// <summary>
-        ///
+        /// Create for inbound
         /// </summary>
         /// <param name="prefix"></param>
         /// <param name="qname"></param>
@@ -77,16 +77,103 @@ namespace Jabber.Protocol.IQ
         }
 
         /// <summary>
-        /// Add a new candidate to the list
+        /// Retrieve a single candidate
         /// </summary>
         /// <returns></returns>
-        public JingleIceCandidate AddCandidate()
+        public JingleIceCandidate GetCandidate(Int32 index)
         {
-            //Debug.Assert(!String.IsNullOrEmpty(name));
+            return GetCandidates()[index];
+        }
+
+        /// <summary>
+        /// Add a new candidate to the list
+        /// </summary>
+        /// <param name="component"></param>
+        /// <param name="foundation"></param>
+        /// <param name="generation"></param>
+        /// <param name="id"></param>
+        /// <param name="ip"></param>
+        /// <param name="network"></param>
+        /// <param name="port"></param>
+        /// <param name="priority"></param>
+        /// <param name="protocol"></param>
+        /// <param name="type"></param>
+        /// <returns></returns>
+        public JingleIceCandidate AddCandidate(Byte component, Byte foundation, Byte generation, String id, Byte network, IPAddress ip, UInt16 port, UInt32 priority, IceProtocolType protocol, IceCandidateType type)
+        {
+            return AddCandidate(component, foundation, generation, id, network, ip, port, priority, protocol, type, null, 0);
+        }
+
+        /// <summary>
+        /// Add a new candidate to the list
+        /// </summary>
+        /// <param name="component"></param>
+        /// <param name="foundation"></param>
+        /// <param name="generation"></param>
+        /// <param name="id"></param>
+        /// <param name="ip"></param>
+        /// <param name="network"></param>
+        /// <param name="port"></param>
+        /// <param name="priority"></param>
+        /// <param name="protocol"></param>
+        /// <param name="type"></param>
+        /// <param name="relatedAddress"></param>
+        /// <param name="relatedPort"></param>
+        /// <returns></returns>
+        public JingleIceCandidate AddCandidate(Byte component, Byte foundation, Byte generation, String id, Byte network, IPAddress ip, UInt16 port, UInt32 priority, IceProtocolType protocol, IceCandidateType type, IPAddress relatedAddress, UInt16 relatedPort)
+        {
+            Debug.Assert(component > 0);
+            Debug.Assert(foundation > 0);
+            Debug.Assert(!String.IsNullOrEmpty(id));
+            Debug.Assert(!String.IsNullOrEmpty(ip.ToString()));
+            Debug.Assert(network > 0);
+            Debug.Assert(port > 1024);
+            Debug.Assert(priority.ToString().Length == 10);
+            Debug.Assert(protocol != IceProtocolType.UNSPECIFIED);
+            Debug.Assert(type != IceCandidateType.UNSPECIFIED);
 
             JingleIceCandidate cndt = CreateChildElement<JingleIceCandidate>();
+            cndt.Component = component;
+            cndt.Foundation = foundation;
+            cndt.Generation = generation;
+            cndt.ID = id;
+            cndt.IP = ip;
+            cndt.Network = network;
+            cndt.Port = port;
+            cndt.Priority = priority;
+            cndt.Protocol = protocol;
+
+            if (relatedAddress != null)
+                cndt.RelatedAddress = relatedAddress;
+
+            if (relatedPort != 0)
+                cndt.RelatedPort = relatedPort;
+
+            cndt.Type = type;
 
             return cndt;
+        }
+
+        /// <summary>
+        /// TODO: Documentation CandidatesEP
+        /// </summary>
+        /// <param name="jingle"></param>
+        /// <returns></returns>
+        public static IEnumerable<IPEndPoint> CandidatesEP(Jingle jingle)
+        {
+            List<IPEndPoint> result = new List<IPEndPoint>();
+
+            JingleContent jingleContent = jingle.GetContent(0);
+            JingleIce ice = jingleContent.GetElement<JingleIce>(0);
+
+            if (ice != null)
+            {
+                foreach (JingleIceCandidate iceCandidate in ice.GetCandidates())
+                {
+                    result.Add(new IPEndPoint(iceCandidate.IP, (Int32)iceCandidate.Port));
+                }
+            }
+            return result;
         }
     }
 
@@ -96,7 +183,7 @@ namespace Jabber.Protocol.IQ
     public class JingleIceCandidate : Element
     {
         /// <summary>
-        ///
+        /// Create for inbound
         /// </summary>
         /// <param name="doc"></param>
         public JingleIceCandidate(XmlDocument doc)
@@ -104,7 +191,7 @@ namespace Jabber.Protocol.IQ
         { }
 
         /// <summary>
-        ///
+        /// Create for outbound
         /// </summary>
         /// <param name="prefix"></param>
         /// <param name="qname"></param>
@@ -151,16 +238,6 @@ namespace Jabber.Protocol.IQ
         }
 
         /// <summary>
-        /// The Internet Protocol (IP) address for the candidate transport mechanism;
-        /// this can be either an IPv4 address or an IPv6 address
-        /// </summary>
-        public String IP
-        {
-            get { return GetAttr("ip"); }
-            set { SetAttr("ip", value); }
-        }
-
-        /// <summary>
         /// An index, starting at 0, referencing which network this candidate is on
         /// for a given peer
         /// (used for diagnostic purposes if the calling hardware has more than one Network Interface Card)
@@ -169,6 +246,16 @@ namespace Jabber.Protocol.IQ
         {
             get { return GetByteAttr("network"); }
             set { SetByteAttr("network", value); }
+        }
+
+        /// <summary>
+        /// The Internet Protocol (IP) address for the candidate transport mechanism;
+        /// this can be either an IPv4 address or an IPv6 address
+        /// </summary>
+        public IPAddress IP
+        {
+            get { return IPAddress.Parse(GetAttr("ip")); }
+            set { SetAttr("ip", value.ToString()); }
         }
 
         /// <summary>
@@ -184,10 +271,10 @@ namespace Jabber.Protocol.IQ
         /// A Priority as defined in ICE-CORE
         /// MUST be a positive integer
         /// </summary>
-        public Int32 Priority
+        public UInt32 Priority
         {
-            get { return GetIntAttr("priority"); }
-            set { SetIntAttr("priority", value); }
+            get { return GetUIntAttr("priority"); }
+            set { SetUIntAttr("priority", value); }
         }
 
         /// <summary>
@@ -203,10 +290,10 @@ namespace Jabber.Protocol.IQ
         /// <summary>
         /// A related address as defined in ICE-CORE
         /// </summary>
-        public String RelatedAddress
+        public IPAddress RelatedAddress
         {
-            get { return GetAttr("rel-addr"); }
-            set { SetAttr("rel-addr", value); }
+            get { return IPAddress.Parse(GetAttr("rel-addr")); }
+            set { SetAttr("rel-addr", value.ToString()); }
         }
 
         /// <summary>
@@ -281,7 +368,7 @@ namespace Jabber.Protocol.IQ
     public class JingleIceRemoteCandidate : Element
     {
         /// <summary>
-        ///
+        /// Create for outbound
         /// </summary>
         /// <param name="doc"></param>
         public JingleIceRemoteCandidate(XmlDocument doc)
@@ -289,7 +376,7 @@ namespace Jabber.Protocol.IQ
         { }
 
         /// <summary>
-        ///
+        /// Create for inbound
         /// </summary>
         /// <param name="prefix"></param>
         /// <param name="qname"></param>

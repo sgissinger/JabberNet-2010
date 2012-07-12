@@ -48,7 +48,7 @@ namespace Jabber.Protocol.IQ
         }
 
         /// <summary>
-        /// Create for inbound.
+        /// Create for inbound
         /// </summary>
         /// <param name="prefix"></param>
         /// <param name="qname"></param>

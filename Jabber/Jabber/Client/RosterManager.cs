@@ -99,8 +99,10 @@ namespace Jabber.Client
         private void RosterManager_OnStreamChanged(object sender)
         {
             JabberClient cli = m_stream as JabberClient;
+
             if (cli == null)
                 return;
+
             cli.OnIQ += new IQHandler(GotIQ);
             cli.OnPresence += new PresenceHandler(cli_OnPresence);
             cli.OnDisconnect += new Bedrock.ObjectHandler(GotDisconnect);
@@ -206,6 +208,8 @@ namespace Jabber.Client
         /// <summary>
         /// Gets the number of items currently in the roster.
         /// </summary>
+        [Browsable(false)]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public int Count
         {
             get

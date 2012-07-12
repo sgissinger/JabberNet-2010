@@ -152,6 +152,16 @@ namespace Jabber.Protocol.Client
         }
 
         /// <summary>
+        /// Swap the to and from, set the type to result and do not append Query element to response
+        /// </summary>
+        /// <param name="doc"></param>
+        /// <returns></returns>
+        public IQ GetAcknowledge(XmlDocument doc)
+        {
+            return this.GetResponse(doc, false);
+        }
+
+        /// <summary>
         /// Swap the to and from, set the type to result and append Query element if wanted
         /// (eg: XEP-0199 (Ping) and XEP-0166 (Jingle) sends ack IQs responses who do not
         ///  contains any Query element inside the response)
@@ -159,7 +169,7 @@ namespace Jabber.Protocol.Client
         /// <param name="doc"></param>
         /// <param name="appendQuery"></param>
         /// <returns></returns>
-        public IQ GetResponse(XmlDocument doc, Boolean appendQuery)
+        private IQ GetResponse(XmlDocument doc, Boolean appendQuery)
         {
             IQ resp = new IQ(doc);
             resp.From = this.To;

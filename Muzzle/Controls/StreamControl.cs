@@ -13,8 +13,8 @@
  * --------------------------------------------------------------------------*/
 using System.ComponentModel;
 using System.ComponentModel.Design;
+using System.Windows.Forms;
 using System.Xml;
-
 using Jabber;
 using Jabber.Connection;
 using Jabber.Protocol.Client;
@@ -24,7 +24,8 @@ namespace Muzzle.Controls
     /// <summary>
     /// A UserControl that references an XmppStream.
     /// </summary>
-    public partial class StreamControl : System.Windows.Forms.UserControl
+    [ToolboxItem(false)]
+    public partial class StreamControl : UserControl
     {
         /// <summary>
         /// The XmppStream for this control.  Set at design time when a subclass control is dragged onto a form.
@@ -71,7 +72,7 @@ namespace Muzzle.Controls
         /// Unless your server implemets XEP-193, you shouldn't use this for 
         /// client connections.
         /// </summary>
-        public JID OverrideFrom        {            get;            set;        }
+        public JID OverrideFrom { get; set; }
 
         /// <summary>
         /// Write the specified stanza to the stream.
