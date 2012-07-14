@@ -183,6 +183,10 @@
     <Compile Include="Jabber\Server\JabberService.Designer.cs">
       <DependentUpon>JabberService.cs</DependentUpon>
     </Compile>
+    <Compile Include="Jabber\Stun\StunAttribute.cs" />
+    <Compile Include="Jabber\Stun\StunClient.cs" />
+    <Compile Include="Jabber\Stun\StunMessage.cs" />
+    <Compile Include="Jabber\Stun\StunUtilities.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>

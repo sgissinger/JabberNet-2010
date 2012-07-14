@@ -85,7 +85,7 @@ namespace Jabber
         {
             Debug.Assert(jid != null, "jid must be non-null");
             m_JID = jid;
-            parse();
+            Parse();
         }
 
         /// <summary>
@@ -108,7 +108,7 @@ namespace Jabber
             m_server   = server.ToLower();
             m_resource = resource;
 #endif
-            m_JID      = build(m_user, m_server, m_resource);
+            m_JID      = Build(m_user, m_server, m_resource);
 
         }
 
@@ -127,7 +127,7 @@ namespace Jabber
             m_JID = full;
         }
 
-        private static string build(string user, string server, string resource)
+        private static string Build(string user, string server, string resource)
         {
             Debug.Assert(server != null, "Server must be non-null");
             StringBuilder sb = new StringBuilder();
@@ -145,7 +145,7 @@ namespace Jabber
             return sb.ToString();
         }
 
-        private void parse()
+        private void Parse()
         {
             if (m_server != null)
                 return; // already parsed
@@ -216,7 +216,7 @@ namespace Jabber
             m_resource = resource;
 #endif
             // Make the case right, for fast equality comparisons
-            m_JID = build(m_user, m_server, m_resource);
+            m_JID = Build(m_user, m_server, m_resource);
         }
 
         /// <summary>
@@ -381,14 +381,14 @@ namespace Jabber
         {
             get
             {
-                parse();
+                Parse();
                 return m_user;
             }
             set
             {
-                parse();
+                Parse();
                 m_user = value;
-                m_JID = build(m_user, m_server, m_resource);
+                m_JID = Build(m_user, m_server, m_resource);
             }
         }
 
@@ -399,14 +399,14 @@ namespace Jabber
         {
             get
             {
-                parse();
+                Parse();
                 return m_server;
             }
             set
             {
-                parse();
+                Parse();
                 m_server = value;
-                m_JID = build(m_user, m_server, m_resource);
+                m_JID = Build(m_user, m_server, m_resource);
             }
         }
 
@@ -417,14 +417,14 @@ namespace Jabber
         {
             get
             {
-                parse();
+                Parse();
                 return m_resource;
             }
             set
             {
-                parse();
+                Parse();
                 m_resource = value;
-                m_JID = build(m_user, m_server, m_resource);
+                m_JID = Build(m_user, m_server, m_resource);
             }
         }
 
@@ -435,10 +435,10 @@ namespace Jabber
         {
             get
             {
-                parse();
+                Parse();
                 if (m_resource == null)
                     return m_JID;
-                return build(m_user, m_server, null);
+                return Build(m_user, m_server, null);
             }
         }
 
@@ -451,10 +451,10 @@ namespace Jabber
         {
             get 
             {
-                parse();
+                Parse();
                 if (m_resource == null)
                     return this; // already bare
-                return new JID(m_user, m_server, null, build(m_user, m_server, null)); 
+                return new JID(m_user, m_server, null, Build(m_user, m_server, null)); 
             }
         }
 
@@ -575,8 +575,8 @@ namespace Jabber
             // hm.  How tricky to get?
             // It could be that sorting by domain first is correct...
             //return this.m_JID.CompareTo(oj.m_JID);
-            this.parse();
-            oj.parse();
+            this.Parse();
+            oj.Parse();
 
             int c = this.m_server.ToLower().CompareTo(oj.m_server.ToLower());
             if (c != 0) return c;
