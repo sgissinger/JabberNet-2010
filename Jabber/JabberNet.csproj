@@ -183,6 +183,8 @@
     <Compile Include="Jabber\Server\JabberService.Designer.cs">
       <DependentUpon>JabberService.cs</DependentUpon>
     </Compile>
+    <Compile Include="Jabber\Stun\Attributes\ErrorCode.cs" />
+    <Compile Include="Jabber\Stun\Attributes\MappedAddress.cs" />
     <Compile Include="Jabber\Stun\StunAttribute.cs" />
     <Compile Include="Jabber\Stun\StunClient.cs" />
     <Compile Include="Jabber\Stun\StunMessage.cs" />
@@ -489,6 +491,7 @@
     <Compile Include="StringPrep\Nameprep.cs" />
     <Compile Include="StringPrep\Plain.cs" />
     <Compile Include="StringPrep\Profile.cs" />
+    <Compile Include="StringPrep\SASLprep.cs" />
     <Compile Include="StringPrep\Steps\BidiStep.cs" />
     <Compile Include="StringPrep\Steps\MapStep.cs" />
     <Compile Include="StringPrep\Steps\NFKCStep.cs" />

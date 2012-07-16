@@ -18,7 +18,4 @@ using System.Reflection;
 [assembly: AssemblyCopyright("Copyright (c) Cursive, Inc. 2000-2008")]
 [assembly: AssemblyVersion("2.0.0.613")]
 [assembly: AssemblyDelaySign(false)]
-[assembly: CLSCompliant(true)]
-[assembly: AssemblyKeyFile("../../jabbernet.key")]
-
-
+[assembly: CLSCompliant(false)]

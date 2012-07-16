@@ -10,17 +10,20 @@
  * --------------------------------------------------------------------------*/
 using System;
 using System.Collections.Generic;
+using System.Net;
+using System.Net.Sockets;
+using Jabber.Stun.Attributes;
 
 namespace Jabber.Stun
 {
     /// <summary>
-    /// TODO: Documentation Class
+    /// Collection of generics utility methods that can be used by any STUN classes
     /// </summary>
     public static class StunUtilities
     {
-        #region PROPERTIES
+        #region STUN
         /// <summary>
-        /// TODO: Documentation NewTransactionId
+        /// Contains a new randomized TransactionID of 96-bits (12byte) on each call
         /// </summary>
         public static byte[] NewTransactionId
         {
@@ -33,17 +36,44 @@ namespace Jabber.Stun
                 return transactionId;
             }
         }
+
+        /// <summary>
+        /// Helper method that returns needed informations to begin peer-to-peer Punch Hole operations
+        /// </summary>
+        /// <param name="address">The IP Address of the STUN server</param>
+        /// <param name="type">The connection type used to do the STUN Binding Request</param>
+        /// <returns>
+        /// A key-value pair where :
+        ///  * the key is the local IPEndPoint from where the STUN request occurs
+        ///  * the value is the MappedAddress returned by the STUN server
+        /// </returns>
+        public static KeyValuePair<IPEndPoint, MappedAddress> GetMappedAddressFrom(String address, ProtocolType type)
+        {
+            StunMessage msg = new StunMessage(StunMethodType.Binding, StunMethodClass.Request, StunUtilities.NewTransactionId);
+
+            StunClient cli = new StunClient();
+            cli.Connect(address, type);
+
+            StunMessage resp = cli.SendMessage(msg);
+
+            IPEndPoint stunningEP = cli.StunningEP;
+            MappedAddress mappedAddress = resp.MappedAddress;
+
+            cli.Close();
+
+            return new KeyValuePair<IPEndPoint, MappedAddress>(stunningEP, mappedAddress);
+        }
         #endregion
 
-        #region EXTENSIONS
+        #region BYTES OPERATIONS
         /// <summary>
-        /// TODO: Documentation SubArray
+        /// Retrieves a sub-array of an array
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="data"></param>
-        /// <param name="index"></param>
-        /// <param name="length"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">Type of element in the array</typeparam>
+        /// <param name="data">The array where to search for a sub-array</param>
+        /// <param name="index">The index from where the sub-array starts (included in the sub-array and 0 indexed)</param>
+        /// <param name="length">The number of array elements to retrieve</param>
+        /// <returns>A sub-array of T elements</returns>
         public static T[] SubArray<T>(T[] data, Int32 index, Int32 length)
         {
             T[] result = new T[length];
@@ -54,22 +84,18 @@ namespace Jabber.Stun
         }
 
         /// <summary>
-        /// TODO: Documentation GetBytes
+        /// Convert a StunAttribute's list to an array of bytes
         /// </summary>
-        /// <param name="attributes"></param>
-        /// <returns></returns>
-        public static byte[] GetBytes(Dictionary<StunAttributeType, StunAttribute> attributes)
+        /// <param name="attributes">The StunAttribute's list to convert</param>
+        /// <returns>The array of bytes representing the StunAttribute's list</returns>
+        public static byte[] GetBytes(StunAttribute[] attributes)
         {
-            if (attributes.Count == 0)
+            if (attributes.Length == 0)
                 return new byte[0];
-
-            StunAttribute[] attributeList = new StunAttribute[attributes.Count];
-
-            attributes.Values.CopyTo(attributeList, 0);
 
             Int32 totalLength = 0;
 
-            foreach (StunAttribute attribute in attributeList)
+            foreach (StunAttribute attribute in attributes)
             {
                 totalLength += attribute.GetBytes().Length;
             }
@@ -78,7 +104,7 @@ namespace Jabber.Stun
 
             Int32 offset = 0;
 
-            foreach (StunAttribute attribute in attributeList)
+            foreach (StunAttribute attribute in attributes)
             {
                 attribute.GetBytes().CopyTo(result, offset);
 
@@ -89,10 +115,10 @@ namespace Jabber.Stun
         }
 
         /// <summary>
-        /// TODO: Documentation PadTo32Bits
+        /// Add 0 padding to an array of bytes making it 32bits bounded
         /// </summary>
-        /// <param name="value"></param>
-        /// <returns></returns>
+        /// <param name="value">The array of bytes to pad</param>
+        /// <returns>The array of bytes padded...or not</returns>
         public static byte[] PadTo32Bits(byte[] value)
         {
             if (value.Length == 0)
@@ -136,24 +162,40 @@ namespace Jabber.Stun
         }
 
         /// <summary>
-        /// TODO: Documentation ReverseBytes
+        /// Reverse byte order in 16 bits unsigned short numbers.
+        /// This can be used to change between little-endian and big-endian.
         /// </summary>
-        /// <param name="value"></param>
-        /// <returns></returns>
+        /// <param name="value">The unsigned short to reverse</param>
+        /// <returns>The unsigned short reversed</returns>
         public static UInt16 ReverseBytes(UInt16 value)
         {
             return (UInt16)((value & 0xFFU) << 8 | (value & 0xFF00U) >> 8);
         }
 
         /// <summary>
-        /// TODO: Documentation ReverseBytes
+        /// Reverse byte order in 32 bits unsigned integer numbers.
+        /// This can be used to change between little-endian and big-endian.
         /// </summary>
-        /// <param name="value"></param>
-        /// <returns></returns>
+        /// <param name="value">The unsigned integer to reverse</param>
+        /// <returns>The unsigned integer reversed</returns>
         public static UInt32 ReverseBytes(UInt32 value)
         {
             return (value & 0x000000FFU) << 24 | (value & 0x0000FF00U) << 8 |
                    (value & 0x00FF0000U) >> 8 | (value & 0xFF000000U) >> 24;
+        }
+
+        /// <summary>
+        /// Reverse byte order in 64 bits unsigned long numbers.
+        /// This can be used to change between little-endian and big-endian.
+        /// </summary>
+        /// <param name="value">The unsigned long to reverse</param>
+        /// <returns>The unsigned long reversed</returns>
+        public static UInt64 ReverseBytes(UInt64 value)
+        {
+            return (value & 0x00000000000000FFUL) << 56 | (value & 0x000000000000FF00UL) << 40 |
+                   (value & 0x0000000000FF0000UL) << 24 | (value & 0x00000000FF000000UL) << 8 |
+                   (value & 0x000000FF00000000UL) >> 8 | (value & 0x0000FF0000000000UL) >> 24 |
+                   (value & 0x00FF000000000000UL) >> 40 | (value & 0xFF00000000000000UL) >> 56;
         }
         #endregion
     }

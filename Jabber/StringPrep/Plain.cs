@@ -11,7 +11,6 @@
  * Jabber-Net is licensed under the LGPL.
  * See LICENSE.txt for details.
  * --------------------------------------------------------------------------*/
-
 using StringPrep.Steps;
 
 namespace StringPrep
@@ -24,11 +23,10 @@ namespace StringPrep
         /// <summary>
         /// Create a Plain instance.
         /// </summary>
-        public Plain() :
-            base( new ProfileStep[] {   C_2_1, C_2_2,
-                                        C_3, C_4, C_5, C_6, C_8, C_9,
-                                        BIDI } )
-        {
-        }
+        public Plain()
+            : base(new ProfileStep[] { C_2_1, C_2_2,
+                                       C_3, C_4, C_5, C_6, C_8, C_9,
+                                       BIDI })
+        { }
     }
 }

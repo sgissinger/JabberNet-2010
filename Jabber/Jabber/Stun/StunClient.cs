@@ -21,13 +21,16 @@ namespace Jabber.Stun
     {
         #region CONSTANTS
         /// <summary>
-        /// TODO: Documentation Constant
+        /// IANA has assigned port number 3478 for the "stun"
+        /// service, defined over TCP and UDP.
         /// </summary>
         public const Int32 DEFAULT_STUN_PORT = 3478;
         /// <summary>
-        /// TODO: Documentation Constant
+        /// IANA has assigned port number 5349 for the "stuns" (stun-secured)
+        /// service, defined over TCP and UDP.
+        /// The UDP port is not currently defined. However, it is reserved for future use
         /// </summary>
-        public const Int32 DEFAULT_STUNS_PORT = 5489;
+        public const Int32 DEFAULT_STUNS_PORT = 5349;
         /// <summary>
         /// TODO: Documentation Constant
         /// </summary>
@@ -35,14 +38,6 @@ namespace Jabber.Stun
         #endregion
 
         #region PROPERTIES
-        /// <summary>
-        /// TODO: Documentation Property
-        /// </summary>
-        public IPEndPoint StunServerEP { get; private set; }
-        /// <summary>
-        /// TODO: Documentation Property
-        /// </summary>
-        public IPEndPoint StunningEP { get; private set; }
         /// <summary>
         /// TODO: Documentation Property
         /// </summary>
@@ -55,6 +50,14 @@ namespace Jabber.Stun
         /// TODO: Documentation Property
         /// </summary>
         public SocketType SocketType { get; private set; }
+        /// <summary>
+        /// TODO: Documentation Property
+        /// </summary>
+        public IPEndPoint ServerEP { get; private set; }
+        /// <summary>
+        /// TODO: Documentation Property
+        /// </summary>
+        public IPEndPoint StunningEP { get; private set; }
         #endregion
 
 
@@ -63,7 +66,17 @@ namespace Jabber.Stun
         /// TODO: Documentation Constructor
         /// </summary>
         public StunClient()
+            : this(null)
         { }
+
+        /// <summary>
+        /// TODO: Documentation Constructor
+        /// </summary>
+        /// <param name="stunningEP"></param>
+        public StunClient(IPEndPoint stunningEP)
+        {
+            this.StunningEP = stunningEP;
+        }
 
         /// <summary>
         /// Sample usage of this StunClient
@@ -97,7 +110,7 @@ namespace Jabber.Stun
 
         #region METHODS
         /// <summary>
-        /// 
+        /// TODO: Documentation Connect
         /// </summary>
         /// <param name="stunServerIp"></param>
         /// <param name="stunServerPort"></param>
@@ -108,7 +121,7 @@ namespace Jabber.Stun
         }
 
         /// <summary>
-        /// 
+        /// TODO: Documentation Connect
         /// </summary>
         /// <param name="stunServerIp"></param>
         /// <param name="protocolType"></param>
@@ -118,7 +131,7 @@ namespace Jabber.Stun
         }
 
         /// <summary>
-        /// 
+        /// TODO: Documentation Connect
         /// </summary>
         /// <param name="stunServerEP"></param>
         /// <param name="protocolType"></param>
@@ -127,7 +140,7 @@ namespace Jabber.Stun
             if (this.Socket != null)
                 this.Close();
 
-            this.StunServerEP = stunServerEP;
+            this.ServerEP = stunServerEP;
             this.ProtocolType = protocolType;
 
             if (this.ProtocolType == ProtocolType.Tcp)
@@ -148,7 +161,7 @@ namespace Jabber.Stun
         }
 
         /// <summary>
-        /// 
+        /// TODO: Documentation Close
         /// </summary>
         public void Close()
         {
@@ -160,21 +173,21 @@ namespace Jabber.Stun
         }
 
         /// <summary>
-        /// 
+        /// TODO: Documentation Reset
         /// </summary>
         public void Reset()
         {
             if (this.Socket != null)
                 this.Close();
 
-            this.StunServerEP = null;
+            this.ServerEP = null;
             this.ProtocolType = ProtocolType.Unknown;
             this.SocketType = SocketType.Unknown;
             this.StunningEP = null;
         }
 
         /// <summary>
-        /// 
+        /// TODO: Documentation SendMessage
         /// </summary>
         /// <param name="msg"></param>
         /// <returns></returns>
@@ -184,16 +197,16 @@ namespace Jabber.Stun
         }
 
         /// <summary>
-        /// 
+        /// TODO: Documentation SendMessage
         /// </summary>
         /// <param name="msg"></param>
-        /// <param name="needResponse"></param>
+        /// <param name="waitForResponse"></param>
         /// <returns></returns>
-        public StunMessage SendMessage(byte[] msg, Boolean needResponse)
+        public StunMessage SendMessage(byte[] msg, Boolean waitForResponse)
         {
             this.Socket.Send(msg, 0, msg.Length, SocketFlags.None);
 
-            if (needResponse)
+            if (waitForResponse)
             {
                 byte[] result = new byte[StunClient.BUFFER];
 
