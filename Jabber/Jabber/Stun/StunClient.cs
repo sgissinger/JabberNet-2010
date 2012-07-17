@@ -9,13 +9,16 @@
  * See LICENSE.txt for details.
  * --------------------------------------------------------------------------*/
 using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
+using Jabber.Stun.Attributes;
 
 namespace Jabber.Stun
 {
     /// <summary>
-    /// TODO: Documentation Class
+    /// Represents a STUN Client that can send request to a STUN Server
+    /// and receive response from it (or not)
     /// </summary>
     public class StunClient
     {
@@ -32,30 +35,31 @@ namespace Jabber.Stun
         /// </summary>
         public const Int32 DEFAULT_STUNS_PORT = 5349;
         /// <summary>
-        /// TODO: Documentation Constant
+        /// Socket receive buffer
         /// </summary>
         private const Int32 BUFFER = 8192;
         #endregion
 
         #region PROPERTIES
         /// <summary>
-        /// TODO: Documentation Property
+        /// Contains the socket instance used to communicate with the STUN Server
         /// </summary>
         public Socket Socket { get; private set; }
         /// <summary>
-        /// TODO: Documentation Property
+        /// Contains the type of protocol (udp, tcp) used to communicate with the STUN Server
         /// </summary>
         public ProtocolType ProtocolType { get; private set; }
         /// <summary>
-        /// TODO: Documentation Property
+        /// Contains the type of socket (datagram, stream) used to communicate with the STUN Server
         /// </summary>
         public SocketType SocketType { get; private set; }
         /// <summary>
-        /// TODO: Documentation Property
+        /// Contains the IPEndPoint of the STUN Server
         /// </summary>
         public IPEndPoint ServerEP { get; private set; }
         /// <summary>
-        /// TODO: Documentation Property
+        /// Contains the IPEndPoint of the LocalEndPoint used by this client
+        /// Unless Reset() method is fired every new connection to a STUN Server will be bound to this IPEndPoint
         /// </summary>
         public IPEndPoint StunningEP { get; private set; }
         #endregion
@@ -63,16 +67,16 @@ namespace Jabber.Stun
 
         #region CONSTRUCTORS & FINALIZERS
         /// <summary>
-        /// TODO: Documentation Constructor
+        /// Constructs a StunClient 
         /// </summary>
         public StunClient()
             : this(null)
         { }
 
         /// <summary>
-        /// TODO: Documentation Constructor
+        /// Constructs a StunClient using an existing IPEndPoint
         /// </summary>
-        /// <param name="stunningEP"></param>
+        /// <param name="stunningEP">The IPEndPoint to which the socket will be bound to</param>
         public StunClient(IPEndPoint stunningEP)
         {
             this.StunningEP = stunningEP;
@@ -81,9 +85,11 @@ namespace Jabber.Stun
         /// <summary>
         /// Sample usage of this StunClient
         /// </summary>
-        /// <param name="args"></param>
+        /// <param name="args">Unused</param>
         private static void Main(string[] args)
         {
+            KeyValuePair<IPEndPoint, MappedAddress> stunKeyValue = StunUtilities.GetMappedAddressFrom("66.228.45.110", ProtocolType.Udp);
+
             StunMessage msg = new StunMessage(StunMethodType.Binding, StunMethodClass.Request, StunUtilities.NewTransactionId);
             StunAttribute attr1 = new StunAttribute(StunAttributeType.Realm, "Hello World !");
             StunAttribute attr2 = new StunAttribute(StunAttributeType.Username, "Bob");
@@ -94,7 +100,9 @@ namespace Jabber.Stun
             byte[] octets = msg;
             StunMessage msgCopy = octets;
 
-            StunClient cli = new StunClient();
+            // Reuse of an existing local IPEndPoint makes the three requests returning 
+            // the same MappedAddress IPEndPoint if this client is behind a Cone NAT
+            StunClient cli = new StunClient(stunKeyValue.Key);
 
             cli.Connect("66.228.45.110", ProtocolType.Udp);
             StunMessage op1 = cli.SendMessage(msgCopy);
@@ -110,31 +118,31 @@ namespace Jabber.Stun
 
         #region METHODS
         /// <summary>
-        /// TODO: Documentation Connect
+        /// Opens a socket connection to a STUN Server
         /// </summary>
-        /// <param name="stunServerIp"></param>
-        /// <param name="stunServerPort"></param>
-        /// <param name="protocolType"></param>
+        /// <param name="stunServerIp">The IP where the STUN Server can be reached</param>
+        /// <param name="stunServerPort">The port number on which the STUN Server is listening</param>
+        /// <param name="protocolType">The protocol type (udp, tcp) used to communicate with the STUN Server</param>
         public void Connect(String stunServerIp, Int32 stunServerPort, ProtocolType protocolType)
         {
             this.Connect(new IPEndPoint(IPAddress.Parse(stunServerIp), stunServerPort), protocolType);
         }
 
         /// <summary>
-        /// TODO: Documentation Connect
+        /// Opens a socket connection to a STUN Server using default STUN port (3478)
         /// </summary>
-        /// <param name="stunServerIp"></param>
-        /// <param name="protocolType"></param>
+        /// <param name="stunServerIp">The IP where the STUN Server can be reached</param>
+        /// <param name="protocolType">The protocol type (udp, tcp) used to communicate with the STUN Server</param>
         public void Connect(String stunServerIp, ProtocolType protocolType)
         {
             this.Connect(new IPEndPoint(IPAddress.Parse(stunServerIp), StunClient.DEFAULT_STUN_PORT), protocolType);
         }
 
         /// <summary>
-        /// TODO: Documentation Connect
+        /// Opens a socket connection to a STUN Server
         /// </summary>
-        /// <param name="stunServerEP"></param>
-        /// <param name="protocolType"></param>
+        /// <param name="stunServerEP">The IPEndPoint where the STUN Server can be reached</param>
+        /// <param name="protocolType">The protocol type (udp, tcp) used to communicate with the STUN Server</param>
         public void Connect(IPEndPoint stunServerEP, ProtocolType protocolType)
         {
             if (this.Socket != null)
@@ -161,7 +169,8 @@ namespace Jabber.Stun
         }
 
         /// <summary>
-        /// TODO: Documentation Close
+        /// Closes the socket but do not reset the StunningEP to make the client able
+        /// to send requests to a STUN Server using the same StunningEP
         /// </summary>
         public void Close()
         {
@@ -173,7 +182,7 @@ namespace Jabber.Stun
         }
 
         /// <summary>
-        /// TODO: Documentation Reset
+        /// Resets everything and make this client able to connect to a STUN Server using a new StunningEP
         /// </summary>
         public void Reset()
         {
@@ -187,21 +196,27 @@ namespace Jabber.Stun
         }
 
         /// <summary>
-        /// TODO: Documentation SendMessage
+        /// Sends a StunMessage to the connected STUN Server.
+        /// If the StunMessage is an indication it returns null because the STUN Server
+        /// should not respond to this class of message as described in [RFC5389]
         /// </summary>
-        /// <param name="msg"></param>
-        /// <returns></returns>
+        /// <param name="msg">The StunMessage to send to the connected STUN Server</param>
+        /// <returns>The STUN Server response StunMessage or null if msg parameter is an indication StunMessage</returns>
         public StunMessage SendMessage(StunMessage msg)
         {
             return this.SendMessage(msg.GetBytes(), msg.MethodClass != StunMethodClass.Indication);
         }
 
         /// <summary>
-        /// TODO: Documentation SendMessage
+        /// Sends a StunMessage to the connected STUN Server.
         /// </summary>
-        /// <param name="msg"></param>
-        /// <param name="waitForResponse"></param>
-        /// <returns></returns>
+        /// <param name="msg">The StunMessage to send to the connected STUN Server</param>
+        /// <param name="waitForResponse">True if a response is expected from the STUN Server</param>
+        /// <returns>
+        /// The STUN Server response StunMessage
+        /// or null if waitForResponse parameter is false
+        /// or null if the received transaction ID is not identical to the sent transaction ID
+        /// </returns>
         public StunMessage SendMessage(byte[] msg, Boolean waitForResponse)
         {
             this.Socket.Send(msg, 0, msg.Length, SocketFlags.None);
@@ -212,7 +227,10 @@ namespace Jabber.Stun
 
                 this.Socket.Receive(result, 0, StunClient.BUFFER, SocketFlags.None);
 
-                return result;
+                if (StunUtilities.ByteArraysEquals(((StunMessage)result).TransactionID, ((StunMessage)msg).TransactionID))
+                    return result;
+                else
+                    return null;
             }
             return null;
         }

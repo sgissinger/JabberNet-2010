@@ -15,7 +15,7 @@ using Jabber.Stun.Attributes;
 namespace Jabber.Stun
 {
     /// <summary>
-    /// Represents a message according to STUN [RFC5389] and TURN [RFC5766]
+    /// Represents a message according to STUN [RFC5389], TURN [RFC5766] and STUN Classic [RFC3489]
     /// </summary>
     public class StunMessage
     {
@@ -65,40 +65,10 @@ namespace Jabber.Stun
 
         #region PROPERTIES
         /// <summary>
-        /// Contains the method type this message encapsulates
-        /// </summary>
-        public StunMethodType MethodType { get; private set; }
-        /// <summary>
-        /// Contains the method class this message encapsulates
-        /// </summary>
-        public StunMethodClass MethodClass { get; private set; }
-        /// <summary>
-        /// Contains the size, in bytes, of the message not including
-        /// the 20-byte STUN header. Since all STUN attributes are
-        /// padded to a multiple of 4 bytes, the last 2 bits of this field are
-        /// always zero. This provides a way to distinguish STUN packets
-        /// from packets of other protocols.
-        /// </summary>
-        public UInt16 Length
-        {
-            get
-            {
-                return (UInt16)(StunUtilities.GetBytes(this.Attributes).Length + StunUtilities.GetBytes(this.UnknownAttributes).Length);
-            }
-        }
-        /// <summary>
-        /// The transaction ID is a 96-bit (12byte) identifier, used to uniquely identify
-        /// STUN transactions.
-        ///  * For request/response transactions, the transaction ID is chosen by the STUN
-        ///    client for the request and echoed by the server in the response.
-        ///  * For indications, it is chosen by the agent sending the indication.
-        /// </summary>
-        public byte[] TransactionID { get; private set; }
-        /// <summary>
-        /// Contains a copy the list of every known attributes which have a StunAttributeType
+        /// Contains a copy of the list of every known attributes which have a StunAttributeType
         /// matching one of the StunAttribute constants
         /// </summary>
-        public StunAttribute[] Attributes
+        public StunAttribute[] AttributesList
         {
             get
             {
@@ -113,7 +83,7 @@ namespace Jabber.Stun
         /// Contains a copy of the list of every unknown attributes which haven't any StunAttributeType
         /// matching one of the StunAttribute constants
         /// </summary>
-        public StunAttribute[] UnknownAttributes
+        public StunAttribute[] UnknownAttributesList
         {
             get
             {
@@ -124,6 +94,32 @@ namespace Jabber.Stun
                 return attrs;
             }
         }
+        /// <summary>
+        /// Contains the method type this message encapsulates
+        /// </summary>
+        public StunMethodType MethodType { get; private set; }
+        /// <summary>
+        /// Contains the method class this message encapsulates
+        /// </summary>
+        public StunMethodClass MethodClass { get; private set; }
+        /// <summary>
+        /// Contains the size, in bytes, of the message not including the 20-byte STUN header
+        /// </summary>
+        public UInt16 MessageLength
+        {
+            get
+            {
+                return (UInt16)(StunUtilities.GetBytes(this.AttributesList).Length + StunUtilities.GetBytes(this.UnknownAttributesList).Length);
+            }
+        }
+        /// <summary>
+        /// The transaction ID is a 96-bit (12byte) identifier, used to uniquely identify
+        /// STUN transactions.
+        ///  * For request/response transactions, the transaction ID is chosen by the STUN
+        ///    client for the request and echoed by the server in the response.
+        ///  * For indications, it is chosen by the agent sending the indication.
+        /// </summary>
+        public byte[] TransactionID { get; private set; }
         /// <summary>
         /// Contains a MAPPED-ADDRESS or XOR-MAPPED-ADDRESS attribute if this message contains one of these
         /// The XOR-MAPPED-ADDRESS is parsed prior to MAPPED-ADDRESS
@@ -136,20 +132,14 @@ namespace Jabber.Stun
 
                 if (attribute != null)
                 {
-                    XorMappedAddress xorMappedAddress = new XorMappedAddress(attribute, this.TransactionID);
-
-                    return xorMappedAddress;
+                    return new XorMappedAddress(attribute, this.TransactionID);
                 }
                 else
                 {
                     attribute = this.GetAttribute(StunAttributeType.MappedAddress);
 
                     if (attribute != null)
-                    {
-                        MappedAddress mappedAddress = new MappedAddress(attribute);
-
-                        return mappedAddress;
-                    }
+                        return new MappedAddress(attribute);
                 }
                 return null;
             }
@@ -164,11 +154,8 @@ namespace Jabber.Stun
                 StunAttribute attribute = this.GetAttribute(StunAttributeType.ErrorCode);
 
                 if (attribute != null)
-                {
-                    ErrorCode errorCode = new ErrorCode(attribute);
+                    return new ErrorCode(attribute);
 
-                    return errorCode;
-                }
                 return null;
             }
         }
@@ -182,11 +169,8 @@ namespace Jabber.Stun
                 StunAttribute attribute = this.GetAttribute(StunAttributeType.AlternateServer);
 
                 if (attribute != null)
-                {
-                    AlternateServer alternateServer = new AlternateServer(attribute);
+                    return new AlternateServer(attribute);
 
-                    return alternateServer;
-                }
                 return null;
             }
         }
@@ -281,7 +265,7 @@ namespace Jabber.Stun
             if (message == null)
                 return null;
 
-            byte[] attributesBytes = StunUtilities.GetBytes(message.Attributes);
+            byte[] attributesBytes = StunUtilities.GetBytes(message.AttributesList);
 
             UInt16 methodType = StunMessage.MethodTypeToUInt16(message.MethodType);
             UInt16 methodClass = StunMessage.MethodClassToUInt16(message.MethodClass);

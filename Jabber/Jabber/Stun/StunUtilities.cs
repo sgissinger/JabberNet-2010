@@ -23,7 +23,8 @@ namespace Jabber.Stun
     {
         #region STUN
         /// <summary>
-        /// Contains a new randomized TransactionID of 96-bits (12byte) on each call
+        /// Contains a new randomized TransactionID of 96bits (12byte) on each call
+        /// It follows STUN [RFC5389] as in STUN [3489] the length of this property is 128bits
         /// </summary>
         public static byte[] NewTransactionId
         {
@@ -81,6 +82,32 @@ namespace Jabber.Stun
             Array.Copy(data, index, result, 0, length);
 
             return result;
+        }
+
+        /// <summary>
+        /// Tests that two byte arrays content are equals or not
+        /// </summary>
+        /// <param name="b1">The first array to compare</param>
+        /// <param name="b2">The second array to compare</param>
+        /// <returns>True if the two arrays content is the same otherwise false</returns>
+        public static Boolean ByteArraysEquals(byte[] b1, byte[] b2)
+        {
+            if (b1 == b2)
+                return true;
+
+            if (b1 == null || b2 == null)
+                return false;
+
+            if (b1.Length != b2.Length) 
+                return false;
+
+            for (int i = 0; i < b1.Length; i++)
+            {
+                if (b1[i] != b2[i])
+                    return false;
+            }
+
+            return true;
         }
 
         /// <summary>

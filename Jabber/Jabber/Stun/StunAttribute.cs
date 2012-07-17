@@ -16,7 +16,7 @@ using StringPrep;
 namespace Jabber.Stun
 {
     /// <summary>
-    /// Represents a message attribute according to STUN [RFC5389] and TURN [RFC5766]
+    /// Represents a message attribute according to STUN [RFC5389], TURN [RFC5766] and STUN Classic [RFC3489]
     /// </summary>
     public class StunAttribute
     {
@@ -106,46 +106,36 @@ namespace Jabber.Stun
 
         #region CONSTRUCTOR & FINALIZERS
         /// <summary>
-        /// TODO: Documentation Constructor
+        /// Constructs a new StunAttribute
         /// </summary>
-        /// <param name="type"></param>
-        /// <param name="value"></param>
+        /// <param name="type">The type of this StunAttribute</param>
+        /// <param name="value">The value of this StunAttribute</param>
         public StunAttribute(StunAttributeType type, String value)
-            : this(type, value, false)
+            : this(type, StunAttribute.Encoder.GetBytes(value))
         { }
 
         /// <summary>
-        /// TODO: Documentation Constructor
+        /// Constructs a new StunAttribute
         /// </summary>
-        /// <param name="type"></param>
-        /// <param name="value"></param>
-        /// <param name="doSASLprep"></param>
-        public StunAttribute(StunAttributeType type, String value, Boolean doSASLprep)
-            : this(type, StunAttribute.Encoder.GetBytes(doSASLprep ? new SASLprep().Prepare(value) : value))
-        { }
-
-        /// <summary>
-        /// TODO: Documentation Constructor
-        /// </summary>
-        /// <param name="type"></param>
-        /// <param name="value"></param>
+        /// <param name="type">The type of this StunAttribute</param>
+        /// <param name="value">The value of this StunAttribute</param>
         public StunAttribute(StunAttributeType type, byte[] value)
             : this(type, StunAttribute.AttributeTypeToBytes(type), value)
         { }
 
         /// <summary>
-        /// TODO: Documentation Constructor
+        /// Constructs a new StunAttribute
         /// </summary>
-        /// <param name="type"></param>
-        /// <param name="typeBytes"></param>
-        /// <param name="value"></param>
+        /// <param name="type">The type of this StunAttribute</param>
+        /// <param name="typeBytes">The value of the type of this StunAttribute in bytes</param>
+        /// <param name="value">The value of this StunAttribute</param>
         public StunAttribute(StunAttributeType type, byte[] typeBytes, byte[] value)
         {
             switch (type)
             {
                 case StunAttributeType.Software:
-                case StunAttributeType.Nonce:
                 case StunAttributeType.Realm:
+                case StunAttributeType.Nonce:
                 case StunAttributeType.ErrorCode:
                     if (value.Length > 763)
                         throw new ArgumentOutOfRangeException("value", "cannot be larger than 763 bytes for the given type as described in RFC 5389");
@@ -154,6 +144,16 @@ namespace Jabber.Stun
                 case StunAttributeType.Username:
                     if (value.Length > 513)
                         throw new ArgumentOutOfRangeException("value", "cannot be larger than 513 bytes for the given type as described in RFC 5389");
+                    break;
+            }
+
+            switch (type)
+            {
+                case StunAttributeType.Realm:
+                case StunAttributeType.Username:
+                    String saslPrepValue = new SASLprep().Prepare(StunAttribute.Encoder.GetString(value));
+
+                    value = StunAttribute.Encoder.GetBytes(saslPrepValue);
                     break;
             }
 
@@ -221,13 +221,14 @@ namespace Jabber.Stun
             if (attribute.Length < 5)
                 return null;
 
-            StunAttributeType stunType = StunAttribute.BytesToAttributeType(StunUtilities.SubArray(attribute, 0, 2));
+            byte[] attributeTypeValue = StunUtilities.SubArray(attribute, 0, 2);
+            StunAttributeType attributeType = StunAttribute.BytesToAttributeType(attributeTypeValue);
 
             UInt16 length = StunUtilities.ReverseBytes(BitConverter.ToUInt16(StunUtilities.SubArray(attribute, 2, 2), 0));
 
             byte[] value = StunUtilities.SubArray(attribute, 4, length);
 
-            return new StunAttribute(stunType, StunUtilities.SubArray(attribute, 0, 2), value);
+            return new StunAttribute(attributeType, attributeTypeValue, value);
         }
         #endregion
 

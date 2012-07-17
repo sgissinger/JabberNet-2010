@@ -84,21 +84,21 @@ namespace Jabber.Stun.Attributes
         /// <summary>
         /// Constructs a MappedAddress based on an existing StunAttribute
         /// </summary>
-        /// <param name="attribute">Base StunAttribute used to construct this specialized attribute</param>
+        /// <param name="attribute">The StunAttribute base for this MappedAddress</param>
         public MappedAddress(StunAttribute attribute)
-            : this(StunAttributeType.MappedAddress, attribute)
+            : base(StunAttributeType.MappedAddress, attribute.Value)
         {
             if (attribute.Type != StunAttributeType.MappedAddress)
                 throw new ArgumentException("is not a valid MAPPED-ADDRESS attribute", "attribute");
         }
 
         /// <summary>
-        /// Constructs a MappedAddress attribute based on an existing StunAttribute and using another
-        /// type than MAPPED-ADDRESS attribute type
+        /// Constructs a MappedAddress based on an existing StunAttribute
+        /// and using another type than MAPPED-ADDRESS
         /// </summary>
-        /// <param name="type">The StunAttributeType to associate to the StunAttribute</param>
-        /// <param name="attribute">Base StunAttribute use to construct this specialized attribute</param>
-        protected MappedAddress(StunAttributeType type, StunAttribute attribute)
+        /// <param name="type">The StunAttributeType associated to the StunAttribute</param>
+        /// <param name="attribute">The StunAttribute base for this MappedAddress</param>
+        public MappedAddress(StunAttributeType type, StunAttribute attribute)
             : base(type, attribute.Value)
         { }
         #endregion
@@ -126,11 +126,11 @@ namespace Jabber.Stun.Attributes
     {
         #region CONSTRUCTORS & FINALIZERS
         /// <summary>
-        /// Constructs an AlternateServer attribute based on an existing StunAttribute
+        /// Constructs an AlternateServer based on an existing StunAttribute
         /// </summary>
-        /// <param name="attribute">Base StunAttribute used to construct this specialized attribute</param>
+        /// <param name="attribute">The StunAttribute base for this AlternateServer</param>
         public AlternateServer(StunAttribute attribute)
-            : base(StunAttributeType.AlternateServer, attribute)
+            : base(StunAttributeType.AlternateServer, attribute.Value)
         {
             if (attribute.Type != StunAttributeType.AlternateServer)
                 throw new ArgumentException("is not a valid ALTERNATE-SERVER attribute", "attribute");
@@ -205,10 +205,13 @@ namespace Jabber.Stun.Attributes
 
         #region CONSTRUCTORS & FINALIZERS
         /// <summary>
-        /// Constructs a XorMappedAddress attribute based on an existing StunAttribute
+        /// Constructs a XorMappedAddress based on an existing StunAttribute
         /// </summary>
-        /// <param name="attribute">Base StunAttribute used to construct this specialized attribute</param>
-        /// <param name="transactionID"></param>
+        /// <param name="attribute">The StunAttribute base for this XorMappedAddress</param>
+        /// <param name="transactionID">
+        /// The transaction ID of the message from where the attribute parameter originates
+        /// It may be used by this XorMappedAddress to decode an IPV6 address
+        /// </param>
         public XorMappedAddress(StunAttribute attribute, byte[] transactionID)
             : base(StunAttributeType.XorMappedAddress, attribute)
         {

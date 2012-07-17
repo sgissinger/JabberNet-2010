@@ -18,6 +18,9 @@ This project is based on [ffailla-jabber-net] VS2010 fork of the original [jabbe
 * [XEP-0199]: XMPP Ping 
 * [XEP-0166]: Jingle coupled to a Jingle Manager for session management only
 * [XEP-0176]: Jingle ICE-UDP Transport Method
+* [RFC 5389]: Session Traversal Utilities for NAT (STUN). Can parse STUN messages and attributes coupled to a minimal client that can request a STUN server for its reflexive address. IPv6 is not handled.
+* [RFC 5766]: Traversal Using Relays around NAT (TURN). Can parse TURN messages and attributes
+* [RFC 3489]: STUN Classic deprecated in favor of RFC 5389. Can parse STUN Classic messages and attributes for debugging purposes only. Code elements of this RFC are annotated as deprecated.
 
 ## ATTENTION Support dropped
 
@@ -28,5 +31,8 @@ This project is based on [ffailla-jabber-net] VS2010 fork of the original [jabbe
 [XEP-0199]: http://xmpp.org/extensions/xep-0199.html
 [XEP-0166]: http://xmpp.org/extensions/xep-0166.html
 [XEP-0176]: http://xmpp.org/extensions/xep-0176.html
+[RFC 5389]: http://tools.ietf.org/html/rfc5389
+[RFC 5766]: http://tools.ietf.org/html/rfc5766
+[RFC 3489]: http://tools.ietf.org/html/rfc3489
 [jabber-net]: http://code.google.com/p/jabber-net/
 [ffailla-jabber-net]: https://github.com/ffailla/jabber-net
