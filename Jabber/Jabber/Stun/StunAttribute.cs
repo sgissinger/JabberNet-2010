@@ -60,6 +60,8 @@ namespace Jabber.Stun
         private const UInt16 PASSWORD = 0x0007;
         [Obsolete("Defined in RFC3489")]
         private const UInt16 REFLECTED_FROM = 0x000B;
+        [Obsolete("Defined in draft RFC3489bis-02")]
+        private const UInt16 XOR_MAPPED_ADDRESS_ALT = 0x8020;
         #endregion
         #endregion
 
@@ -359,6 +361,10 @@ namespace Jabber.Stun
                 case StunAttributeType.ReflectedFrom:
                     typeBytes = BitConverter.GetBytes(StunAttribute.REFLECTED_FROM);
                     break;
+
+                case StunAttributeType.XorMappedAddressAlt:
+                    typeBytes = BitConverter.GetBytes(StunAttribute.XOR_MAPPED_ADDRESS_ALT);
+                    break;
             }
             Array.Reverse(typeBytes);
 
@@ -491,6 +497,10 @@ namespace Jabber.Stun
 
                 case StunAttribute.REFLECTED_FROM:
                     stunType = StunAttributeType.ReflectedFrom;
+                    break;
+
+                case StunAttribute.XOR_MAPPED_ADDRESS_ALT:
+                    stunType = StunAttributeType.XorMappedAddressAlt;
                     break;
             }
             return stunType;
@@ -687,7 +697,13 @@ namespace Jabber.Stun
         /// Its syntax is identical to the MAPPED-ADDRESS attribute.
         /// </summary>
         [Obsolete("Defined in RFC3489")]
-        ReflectedFrom
+        ReflectedFrom,
+        /// <summary>
+        /// This alternate XOR-MAPPED-ADDRESS attribute may be used in some STUN Servers
+        /// implementation like Vovida or MS-TURN http://msdn.microsoft.com/en-us/library/dd909268
+        /// </summary>
+        [Obsolete("Defined in draft RFC3489bis-02")]
+        XorMappedAddressAlt
         #endregion
     }
 }

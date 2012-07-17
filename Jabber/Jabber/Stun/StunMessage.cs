@@ -136,10 +136,19 @@ namespace Jabber.Stun
                 }
                 else
                 {
-                    attribute = this.GetAttribute(StunAttributeType.MappedAddress);
+                    attribute = this.GetAttribute(StunAttributeType.XorMappedAddressAlt);
 
                     if (attribute != null)
-                        return new MappedAddress(attribute);
+                    {
+                        return new XorMappedAddressAlt(attribute, this.TransactionID);
+                    }
+                    else
+                    {
+                        attribute = this.GetAttribute(StunAttributeType.MappedAddress);
+
+                        if (attribute != null)
+                            return new MappedAddress(attribute);
+                    }
                 }
                 return null;
             }
