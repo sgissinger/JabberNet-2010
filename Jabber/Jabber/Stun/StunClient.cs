@@ -119,7 +119,7 @@ namespace Jabber.Stun
             StunClient cli = new StunClient(stunKeyValue.Key);
 
             // Sample TLS over TCP working with ejabberd but may not work with the sample server IP given here
-            cli.Connect("66.228.45.110", (ssender, certificate, chain, sslPolicyErrors) => true);
+            cli.Connect("66.228.45.110", (sender, certificate, chain, sslPolicyErrors) => true);
             StunMessage op1 = cli.SendMessage(msgCopy);
             cli.Close();
 
@@ -194,7 +194,7 @@ namespace Jabber.Stun
                 throw new ArgumentException("Only TCP can be used in conjunction with SSL", "useSsl");
 
             if (this.Socket != null)
-                throw new ArgumentException("StunClient socket is not null, you must close it before making a new connection", "this.Socket");
+                throw new ArgumentException("StunClient socket is not null, you must close it before doing a new connection", "this.Socket");
 
 
             if (this.ProtocolType == ProtocolType.Tcp)

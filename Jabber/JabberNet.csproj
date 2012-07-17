@@ -185,6 +185,7 @@
     </Compile>
     <Compile Include="Jabber\Stun\Attributes\ErrorCode.cs" />
     <Compile Include="Jabber\Stun\Attributes\MappedAddress.cs" />
+    <Compile Include="Jabber\Stun\Attributes\UnknownAttributes.cs" />
     <Compile Include="Jabber\Stun\StunAttribute.cs" />
     <Compile Include="Jabber\Stun\StunClient.cs" />
     <Compile Include="Jabber\Stun\StunMessage.cs" />

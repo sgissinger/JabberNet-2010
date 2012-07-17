@@ -174,6 +174,21 @@ namespace Jabber.Stun
                 return null;
             }
         }
+        /// <summary>
+        /// Contains an UNKNOWN-ATTRIBUTES attribute if this message contains one, otherwise returns null
+        /// </summary>
+        public UnknownAttributes UnknownAttributes
+        {
+            get
+            {
+                StunAttribute attribute = this.GetAttribute(StunAttributeType.UnknownAttributes);
+
+                if (attribute != null)
+                    return new UnknownAttributes(attribute);
+
+                return null;
+            }
+        }
         #endregion
 
         #region CONSTRUCTORS & FINALIZERS
