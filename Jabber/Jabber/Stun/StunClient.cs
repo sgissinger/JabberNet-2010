@@ -11,7 +11,9 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Net.Security;
 using System.Net.Sockets;
+using System.Security.Authentication;
 using Jabber.Stun.Attributes;
 
 namespace Jabber.Stun
@@ -62,6 +64,18 @@ namespace Jabber.Stun
         /// Unless Reset() method is fired every new connection to a STUN Server will be bound to this IPEndPoint
         /// </summary>
         public IPEndPoint StunningEP { get; private set; }
+        /// <summary>
+        /// Contains True if the current connected Socket must use TLS over TCP to communicate with the STUN Server
+        /// </summary>
+        public Boolean UseSsl { get; private set; }
+        /// <summary>
+        /// Contains the TcpClient handling TLS over TCP connection with the STUN Server
+        /// </summary>
+        private TcpClient SslClient { get; set; }
+        /// <summary>
+        /// Contains the SslStream handling TLS over TCP communication with the STUN Server
+        /// </summary>
+        private SslStream SslStream { get; set; }
         #endregion
 
 
@@ -104,7 +118,8 @@ namespace Jabber.Stun
             // the same MappedAddress IPEndPoint if this client is behind a Cone NAT
             StunClient cli = new StunClient(stunKeyValue.Key);
 
-            cli.Connect("66.228.45.110", ProtocolType.Udp);
+            // Sample TLS over TCP working with ejabberd but may not work with the sample server IP given here
+            cli.Connect("66.228.45.110", (ssender, certificate, chain, sslPolicyErrors) => true);
             StunMessage op1 = cli.SendMessage(msgCopy);
             cli.Close();
 
@@ -118,51 +133,105 @@ namespace Jabber.Stun
 
         #region METHODS
         /// <summary>
-        /// Opens a socket connection to a STUN Server
+        /// Opens a socket connection to a STUN Server using UDP or TCP on default STUN port (3478)
         /// </summary>
         /// <param name="stunServerIp">The IP where the STUN Server can be reached</param>
-        /// <param name="stunServerPort">The port number on which the STUN Server is listening</param>
-        /// <param name="protocolType">The protocol type (udp, tcp) used to communicate with the STUN Server</param>
-        public void Connect(String stunServerIp, Int32 stunServerPort, ProtocolType protocolType)
+        /// <param name="protocolType">The protocol type (UDP or TCP only) used to communicate with the STUN Server</param>
+        public void Connect(String stunServerIp, ProtocolType protocolType)
         {
-            this.Connect(new IPEndPoint(IPAddress.Parse(stunServerIp), stunServerPort), protocolType);
+            this.Connect(stunServerIp, StunClient.DEFAULT_STUN_PORT, protocolType);
         }
 
         /// <summary>
-        /// Opens a socket connection to a STUN Server using default STUN port (3478)
+        /// Opens a socket connection to a STUN Server using UDP or TCP on a given port
         /// </summary>
         /// <param name="stunServerIp">The IP where the STUN Server can be reached</param>
-        /// <param name="protocolType">The protocol type (udp, tcp) used to communicate with the STUN Server</param>
-        public void Connect(String stunServerIp, ProtocolType protocolType)
+        /// <param name="stunServerPort">The port number on which the STUN Server is listening</param>
+        /// <param name="protocolType">The protocol type (UDP or TCP only) used to communicate with the STUN Server</param>
+        public void Connect(String stunServerIp, Int32 stunServerPort, ProtocolType protocolType)
         {
-            this.Connect(new IPEndPoint(IPAddress.Parse(stunServerIp), StunClient.DEFAULT_STUN_PORT), protocolType);
+            this.Connect(new IPEndPoint(IPAddress.Parse(stunServerIp), stunServerPort), protocolType, false, null);
+        }
+
+        /// <summary>
+        /// Opens a socket connection to a STUN Server using TLS over TCP on default STUNS port (5349)
+        /// </summary>
+        /// <param name="stunServerIp">The IP where the STUN Server can be reached</param>
+        /// <param name="remoteCertificateValidationHandler">The callback handler which validate STUN Server TLS certificate</param>
+        public void Connect(String stunServerIp, RemoteCertificateValidationCallback remoteCertificateValidationHandler)
+        {
+            this.Connect(stunServerIp, StunClient.DEFAULT_STUNS_PORT, remoteCertificateValidationHandler);
+        }
+
+        /// <summary>
+        /// Opens a socket connection to a STUN Server using TLS over TCP on a given port
+        /// </summary>
+        /// <param name="stunServerIp">The IP where the STUN Server can be reached</param>
+        /// <param name="stunServerPort">The port number on which the STUN Server is listening</param>
+        /// <param name="remoteCertificateValidationHandler">The callback handler which validate STUN Server TLS certificate</param>
+        public void Connect(String stunServerIp, Int32 stunServerPort, RemoteCertificateValidationCallback remoteCertificateValidationHandler)
+        {
+            this.Connect(new IPEndPoint(IPAddress.Parse(stunServerIp), stunServerPort), ProtocolType.Tcp, true, remoteCertificateValidationHandler);
         }
 
         /// <summary>
         /// Opens a socket connection to a STUN Server
         /// </summary>
         /// <param name="stunServerEP">The IPEndPoint where the STUN Server can be reached</param>
-        /// <param name="protocolType">The protocol type (udp, tcp) used to communicate with the STUN Server</param>
-        public void Connect(IPEndPoint stunServerEP, ProtocolType protocolType)
+        /// <param name="protocolType">The protocol type (UDP or TCP only) used to communicate with the STUN Server</param>
+        /// <param name="useSsl"></param>
+        /// <param name="remoteCertificateValidationHandler"></param>
+        private void Connect(IPEndPoint stunServerEP, ProtocolType protocolType, Boolean useSsl, RemoteCertificateValidationCallback remoteCertificateValidationHandler)
         {
-            if (this.Socket != null)
-                this.Close();
-
             this.ServerEP = stunServerEP;
             this.ProtocolType = protocolType;
+            this.UseSsl = useSsl;
+
+            if (this.ProtocolType != ProtocolType.Tcp && this.ProtocolType != ProtocolType.Udp)
+                throw new ArgumentException("Only UDP and TCP are acceptable values", "protocolType");
+
+            if (this.UseSsl && this.ProtocolType != ProtocolType.Tcp)
+                throw new ArgumentException("Only TCP can be used in conjunction with SSL", "useSsl");
+
+            if (this.Socket != null)
+                throw new ArgumentException("StunClient socket is not null, you must close it before making a new connection", "this.Socket");
+
 
             if (this.ProtocolType == ProtocolType.Tcp)
                 this.SocketType = SocketType.Stream;
             else
                 this.SocketType = SocketType.Dgram;
 
-            this.Socket = new Socket(stunServerEP.AddressFamily, this.SocketType, this.ProtocolType);
+
+            this.Socket = new Socket(this.ServerEP.AddressFamily, this.SocketType, this.ProtocolType);
             this.Socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, 1);
+
 
             if (this.StunningEP != null)
                 this.Socket.Bind(this.StunningEP);
 
-            this.Socket.Connect(stunServerEP);
+
+            if (this.UseSsl)
+            {
+                if (remoteCertificateValidationHandler == null)
+                    throw new ArgumentException("You must provide a valid RemoteCertificateValidationCallback", "remoteCertificateValidationHandler");
+
+                this.SslClient = new TcpClient();
+                this.SslClient.Client = this.Socket;
+                this.SslClient.Connect(this.ServerEP);
+
+                this.SslStream = new SslStream(this.SslClient.GetStream(), false, remoteCertificateValidationHandler);
+
+                IAsyncResult ar = this.SslStream.BeginAuthenticateAsClient(this.ServerEP.Address.ToString(), null, SslProtocols.Tls, true, null, null);
+
+                ar.AsyncWaitHandle.WaitOne();
+
+                this.SslStream.EndAuthenticateAsClient(ar);
+            }
+            else
+            {
+                this.Socket.Connect(this.ServerEP);
+            }
 
             if (this.StunningEP == null)
                 this.StunningEP = (IPEndPoint)this.Socket.LocalEndPoint;
@@ -174,10 +243,22 @@ namespace Jabber.Stun
         /// </summary>
         public void Close()
         {
-            this.Socket.Shutdown(SocketShutdown.Both);
+            if (this.UseSsl)
+            {
+                this.SslStream.Close();
+                this.SslStream = null;
+
+                this.SslClient.Close();
+                this.SslClient = null;
+
+                this.UseSsl = false;
+            }
+            else
+            {
+                this.Socket.Shutdown(SocketShutdown.Both);
+            }
 
             this.Socket.Close();
-
             this.Socket = null;
         }
 
@@ -219,20 +300,28 @@ namespace Jabber.Stun
         /// </returns>
         public StunMessage SendMessage(byte[] msg, Boolean waitForResponse)
         {
-            this.Socket.Send(msg, 0, msg.Length, SocketFlags.None);
+            byte[] result = new byte[StunClient.BUFFER];
 
-            if (waitForResponse)
+            if (this.UseSsl)
             {
-                byte[] result = new byte[StunClient.BUFFER];
+                this.SslStream.Write(msg, 0, msg.Length);
 
-                this.Socket.Receive(result, 0, StunClient.BUFFER, SocketFlags.None);
-
-                if (StunUtilities.ByteArraysEquals(((StunMessage)result).TransactionID, ((StunMessage)msg).TransactionID))
-                    return result;
-                else
-                    return null;
+                if (waitForResponse)
+                    this.SslStream.Read(result, 0, StunClient.BUFFER);
             }
-            return null;
+            else
+            {
+                this.Socket.Send(msg, 0, msg.Length, SocketFlags.None);
+
+                if (waitForResponse)
+                    this.Socket.Receive(result, 0, StunClient.BUFFER, SocketFlags.None);
+            }
+
+
+            if (StunUtilities.ByteArraysEquals(((StunMessage)result).TransactionID, ((StunMessage)msg).TransactionID))
+                return result;
+            else
+                return null;
         }
         #endregion
     }

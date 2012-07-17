@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using Jabber.Stun.Attributes;
+using System.Net.Security;
 
 namespace Jabber.Stun
 {
@@ -23,8 +24,8 @@ namespace Jabber.Stun
     {
         #region STUN
         /// <summary>
-        /// Contains a new randomized TransactionID of 96bits (12byte) on each call
-        /// It follows STUN [RFC5389] as in STUN [3489] the length of this property is 128bits
+        /// Contains a new randomized TransactionID of 96bits (12bytes) on each call
+        /// It follows STUN [RFC5389] as in STUN Classic [RFC3489] the length of this property is 128bits (16bytes)
         /// </summary>
         public static byte[] NewTransactionId
         {
@@ -39,7 +40,7 @@ namespace Jabber.Stun
         }
 
         /// <summary>
-        /// Helper method that returns needed informations to begin peer-to-peer Punch Hole operations
+        /// Helper method using UDP or TCP that returns needed informations to begin peer-to-peer Punch Hole operations
         /// </summary>
         /// <param name="address">The IP Address of the STUN server</param>
         /// <param name="type">The connection type used to do the STUN Binding Request</param>
@@ -54,6 +55,33 @@ namespace Jabber.Stun
 
             StunClient cli = new StunClient();
             cli.Connect(address, type);
+
+            StunMessage resp = cli.SendMessage(msg);
+
+            IPEndPoint stunningEP = cli.StunningEP;
+            MappedAddress mappedAddress = resp.MappedAddress;
+
+            cli.Close();
+
+            return new KeyValuePair<IPEndPoint, MappedAddress>(stunningEP, mappedAddress);
+        }
+
+        /// <summary>
+        /// Helper method using TLS over TCP that returns needed informations to begin peer-to-peer Punch Hole operations
+        /// </summary>
+        /// <param name="address">The IP Address of the STUN server</param>
+        /// <param name="remoteCertificateValidationHandler">The callback handler which validate STUN Server TLS certificate</param>
+        /// <returns>
+        /// A key-value pair where :
+        ///  * the key is the local IPEndPoint from where the STUN request occurs
+        ///  * the value is the MappedAddress returned by the STUN server
+        /// </returns>
+        public static KeyValuePair<IPEndPoint, MappedAddress> GetMappedAddressFrom(String address, RemoteCertificateValidationCallback remoteCertificateValidationHandler)
+        {
+            StunMessage msg = new StunMessage(StunMethodType.Binding, StunMethodClass.Request, StunUtilities.NewTransactionId);
+
+            StunClient cli = new StunClient();
+            cli.Connect(address, remoteCertificateValidationHandler);
 
             StunMessage resp = cli.SendMessage(msg);
 
