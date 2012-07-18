@@ -14,6 +14,7 @@ using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
+using System.Security.Cryptography.X509Certificates;
 using Jabber.Stun.Attributes;
 
 namespace Jabber.Stun
@@ -119,7 +120,7 @@ namespace Jabber.Stun
             StunClient cli = new StunClient(stunKeyValue.Key);
 
             // Sample TLS over TCP working with ejabberd but may not work with the sample server IP given here
-            cli.Connect("66.228.45.110", (sender, certificate, chain, sslPolicyErrors) => true);
+            cli.Connect("66.228.45.110", (sender, certificate, chain, sslPolicyErrors) => true, null);
             StunMessage op1 = cli.SendMessage(msgCopy);
             cli.Close();
 
@@ -150,7 +151,7 @@ namespace Jabber.Stun
         /// <param name="protocolType">The protocol type (UDP or TCP only) used to communicate with the STUN Server</param>
         public void Connect(String stunServerIp, Int32 stunServerPort, ProtocolType protocolType)
         {
-            this.Connect(new IPEndPoint(IPAddress.Parse(stunServerIp), stunServerPort), protocolType, false, null);
+            this.Connect(new IPEndPoint(IPAddress.Parse(stunServerIp), stunServerPort), protocolType, false, null, null);
         }
 
         /// <summary>
@@ -158,9 +159,16 @@ namespace Jabber.Stun
         /// </summary>
         /// <param name="stunServerIp">The IP where the STUN Server can be reached</param>
         /// <param name="remoteCertificateValidationHandler">The callback handler which validate STUN Server TLS certificate</param>
-        public void Connect(String stunServerIp, RemoteCertificateValidationCallback remoteCertificateValidationHandler)
+        /// <param name="clientCertificate">
+        /// Client certificate used for mutual authentication. This certificate must be in PKCS #12 format and must contains its private key
+        /// The simpler way to create a certificate of this type is to follow this makecert tutorial http://www.inventec.ch/chdh/notes/14.htm.
+        /// Once your certificate is created : launch "mmc", CTRL+M, select "Certificates", add, choose "Local machine".
+        /// Find your certificate under "Personal", it must have a little key in its icon, right click on it, choose "All tasks > Export...".
+        /// Check the "Export key" checkbox, finish the process and then you have a valid X509Certificate2 with its private key in it
+        /// </param>
+        public void Connect(String stunServerIp, RemoteCertificateValidationCallback remoteCertificateValidationHandler, X509Certificate2 clientCertificate)
         {
-            this.Connect(stunServerIp, StunClient.DEFAULT_STUNS_PORT, remoteCertificateValidationHandler);
+            this.Connect(stunServerIp, StunClient.DEFAULT_STUNS_PORT, remoteCertificateValidationHandler, clientCertificate);
         }
 
         /// <summary>
@@ -169,9 +177,16 @@ namespace Jabber.Stun
         /// <param name="stunServerIp">The IP where the STUN Server can be reached</param>
         /// <param name="stunServerPort">The port number on which the STUN Server is listening</param>
         /// <param name="remoteCertificateValidationHandler">The callback handler which validate STUN Server TLS certificate</param>
-        public void Connect(String stunServerIp, Int32 stunServerPort, RemoteCertificateValidationCallback remoteCertificateValidationHandler)
+        /// <param name="clientCertificate">
+        /// Client certificate used for mutual authentication. This certificate must be in PKCS #12 format and must contains its private key
+        /// The simpler way to create a certificate of this type is to follow this makecert tutorial http://www.inventec.ch/chdh/notes/14.htm.
+        /// Once your certificate is created : launch "mmc", CTRL+M, select "Certificates", add, choose "Local machine".
+        /// Find your certificate under "Personal", it must have a little key in its icon, right click on it, choose "All tasks > Export...".
+        /// Check the "Export key" checkbox, finish the process and then you have a valid X509Certificate2 with its private key in it
+        /// </param>
+        public void Connect(String stunServerIp, Int32 stunServerPort, RemoteCertificateValidationCallback remoteCertificateValidationHandler, X509Certificate2 clientCertificate)
         {
-            this.Connect(new IPEndPoint(IPAddress.Parse(stunServerIp), stunServerPort), ProtocolType.Tcp, true, remoteCertificateValidationHandler);
+            this.Connect(new IPEndPoint(IPAddress.Parse(stunServerIp), stunServerPort), ProtocolType.Tcp, true, remoteCertificateValidationHandler, clientCertificate);
         }
 
         /// <summary>
@@ -179,9 +194,16 @@ namespace Jabber.Stun
         /// </summary>
         /// <param name="stunServerEP">The IPEndPoint where the STUN Server can be reached</param>
         /// <param name="protocolType">The protocol type (UDP or TCP only) used to communicate with the STUN Server</param>
-        /// <param name="useSsl"></param>
-        /// <param name="remoteCertificateValidationHandler"></param>
-        private void Connect(IPEndPoint stunServerEP, ProtocolType protocolType, Boolean useSsl, RemoteCertificateValidationCallback remoteCertificateValidationHandler)
+        /// <param name="useSsl">Indicates whether to use SSL or not</param>
+        /// <param name="remoteCertificateValidationHandler">The callback handler which validate STUN Server TLS certificate</param>
+        /// <param name="clientCertificate">
+        /// Client certificate used for mutual authentication. This certificate must be in PKCS #12 format and must contains its private key
+        /// The simpler way to create a certificate of this type is to follow this makecert tutorial http://www.inventec.ch/chdh/notes/14.htm.
+        /// Once your certificate is created : launch "mmc", CTRL+M, select "Certificates", add, choose "Local machine".
+        /// Find your certificate under "Personal", it must have a little key in its icon, right click on it, choose "All tasks > Export...".
+        /// Check the "Export key" checkbox, finish the process and then you have a valid X509Certificate2 with its private key in it
+        /// </param>
+        private void Connect(IPEndPoint stunServerEP, ProtocolType protocolType, Boolean useSsl, RemoteCertificateValidationCallback remoteCertificateValidationHandler, X509Certificate2 clientCertificate)
         {
             this.ServerEP = stunServerEP;
             this.ProtocolType = protocolType;
@@ -194,7 +216,7 @@ namespace Jabber.Stun
                 throw new ArgumentException("Only TCP can be used in conjunction with SSL", "useSsl");
 
             if (this.Socket != null)
-                throw new ArgumentException("StunClient socket is not null, you must close it before doing a new connection", "this.Socket");
+                throw new ArgumentException("StunClient socket is not null, you must close it before doing any new connection", "this.Socket");
 
 
             if (this.ProtocolType == ProtocolType.Tcp)
@@ -220,9 +242,20 @@ namespace Jabber.Stun
                 this.SslClient.Client = this.Socket;
                 this.SslClient.Connect(this.ServerEP);
 
-                this.SslStream = new SslStream(this.SslClient.GetStream(), false, remoteCertificateValidationHandler);
+                LocalCertificateSelectionCallback localCertificateSelectionHandler = null;
+                X509Certificate2Collection clientCertificates = new X509Certificate2Collection();
 
-                IAsyncResult ar = this.SslStream.BeginAuthenticateAsClient(this.ServerEP.Address.ToString(), null, SslProtocols.Tls, true, null, null);
+                if (clientCertificate != null)
+                {
+                    localCertificateSelectionHandler = (sender, targetHost, localCertificates, remoteCertificate, acceptableIssuers) => localCertificates[0];
+                    clientCertificates.Add(clientCertificate);
+                }
+
+                this.SslStream = new SslStream(this.SslClient.GetStream(), false,
+                                               remoteCertificateValidationHandler,
+                                               localCertificateSelectionHandler);
+
+                IAsyncResult ar = this.SslStream.BeginAuthenticateAsClient(this.ServerEP.Address.ToString(), clientCertificates, SslProtocols.Tls, true, null, null);
 
                 ar.AsyncWaitHandle.WaitOne();
 

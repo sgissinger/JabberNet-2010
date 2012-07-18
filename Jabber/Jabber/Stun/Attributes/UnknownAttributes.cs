@@ -1,4 +1,14 @@
-﻿using System;
+﻿/* --------------------------------------------------------------------------
+ * Copyrights
+ *
+ * Portions created by or assigned to Sébastien Gissinger
+ *
+ * License
+ *
+ * Jabber-Net is licensed under the LGPL.
+ * See LICENSE.txt for details.
+ * --------------------------------------------------------------------------*/
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Globalization;
@@ -22,7 +32,7 @@ namespace Jabber.Stun.Attributes
         /// <summary>
         /// Contains a copy of the hexadecimal representation of every UNKNOWN-ATTRIBUTE values in network-byte order
         /// </summary>
-        public String[] AttributesHexa
+        public String[] AttributesHex
         {
             get
             {
@@ -57,7 +67,6 @@ namespace Jabber.Stun.Attributes
         #endregion
 
         #region CONSTRUCTORS & FINALIZERS
-
         /// <summary>
         /// Constructs a UnknownAttributes based on an existing StunAttribute
         /// </summary>

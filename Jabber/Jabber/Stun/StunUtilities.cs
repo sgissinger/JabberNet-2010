@@ -11,9 +11,10 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
-using System.Net.Sockets;
-using Jabber.Stun.Attributes;
 using System.Net.Security;
+using System.Net.Sockets;
+using System.Security.Cryptography.X509Certificates;
+using Jabber.Stun.Attributes;
 
 namespace Jabber.Stun
 {
@@ -39,6 +40,7 @@ namespace Jabber.Stun
             }
         }
 
+
         /// <summary>
         /// Helper method using UDP or TCP that returns needed informations to begin peer-to-peer Punch Hole operations
         /// </summary>
@@ -51,14 +53,33 @@ namespace Jabber.Stun
         /// </returns>
         public static KeyValuePair<IPEndPoint, MappedAddress> GetMappedAddressFrom(String address, ProtocolType type)
         {
+            return StunUtilities.GetMappedAddressFrom(null, address, type);
+        }
+
+        /// <summary>
+        /// Helper method using UDP or TCP that returns needed informations to begin peer-to-peer Punch Hole operations
+        /// using an existing IPEndPoint
+        /// </summary>
+        /// <param name="stunningEP">The IPEndPoint to which the socket will be bound to</param>
+        /// <param name="address">The IP Address of the STUN server</param>
+        /// <param name="type">The connection type used to do the STUN Binding Request</param>
+        /// <returns>
+        /// A key-value pair where :
+        ///  * the key is the local IPEndPoint from where the STUN request occurs
+        ///  * the value is the MappedAddress returned by the STUN server
+        /// </returns>
+        public static KeyValuePair<IPEndPoint, MappedAddress> GetMappedAddressFrom(IPEndPoint stunningEP, String address, ProtocolType type)
+        {
             StunMessage msg = new StunMessage(StunMethodType.Binding, StunMethodClass.Request, StunUtilities.NewTransactionId);
 
-            StunClient cli = new StunClient();
+            StunClient cli = new StunClient(stunningEP);
             cli.Connect(address, type);
 
             StunMessage resp = cli.SendMessage(msg);
 
-            IPEndPoint stunningEP = cli.StunningEP;
+            if (stunningEP == null)
+                stunningEP = cli.StunningEP;
+
             MappedAddress mappedAddress = resp.MappedAddress;
 
             cli.Close();
@@ -71,21 +92,54 @@ namespace Jabber.Stun
         /// </summary>
         /// <param name="address">The IP Address of the STUN server</param>
         /// <param name="remoteCertificateValidationHandler">The callback handler which validate STUN Server TLS certificate</param>
+        /// <param name="clientCertificate">
+        /// Client certificate used for mutual authentication. This certificate must be in PKCS #12 format and must contains its private key
+        /// The simpler way to create a certificate of this type is to follow this makecert tutorial http://www.inventec.ch/chdh/notes/14.htm.
+        /// Once your certificate is created : launch "mmc", CTRL+M, select "Certificates", add, choose "Local machine".
+        /// Find your certificate under "Personal", it must have a little key in its icon, right click on it, choose "All tasks > Export...".
+        /// Check the "Export key" checkbox, finish the process and then you have a valid X509Certificate2 with its private key in it
+        /// </param>
         /// <returns>
         /// A key-value pair where :
         ///  * the key is the local IPEndPoint from where the STUN request occurs
         ///  * the value is the MappedAddress returned by the STUN server
         /// </returns>
-        public static KeyValuePair<IPEndPoint, MappedAddress> GetMappedAddressFrom(String address, RemoteCertificateValidationCallback remoteCertificateValidationHandler)
+        public static KeyValuePair<IPEndPoint, MappedAddress> GetMappedAddressFrom(String address, RemoteCertificateValidationCallback remoteCertificateValidationHandler, X509Certificate2 clientCertificate)
+        {
+            return StunUtilities.GetMappedAddressFrom(null, address, remoteCertificateValidationHandler, clientCertificate);
+        }
+
+        /// <summary>
+        /// Helper method using TLS over TCP that returns needed informations to begin peer-to-peer Punch Hole operations
+        /// using an existing IPEndPoint
+        /// </summary>
+        /// <param name="stunningEP">The IPEndPoint to which the socket will be bound to</param>
+        /// <param name="address">The IP Address of the STUN server</param>
+        /// <param name="remoteCertificateValidationHandler">The callback handler which validate STUN Server TLS certificate</param>
+        /// <param name="clientCertificate">
+        /// Client certificate used for mutual authentication. This certificate must be in PKCS #12 format and must contains its private key
+        /// The simpler way to create a certificate of this type is to follow this makecert tutorial http://www.inventec.ch/chdh/notes/14.htm.
+        /// Once your certificate is created : launch "mmc", CTRL+M, select "Certificates", add, choose "Local machine".
+        /// Find your certificate under "Personal", it must have a little key in its icon, right click on it, choose "All tasks > Export...".
+        /// Check the "Export key" checkbox, finish the process and then you have a valid X509Certificate2 with its private key in it
+        /// </param>
+        /// <returns>
+        /// A key-value pair where :
+        ///  * the key is the local IPEndPoint from where the STUN request occurs
+        ///  * the value is the MappedAddress returned by the STUN server
+        /// </returns>
+        public static KeyValuePair<IPEndPoint, MappedAddress> GetMappedAddressFrom(IPEndPoint stunningEP, String address, RemoteCertificateValidationCallback remoteCertificateValidationHandler, X509Certificate2 clientCertificate)
         {
             StunMessage msg = new StunMessage(StunMethodType.Binding, StunMethodClass.Request, StunUtilities.NewTransactionId);
 
-            StunClient cli = new StunClient();
-            cli.Connect(address, remoteCertificateValidationHandler);
+            StunClient cli = new StunClient(stunningEP);
+            cli.Connect(address, remoteCertificateValidationHandler, clientCertificate);
 
             StunMessage resp = cli.SendMessage(msg);
 
-            IPEndPoint stunningEP = cli.StunningEP;
+            if (stunningEP == null)
+                stunningEP = cli.StunningEP;
+
             MappedAddress mappedAddress = resp.MappedAddress;
 
             cli.Close();

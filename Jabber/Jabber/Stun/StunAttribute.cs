@@ -84,7 +84,7 @@ namespace Jabber.Stun
         /// <summary>
         /// Contains the hexadecimal representation, in network-byte order, of this attribute's type
         /// </summary>
-        public String TypeValueText
+        public String TypeValueHex
         {
             get
             {

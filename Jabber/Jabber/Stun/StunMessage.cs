@@ -55,12 +55,12 @@ namespace Jabber.Stun
         /// Contains the list of every known attributes which have a StunAttributeType
         /// matching one of the StunAttribute constants
         /// </summary>
-        private Dictionary<StunAttributeType, StunAttribute> attributes = new Dictionary<StunAttributeType, StunAttribute>();
+        private Dictionary<StunAttributeType, StunAttribute> attributesList = new Dictionary<StunAttributeType, StunAttribute>();
         /// <summary>
         /// Contains the list of every unknown attributes which haven't any StunAttributeType
         /// matching one of the StunAttribute constants
         /// </summary>
-        private List<StunAttribute> unknownAttributes = new List<StunAttribute>();
+        private List<StunAttribute> unknownAttributesList = new List<StunAttribute>();
         #endregion
 
         #region PROPERTIES
@@ -72,9 +72,9 @@ namespace Jabber.Stun
         {
             get
             {
-                StunAttribute[] attrs = new StunAttribute[this.attributes.Count];
+                StunAttribute[] attrs = new StunAttribute[this.attributesList.Count];
 
-                this.attributes.Values.CopyTo(attrs, 0);
+                this.attributesList.Values.CopyTo(attrs, 0);
 
                 return attrs;
             }
@@ -87,9 +87,9 @@ namespace Jabber.Stun
         {
             get
             {
-                StunAttribute[] attrs = new StunAttribute[this.unknownAttributes.Count];
+                StunAttribute[] attrs = new StunAttribute[this.unknownAttributesList.Count];
 
-                this.unknownAttributes.CopyTo(attrs, 0);
+                this.unknownAttributesList.CopyTo(attrs, 0);
 
                 return attrs;
             }
@@ -248,15 +248,15 @@ namespace Jabber.Stun
         {
             if (attribute.Type == StunAttributeType.Unknown)
             {
-                this.unknownAttributes.Add(attribute);
+                this.unknownAttributesList.Add(attribute);
             }
             else
             {
-                if (!this.attributes.ContainsKey(attribute.Type))
-                    this.attributes.Add(attribute.Type, attribute);
+                if (!this.attributesList.ContainsKey(attribute.Type))
+                    this.attributesList.Add(attribute.Type, attribute);
                 else
                     if (replaceExistingAttribute)
-                        this.attributes[attribute.Type] = attribute;
+                        this.attributesList[attribute.Type] = attribute;
             }
         }
 
@@ -267,7 +267,7 @@ namespace Jabber.Stun
         /// <returns>The known attribute matching the given type or null if it doesn't exists</returns>
         public StunAttribute GetAttribute(StunAttributeType type)
         {
-            return this.attributes.ContainsKey(type) ? this.attributes[type] : null;
+            return this.attributesList.ContainsKey(type) ? this.attributesList[type] : null;
         }
 
         /// <summary>
@@ -275,8 +275,8 @@ namespace Jabber.Stun
         /// </summary>
         public void ClearAttributes()
         {
-            this.attributes.Clear();
-            this.unknownAttributes.Clear();
+            this.attributesList.Clear();
+            this.unknownAttributesList.Clear();
         }
 
         /// <summary>
