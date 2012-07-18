@@ -180,7 +180,7 @@ namespace Jabber.Stun
             if (b1 == null || b2 == null)
                 return false;
 
-            if (b1.Length != b2.Length) 
+            if (b1.Length != b2.Length)
                 return false;
 
             for (int i = 0; i < b1.Length; i++)
@@ -307,5 +307,19 @@ namespace Jabber.Stun
                    (value & 0x00FF000000000000UL) >> 40 | (value & 0xFF00000000000000UL) >> 56;
         }
         #endregion
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Field, AllowMultiple = false, Inherited = false)]
+    public class StunValueAttribute : Attribute
+    {
+        public UInt16 Value { get; set; }
+
+        public StunValueAttribute(UInt16 value)
+        {
+            this.Value = value;
+        }
     }
 }

@@ -10,6 +10,7 @@
  * --------------------------------------------------------------------------*/
 using System;
 using System.Globalization;
+using System.Reflection;
 using System.Text;
 using StringPrep;
 
@@ -20,51 +21,6 @@ namespace Jabber.Stun
     /// </summary>
     public class StunAttribute
     {
-        #region CONSTANTS
-        #region STUN Core required
-        private const UInt16 MAPPED_ADDRESS = 0x0001;
-        private const UInt16 USERNAME = 0x0006;
-        private const UInt16 MESSAGE_INTEGRITY = 0x0008;
-        private const UInt16 ERROR_CODE = 0x0009;
-        private const UInt16 UNKNOWN_ATTRIBUTES = 0x000A;
-        private const UInt16 REALM = 0x0014;
-        private const UInt16 NONCE = 0x0015;
-        private const UInt16 XOR_MAPPED_ADDRESS = 0x0020;
-        #endregion
-        #region STUN Core optional
-        private const UInt16 SOFTWARE = 0x8022;
-        private const UInt16 ALTERNATE_SERVER = 0x8023;
-        private const UInt16 FINGERPRINT = 0x8028;
-        #endregion
-        #region TURN Extension
-        private const UInt16 CHANNEL_NUMBER = 0x000C;
-        private const UInt16 LIFETIME = 0x000D;
-        private const UInt16 XOR_PEER_ADDRESS = 0x0012;
-        private const UInt16 DATA = 0x0013;
-        private const UInt16 XOR_RELAYED_ADDRESS = 0x0016;
-        private const UInt16 EVEN_PORT = 0x0018;
-        private const UInt16 REQUESTED_TRANSPORT = 0x0019;
-        private const UInt16 DONT_FRAGMENT = 0x001A;
-        private const UInt16 RESERVATION_TOKEN = 0x0022;
-        #endregion
-        #region STUN Classic
-        [Obsolete("Defined in RFC3489")]
-        private const UInt16 RESPONSE_ADDRESS = 0x0002;
-        [Obsolete("Defined in RFC3489")]
-        private const UInt16 CHANGE_REQUEST = 0x0003;
-        [Obsolete("Defined in RFC3489")]
-        private const UInt16 SOURCE_ADDRESS = 0x0004;
-        [Obsolete("Defined in RFC3489")]
-        private const UInt16 CHANGED_ADDRESS = 0x0005;
-        [Obsolete("Defined in RFC3489")]
-        private const UInt16 PASSWORD = 0x0007;
-        [Obsolete("Defined in RFC3489")]
-        private const UInt16 REFLECTED_FROM = 0x000B;
-        [Obsolete("Defined in draft RFC3489bis-02")]
-        private const UInt16 XOR_MAPPED_ADDRESS_ALT = 0x8020;
-        #endregion
-        #endregion
-
         #region MEMBERS
         /// <summary>
         /// Default encoder used to UT8 encode strings attribute values
@@ -80,18 +36,25 @@ namespace Jabber.Stun
         /// <summary>
         /// Contains the byte array representation, in network-byte order, of this attribute's type
         /// </summary>
-        public byte[] TypeValue { get; private set; }
+        public byte[] TypeBytes { get; private set; }
         /// <summary>
         /// Contains the hexadecimal representation, in network-byte order, of this attribute's type
         /// </summary>
-        public String TypeValueHex
+        public String TypeHex
         {
             get
             {
                 return String.Format(CultureInfo.CurrentCulture,
                                      "{0:X4}",
-                                     StunUtilities.ReverseBytes(BitConverter.ToUInt16(this.TypeValue, 0)));
+                                     StunUtilities.ReverseBytes(BitConverter.ToUInt16(this.TypeBytes, 0)));
             }
+        }
+        /// <summary>
+        /// Contains the unsigned int representation, in network-byte order, of this attribute's type
+        /// </summary>
+        public UInt16 TypeUInt16
+        {
+            get { return StunUtilities.ReverseBytes(BitConverter.ToUInt16(this.TypeBytes, 0)); }
         }
         /// <summary>
         /// Contains the byte array representation of this attribute's value
@@ -159,7 +122,7 @@ namespace Jabber.Stun
                     break;
             }
 
-            this.TypeValue = typeBytes;
+            this.TypeBytes = typeBytes;
             this.Type = type;
             this.Value = value;
         }
@@ -175,7 +138,7 @@ namespace Jabber.Stun
             return String.Format(CultureInfo.CurrentCulture,
                                  "{0}, {1}",
                                  this.Type,
-                                 StunAttribute.Encoder.GetString(this.Value));
+                                 this.TypeHex);
         }
 
         /// <summary>
@@ -245,130 +208,24 @@ namespace Jabber.Stun
         /// </returns>
         public static byte[] AttributeTypeToBytes(StunAttributeType type)
         {
-            byte[] typeBytes;
-
-            switch (type)
+            foreach (FieldInfo field in typeof(StunAttributeType).GetFields())
             {
-                case StunAttributeType.Unknown:
-                default:
-                    typeBytes = BitConverter.GetBytes((UInt16)0x0000);
-                    break;
+                if (field.Name == type.ToString())
+                {
+                    Object[] fieldAttributes = field.GetCustomAttributes(typeof(StunValueAttribute), false);
 
-                // STUN Core required
-                case StunAttributeType.MappedAddress:
-                    typeBytes = BitConverter.GetBytes(StunAttribute.MAPPED_ADDRESS);
-                    break;
+                    if (fieldAttributes.Length == 1)
+                    {
+                        StunValueAttribute stunValueAttribute = fieldAttributes.GetValue(0) as StunValueAttribute;
 
-                case StunAttributeType.Username:
-                    typeBytes = BitConverter.GetBytes(StunAttribute.USERNAME);
-                    break;
+                        byte[] typeBytes = BitConverter.GetBytes(stunValueAttribute.Value);
+                        Array.Reverse(typeBytes);
 
-                case StunAttributeType.MessageIntegrity:
-                    typeBytes = BitConverter.GetBytes(StunAttribute.MESSAGE_INTEGRITY);
-                    break;
-
-                case StunAttributeType.ErrorCode:
-                    typeBytes = BitConverter.GetBytes(StunAttribute.ERROR_CODE);
-                    break;
-
-                case StunAttributeType.UnknownAttributes:
-                    typeBytes = BitConverter.GetBytes(StunAttribute.UNKNOWN_ATTRIBUTES);
-                    break;
-
-                case StunAttributeType.Realm:
-                    typeBytes = BitConverter.GetBytes(StunAttribute.REALM);
-                    break;
-
-                case StunAttributeType.Nonce:
-                    typeBytes = BitConverter.GetBytes(StunAttribute.NONCE);
-                    break;
-
-                case StunAttributeType.XorMappedAddress:
-                    typeBytes = BitConverter.GetBytes(StunAttribute.XOR_MAPPED_ADDRESS);
-                    break;
-
-                // STUN Core optional
-                case StunAttributeType.Software:
-                    typeBytes = BitConverter.GetBytes(StunAttribute.SOFTWARE);
-                    break;
-
-                case StunAttributeType.AlternateServer:
-                    typeBytes = BitConverter.GetBytes(StunAttribute.ALTERNATE_SERVER);
-                    break;
-
-                case StunAttributeType.FingerPrint:
-                    typeBytes = BitConverter.GetBytes(StunAttribute.FINGERPRINT);
-                    break;
-
-                // TURN Extension
-                case StunAttributeType.ChannelNumber:
-                    typeBytes = BitConverter.GetBytes(StunAttribute.CHANNEL_NUMBER);
-                    break;
-
-                case StunAttributeType.LifeTime:
-                    typeBytes = BitConverter.GetBytes(StunAttribute.LIFETIME);
-                    break;
-
-                case StunAttributeType.XorPeerAddress:
-                    typeBytes = BitConverter.GetBytes(StunAttribute.XOR_PEER_ADDRESS);
-                    break;
-
-                case StunAttributeType.Data:
-                    typeBytes = BitConverter.GetBytes(StunAttribute.DATA);
-                    break;
-
-                case StunAttributeType.XorRelayedAddress:
-                    typeBytes = BitConverter.GetBytes(StunAttribute.XOR_RELAYED_ADDRESS);
-                    break;
-
-                case StunAttributeType.EvenPort:
-                    typeBytes = BitConverter.GetBytes(StunAttribute.EVEN_PORT);
-                    break;
-
-                case StunAttributeType.RequestedTransport:
-                    typeBytes = BitConverter.GetBytes(StunAttribute.REQUESTED_TRANSPORT);
-                    break;
-
-                case StunAttributeType.DontFragment:
-                    typeBytes = BitConverter.GetBytes(StunAttribute.DONT_FRAGMENT);
-                    break;
-
-                case StunAttributeType.ReservationToken:
-                    typeBytes = BitConverter.GetBytes(StunAttribute.RESERVATION_TOKEN);
-                    break;
-
-                // STUN Classic
-                case StunAttributeType.ResponseAddress:
-                    typeBytes = BitConverter.GetBytes(StunAttribute.RESPONSE_ADDRESS);
-                    break;
-
-                case StunAttributeType.ChangeRequest:
-                    typeBytes = BitConverter.GetBytes(StunAttribute.CHANGE_REQUEST);
-                    break;
-
-                case StunAttributeType.SourceAddress:
-                    typeBytes = BitConverter.GetBytes(StunAttribute.SOURCE_ADDRESS);
-                    break;
-
-                case StunAttributeType.ChangedAddress:
-                    typeBytes = BitConverter.GetBytes(StunAttribute.CHANGED_ADDRESS);
-                    break;
-
-                case StunAttributeType.Password:
-                    typeBytes = BitConverter.GetBytes(StunAttribute.PASSWORD);
-                    break;
-
-                case StunAttributeType.ReflectedFrom:
-                    typeBytes = BitConverter.GetBytes(StunAttribute.REFLECTED_FROM);
-                    break;
-
-                case StunAttributeType.XorMappedAddressAlt:
-                    typeBytes = BitConverter.GetBytes(StunAttribute.XOR_MAPPED_ADDRESS_ALT);
-                    break;
+                        return typeBytes;
+                    }
+                }
             }
-            Array.Reverse(typeBytes);
-
-            return typeBytes;
+            return new byte[] { 255, 255 };
         }
 
         /// <summary>
@@ -383,127 +240,22 @@ namespace Jabber.Stun
         {
             UInt16 type = StunUtilities.ReverseBytes(BitConverter.ToUInt16(bytes, 0));
 
-            StunAttributeType stunType;
-
-            switch (type)
+            foreach (FieldInfo field in typeof(StunAttributeType).GetFields())
             {
-                default:
-                    stunType = StunAttributeType.Unknown;
-                    break;
+                Object[] fieldAttributes = field.GetCustomAttributes(typeof(StunValueAttribute), false);
 
-                // STUN Core required
-                case StunAttribute.MAPPED_ADDRESS:
-                    stunType = StunAttributeType.MappedAddress;
-                    break;
+                if (fieldAttributes.Length == 1)
+                {
+                    StunValueAttribute stunValueAttribute = fieldAttributes.GetValue(0) as StunValueAttribute;
 
-                case StunAttribute.USERNAME:
-                    stunType = StunAttributeType.Username;
-                    break;
-
-                case StunAttribute.MESSAGE_INTEGRITY:
-                    stunType = StunAttributeType.MessageIntegrity;
-                    break;
-
-                case StunAttribute.ERROR_CODE:
-                    stunType = StunAttributeType.ErrorCode;
-                    break;
-
-                case StunAttribute.UNKNOWN_ATTRIBUTES:
-                    stunType = StunAttributeType.UnknownAttributes;
-                    break;
-
-                case StunAttribute.REALM:
-                    stunType = StunAttributeType.Realm;
-                    break;
-
-                case StunAttribute.NONCE:
-                    stunType = StunAttributeType.Nonce;
-                    break;
-
-                case StunAttribute.XOR_MAPPED_ADDRESS:
-                    stunType = StunAttributeType.XorMappedAddress;
-                    break;
-
-                // STUN Core optional
-                case StunAttribute.SOFTWARE:
-                    stunType = StunAttributeType.Software;
-                    break;
-
-                case StunAttribute.ALTERNATE_SERVER:
-                    stunType = StunAttributeType.AlternateServer;
-                    break;
-
-                case StunAttribute.FINGERPRINT:
-                    stunType = StunAttributeType.FingerPrint;
-                    break;
-
-                // TURN Extension
-                case StunAttribute.CHANNEL_NUMBER:
-                    stunType = StunAttributeType.ChannelNumber;
-                    break;
-
-                case StunAttribute.LIFETIME:
-                    stunType = StunAttributeType.LifeTime;
-                    break;
-
-                case StunAttribute.XOR_PEER_ADDRESS:
-                    stunType = StunAttributeType.XorPeerAddress;
-                    break;
-
-                case StunAttribute.DATA:
-                    stunType = StunAttributeType.Data;
-                    break;
-
-                case StunAttribute.XOR_RELAYED_ADDRESS:
-                    stunType = StunAttributeType.XorRelayedAddress;
-                    break;
-
-                case StunAttribute.EVEN_PORT:
-                    stunType = StunAttributeType.EvenPort;
-                    break;
-
-                case StunAttribute.REQUESTED_TRANSPORT:
-                    stunType = StunAttributeType.RequestedTransport;
-                    break;
-
-                case StunAttribute.DONT_FRAGMENT:
-                    stunType = StunAttributeType.DontFragment;
-                    break;
-
-                case StunAttribute.RESERVATION_TOKEN:
-                    stunType = StunAttributeType.ReservationToken;
-                    break;
-
-                // STUN Classic
-                case StunAttribute.RESPONSE_ADDRESS:
-                    stunType = StunAttributeType.ResponseAddress;
-                    break;
-
-                case StunAttribute.CHANGE_REQUEST:
-                    stunType = StunAttributeType.ChangeRequest;
-                    break;
-
-                case StunAttribute.SOURCE_ADDRESS:
-                    stunType = StunAttributeType.SourceAddress;
-                    break;
-
-                case StunAttribute.CHANGED_ADDRESS:
-                    stunType = StunAttributeType.ChangedAddress;
-                    break;
-
-                case StunAttribute.PASSWORD:
-                    stunType = StunAttributeType.Password;
-                    break;
-
-                case StunAttribute.REFLECTED_FROM:
-                    stunType = StunAttributeType.ReflectedFrom;
-                    break;
-
-                case StunAttribute.XOR_MAPPED_ADDRESS_ALT:
-                    stunType = StunAttributeType.XorMappedAddressAlt;
-                    break;
+                    if (stunValueAttribute != null &&
+                        stunValueAttribute.Value == type)
+                    {
+                        return (StunAttributeType)Enum.Parse(typeof(StunAttributeType), field.Name);
+                    }
+                }
             }
-            return stunType;
+            return StunAttributeType.Unknown;
         }
         #endregion
     }
@@ -524,6 +276,7 @@ namespace Jabber.Stun
         /// The MAPPED-ADDRESS attribute indicates a reflexive transport address of the client
         /// This attribute is used only by servers for achieving backwards compatibility with [RFC3489] clients.
         /// </summary>
+        [StunValue(0x0001)]
         MappedAddress,
         /// <summary>
         /// The USERNAME attribute is used for message integrity. It identifies the username and password
@@ -531,11 +284,13 @@ namespace Jabber.Stun
         /// The value of USERNAME is a variable-length value. It MUST contain a UTF-8 [RFC3629] encoded
         /// sequence of less than 513 bytes, and MUST have been processed using SASLprep [RFC4013]
         /// </summary>
+        [StunValue(0x0006)]
         Username,
         /// <summary>
         /// The MESSAGE-INTEGRITY attribute contains an HMAC-SHA1 [RFC2104] of the STUN message.
         /// The MESSAGE-INTEGRITY attribute can be present in any STUN message type
         /// </summary>
+        [StunValue(0x0008)]
         MessageIntegrity,
         /// <summary>
         ///  The ERROR-CODE attribute is used in error response messages. It contains a numeric
@@ -543,6 +298,7 @@ namespace Jabber.Stun
         ///  in UTF-8 [RFC3629], and is consistent in its code assignments and semantics
         ///  with SIP [RFC3261] and HTTP [RFC2616].
         /// </summary>
+        [StunValue(0x0009)]
         ErrorCode,
         /// <summary>
         /// The UNKNOWN-ATTRIBUTES attribute is present only in an error response when
@@ -550,23 +306,27 @@ namespace Jabber.Stun
         /// The attribute contains a list of 16-bit values, each of which
         /// represents an attribute type that was not understood by the server.
         /// </summary>
+        [StunValue(0x000A)]
         UnknownAttributes,
         /// <summary>
         /// The REALM attribute may be present in requests and responses. It contains text that
         /// meets the grammar for "realm-value" as described in [RFC3261] but without
         /// the double quotes and their surrounding whitespace
         /// </summary>
+        [StunValue(0x0014)]
         Realm,
         /// <summary>
         /// The NONCE attribute may be present in requests and responses. It contains a sequence
         /// of qdtext or quoted-pair, which are defined in [RFC3261].
         /// Note that this means that the NONCE attribute will not contain actual quote characters
         /// </summary>
+        [StunValue(0x0015)]
         Nonce,
         /// <summary>
         /// The XOR-MAPPED-ADDRESS attribute is identical to the MAPPED-ADDRESS attribute,
         /// except that the reflexive transport address is obfuscated through the XOR function.
         /// </summary>
+        [StunValue(0x0020)]
         XorMappedAddress,
         #endregion
 
@@ -578,6 +338,7 @@ namespace Jabber.Stun
         /// The attribute has no impact on operation of the protocol,
         /// and serves only as a tool for diagnostic and debugging purposes
         /// </summary>
+        [StunValue(0x8022)]
         Software,
         /// <summary>
         /// The alternate server represents an alternate transport address identifying a
@@ -586,12 +347,14 @@ namespace Jabber.Stun
         /// single server by IP address.  The IP address family MUST be identical
         /// to that of the source IP address of the request.
         /// </summary>
+        [StunValue(0x8023)]
         AlternateServer,
         /// <summary>
         /// The FINGERPRINT attribute MAY be present in all STUN messages. The value of the
         /// attribute is computed as the CRC-32 of the STUN message up to (but excluding)
         /// the FINGERPRINT attribute itself, XOR'ed with the 32-bit value 0x5354554e
         /// </summary>
+        [StunValue(0x8028)]
         FingerPrint,
         #endregion
 
@@ -599,11 +362,13 @@ namespace Jabber.Stun
         /// <summary>
         /// The CHANNEL-NUMBER attribute contains the number of the channel
         /// </summary>
+        [StunValue(0x000C)]
         ChannelNumber,
         /// <summary>
         /// The LIFETIME attribute represents the duration for which the server
         /// will maintain an allocation in the absence of a refresh
         /// </summary>
+        [StunValue(0x000D)]
         LifeTime,
         /// <summary>
         /// The XOR-PEER-ADDRESS specifies the address and port of the peer as
@@ -611,6 +376,7 @@ namespace Jabber.Stun
         /// transport address if the peer is behind a NAT.)  It is encoded in the
         /// same way as XOR-MAPPED-ADDRESS [RFC5389].
         /// </summary>
+        [StunValue(0x0012)]
         XorPeerAddress,
         /// <summary>
         /// The DATA attribute is present in all Send and Data indications.  The
@@ -618,29 +384,34 @@ namespace Jabber.Stun
         /// the application data (that is, the data that would immediately follow
         /// the UDP header if the data was been sent directly between the client and the peer)
         /// </summary>
+        [StunValue(0x0013)]
         Data,
         /// <summary>
         /// The XOR-RELAYED-ADDRESS is present in Allocate responses. It 
         /// specifies the address and port that the server allocated to the
         /// client. It is encoded in the same way as XOR-MAPPED-ADDRESS [RFC5389].
         /// </summary>
+        [StunValue(0x0016)]
         XorRelayedAddress,
         /// <summary>
         /// This attribute allows the client to request that the port in the
         /// relayed transport address be even, and (optionally) that the server
         /// reserve the next-higher port number
         /// </summary>
+        [StunValue(0x0018)]
         EvenPort,
         /// <summary>
         /// This attribute is used by the client to request a specific transport
         /// protocol for the allocated transport address
         /// </summary>
+        [StunValue(0x0019)]
         RequestedTransport,
         /// <summary>
         /// This attribute is used by the client to request that the server set
         /// the DF (Don't Fragment) bit in the IP header when relaying the
         /// application data onward to the peer
         /// </summary>
+        [StunValue(0x001A)]
         DontFragment,
         /// <summary>
         /// The RESERVATION-TOKEN attribute contains a token that uniquely
@@ -650,6 +421,7 @@ namespace Jabber.Stun
         /// attribute in a subsequent Allocate request to request the server use
         /// that relayed transport address for the allocation.
         /// </summary>
+        [StunValue(0x0022)]
         ReservationToken,
         #endregion
 
@@ -659,12 +431,14 @@ namespace Jabber.Stun
         /// Binding Request should be sent. Its syntax is identical to MAPPED-ADDRESS.
         /// </summary>
         [Obsolete("Defined in RFC3489")]
+        [StunValue(0x0002)]
         ResponseAddress,
         /// <summary>
         /// The CHANGE-REQUEST attribute is used by the client to request that
         /// the server use a different address and/or port when sending the response
         /// </summary>
         [Obsolete("Defined in RFC3489")]
+        [StunValue(0x0003)]
         ChangeRequest,
         /// <summary>
         /// The SOURCE-ADDRESS attribute is present in Binding Responses. It
@@ -672,6 +446,7 @@ namespace Jabber.Stun
         /// the response from. Its syntax is identical to that of MAPPED-ADDRESS.
         /// </summary>
         [Obsolete("Defined in RFC3489")]
+        [StunValue(0x0004)]
         SourceAddress,
         /// <summary>
         /// The CHANGED-ADDRESS attribute indicates the IP address and port where responses
@@ -681,12 +456,14 @@ namespace Jabber.Stun
         /// of the value of the flags. Its syntax is identical to MAPPED-ADDRESS.
         /// </summary>
         [Obsolete("Defined in RFC3489")]
+        [StunValue(0x0005)]
         ChangedAddress,
         /// <summary>
         /// The PASSWORD attribute is used in Shared Secret Responses. It is
         /// always present in a Shared Secret Response, along with the USERNAME.
         /// </summary>
         [Obsolete("Defined in RFC3489")]
+        [StunValue(0x0007)]
         Password,
         /// <summary>
         /// The REFLECTED-FROM attribute is present only in Binding Responses, when
@@ -697,12 +474,14 @@ namespace Jabber.Stun
         /// Its syntax is identical to the MAPPED-ADDRESS attribute.
         /// </summary>
         [Obsolete("Defined in RFC3489")]
+        [StunValue(0x000B)]
         ReflectedFrom,
         /// <summary>
         /// This alternate XOR-MAPPED-ADDRESS attribute may be used in some STUN Servers
         /// implementation like Vovida or MS-TURN http://msdn.microsoft.com/en-us/library/dd909268
         /// </summary>
         [Obsolete("Defined in draft RFC3489bis-02")]
+        [StunValue(0x8020)]
         XorMappedAddressAlt
         #endregion
     }

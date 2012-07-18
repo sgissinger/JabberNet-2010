@@ -11,6 +11,7 @@
 using System;
 using System.Collections.Generic;
 using Jabber.Stun.Attributes;
+using System.Reflection;
 
 namespace Jabber.Stun
 {
@@ -20,27 +21,6 @@ namespace Jabber.Stun
     public class StunMessage
     {
         #region CONSTANTS
-        // STUN Core Type
-        private const UInt16 METHOD_BINDING = 0x0001;
-
-        // STUN Classic Type
-        [Obsolete("Defined in RFC3489")]
-        private const UInt16 METHOD_SHARED_SECRET = 0x0002;
-
-        // TURN Extension Types
-        private const UInt16 METHOD_ALLOCATE = 0x0003;
-        private const UInt16 METHOD_REFRESH = 0x0004;
-        private const UInt16 METHOD_SEND = 0x0006;
-        private const UInt16 METHOD_DATA = 0x0007;
-        private const UInt16 METHOD_CREATE_PERMISSION = 0x0008;
-        private const UInt16 METHOD_CHANNEL_BIND = 0x0009;
-
-        // STUN Core Classes
-        private const UInt16 CLASS_REQUEST = 0x0000;
-        private const UInt16 CLASS_INDICATION = 0x0010;
-        private const UInt16 CLASS_SUCCESS_RESPONSE = 0x0100;
-        private const UInt16 CLASS_ERROR = 0x0110;
-
         /// <summary>
         /// The magic cookie field MUST contain the fixed value 0x2112A442 in network byte order.
         /// In [RFC3489], this field was part of the transaction ID.
@@ -194,6 +174,81 @@ namespace Jabber.Stun
 
                 if (attribute != null)
                     return new UnknownAttributes(attribute);
+
+                return null;
+            }
+        }
+        /// <summary>
+        /// Contains a USERNAME attribute if this message contains one, otherwise returns null
+        /// </summary>
+        public Username Username
+        {
+            get
+            {
+                StunAttribute attribute = this.GetAttribute(StunAttributeType.Username);
+
+                if (attribute != null)
+                    return new Username(attribute);
+
+                return null;
+            }
+        }
+        /// <summary>
+        /// Contains a REALM attribute if this message contains one, otherwise returns null
+        /// </summary>
+        public Realm Realm
+        {
+            get
+            {
+                StunAttribute attribute = this.GetAttribute(StunAttributeType.Realm);
+
+                if (attribute != null)
+                    return new Realm(attribute);
+
+                return null;
+            }
+        }
+        /// <summary>
+        /// Contains a SOFTWARE attribute if this message contains one, otherwise returns null
+        /// </summary>
+        public Software Software
+        {
+            get
+            {
+                StunAttribute attribute = this.GetAttribute(StunAttributeType.Software);
+
+                if (attribute != null)
+                    return new Software(attribute);
+
+                return null;
+            }
+        }
+        /// <summary>
+        /// Contains a NONCE attribute if this message contains one, otherwise returns null
+        /// </summary>
+        public Nonce Nonce 
+        {
+            get
+            {
+                StunAttribute attribute = this.GetAttribute(StunAttributeType.Nonce);
+
+                if (attribute != null)
+                    return new Nonce(attribute);
+
+                return null;
+            }
+        }
+        /// <summary>
+        /// Contains a FINGERPRINT attribute if this message contains one, otherwise returns null
+        /// </summary>
+        public FingerPrint FingerPrint
+        {
+            get
+            {
+                StunAttribute attribute = this.GetAttribute(StunAttributeType.FingerPrint);
+
+                if (attribute != null)
+                    return new FingerPrint(attribute);
 
                 return null;
             }
@@ -386,51 +441,21 @@ namespace Jabber.Stun
         /// </returns>
         public static UInt16 MethodTypeToUInt16(StunMethodType mType)
         {
-            UInt16 methodType;
-
-            switch (mType)
+            foreach (FieldInfo field in typeof(StunMethodType).GetFields())
             {
-                case StunMethodType.Unknown:
-                default:
-                    methodType = (UInt16)0x0000;
-                    break;
+                if (field.Name == mType.ToString())
+                {
+                    Object[] fieldAttributes = field.GetCustomAttributes(typeof(StunValueAttribute), false);
 
-                // STUN Core
-                case StunMethodType.Binding:
-                    methodType = StunMessage.METHOD_BINDING;
-                    break;
+                    if (fieldAttributes.Length == 1)
+                    {
+                        StunValueAttribute stunValueAttribute = fieldAttributes.GetValue(0) as StunValueAttribute;
 
-                // TURN Extension
-                case StunMethodType.Allocate:
-                    methodType = StunMessage.METHOD_ALLOCATE;
-                    break;
-
-                case StunMethodType.Refresh:
-                    methodType = StunMessage.METHOD_REFRESH;
-                    break;
-
-                case StunMethodType.Send:
-                    methodType = StunMessage.METHOD_SEND;
-                    break;
-
-                case StunMethodType.Data:
-                    methodType = StunMessage.METHOD_DATA;
-                    break;
-
-                case StunMethodType.CreatePermission:
-                    methodType = StunMessage.METHOD_CREATE_PERMISSION;
-                    break;
-
-                case StunMethodType.ChannelBind:
-                    methodType = StunMessage.METHOD_CHANNEL_BIND;
-                    break;
-
-                // STUN Classic
-                case StunMethodType.SharedSecret:
-                    methodType = StunMessage.METHOD_SHARED_SECRET;
-                    break;
+                        return stunValueAttribute.Value;
+                    }
+                }
             }
-            return methodType;
+            return 0xFFFF;
         }
                 
         /// <summary>
@@ -443,33 +468,21 @@ namespace Jabber.Stun
         /// </returns>
         public static UInt16 MethodClassToUInt16(StunMethodClass mClass)
         {
-            UInt16 methodClass;
-
-            switch (mClass)
+            foreach (FieldInfo field in typeof(StunMethodClass).GetFields())
             {
-                case StunMethodClass.Unknown:
-                default:
-                    methodClass = (UInt16)0x0000;
-                    break;
+                if (field.Name == mClass.ToString())
+                {
+                    Object[] fieldAttributes = field.GetCustomAttributes(typeof(StunValueAttribute), false);
 
-                // STUN Core
-                case StunMethodClass.Request:
-                    methodClass = StunMessage.CLASS_REQUEST;
-                    break;
+                    if (fieldAttributes.Length == 1)
+                    {
+                        StunValueAttribute stunValueAttribute = fieldAttributes.GetValue(0) as StunValueAttribute;
 
-                case StunMethodClass.Indication:
-                    methodClass = StunMessage.CLASS_INDICATION;
-                    break;
-
-                case StunMethodClass.SuccessResponse:
-                    methodClass = StunMessage.CLASS_SUCCESS_RESPONSE;
-                    break;
-
-                case StunMethodClass.Error:
-                    methodClass = StunMessage.CLASS_ERROR;
-                    break;
+                        return stunValueAttribute.Value;
+                    }
+                }
             }
-            return methodClass;
+            return 0xFFFF;
         }
 
         /// <summary>
@@ -482,50 +495,22 @@ namespace Jabber.Stun
         /// </returns>
         public static StunMethodType UInt16ToMethodType(UInt16 mType)
         {
-            StunMethodType methodType;
-
-            switch (mType)
+            foreach (FieldInfo field in typeof(StunMethodType).GetFields())
             {
-                default:
-                    methodType = StunMethodType.Unknown;
-                    break;
+                Object[] fieldAttributes = field.GetCustomAttributes(typeof(StunValueAttribute), false);
 
-                // STUN Core
-                case StunMessage.METHOD_BINDING:
-                    methodType = StunMethodType.Binding;
-                    break;
+                if (fieldAttributes.Length == 1)
+                {
+                    StunValueAttribute stunValueAttribute = fieldAttributes.GetValue(0) as StunValueAttribute;
 
-                // TURN Extension
-                case StunMessage.METHOD_ALLOCATE:
-                    methodType = StunMethodType.Allocate;
-                    break;
-
-                case StunMessage.METHOD_REFRESH:
-                    methodType = StunMethodType.Refresh;
-                    break;
-
-                case StunMessage.METHOD_SEND:
-                    methodType = StunMethodType.Send;
-                    break;
-
-                case StunMessage.METHOD_DATA:
-                    methodType = StunMethodType.Data;
-                    break;
-
-                case StunMessage.METHOD_CREATE_PERMISSION:
-                    methodType = StunMethodType.CreatePermission;
-                    break;
-
-                case StunMessage.METHOD_CHANNEL_BIND:
-                    methodType = StunMethodType.ChannelBind;
-                    break;
-
-                // STUN Classic
-                case StunMessage.METHOD_SHARED_SECRET:
-                    methodType = StunMethodType.SharedSecret;
-                    break;
+                    if (stunValueAttribute != null &&
+                        stunValueAttribute.Value == mType)
+                    {
+                        return (StunMethodType)Enum.Parse(typeof(StunMethodType), field.Name);
+                    }
+                }
             }
-            return methodType;
+            return StunMethodType.Unknown;
         }
 
         /// <summary>
@@ -538,32 +523,22 @@ namespace Jabber.Stun
         /// </returns>
         public static StunMethodClass UInt16ToMethodClass(UInt16 mClass)
         {
-            StunMethodClass methodClass;
-
-            switch (mClass)
+            foreach (FieldInfo field in typeof(StunMethodClass).GetFields())
             {
-                default:
-                    methodClass = StunMethodClass.Unknown;
-                    break;
+                Object[] fieldAttributes = field.GetCustomAttributes(typeof(StunValueAttribute), false);
 
-                //  STUN Core
-                case StunMessage.CLASS_REQUEST:
-                    methodClass = StunMethodClass.Request;
-                    break;
+                if (fieldAttributes.Length == 1)
+                {
+                    StunValueAttribute stunValueAttribute = fieldAttributes.GetValue(0) as StunValueAttribute;
 
-                case StunMessage.CLASS_INDICATION:
-                    methodClass = StunMethodClass.Indication;
-                    break;
-
-                case StunMessage.CLASS_SUCCESS_RESPONSE:
-                    methodClass = StunMethodClass.SuccessResponse;
-                    break;
-
-                case StunMessage.CLASS_ERROR:
-                    methodClass = StunMethodClass.Error;
-                    break;
+                    if (stunValueAttribute != null &&
+                        stunValueAttribute.Value == mClass)
+                    {
+                        return (StunMethodClass)Enum.Parse(typeof(StunMethodClass), field.Name);
+                    }
+                }
             }
-            return methodClass;
+            return StunMethodClass.Unknown;
         }
         #endregion
     }
@@ -586,6 +561,7 @@ namespace Jabber.Stun
         /// The server examines the source IP address and port of the request,
         /// and copies them into a response that is sent back to the client
         /// </summary>
+        [StunValue(0x0001)]
         Binding,
         #endregion
 
@@ -603,12 +579,14 @@ namespace Jabber.Stun
         ///  *  a list of permissions
         ///  *  a list of channel to peer bindings.
         /// </summary>
+        [StunValue(0x0003)]
         Allocate,
         /// <summary>
         /// Only request/response semantics defined
         /// A Refresh transaction can be used to either (a) refresh an existing
         /// allocation and update its time-to-expiry or (b) delete an existing allocation
         /// </summary>
+        [StunValue(0x0004)]
         Refresh,
         /// <summary>
         /// Only indication semantics defined
@@ -616,18 +594,21 @@ namespace Jabber.Stun
         /// relaying to a peer. A client may use a Send indication even if a
         /// channel is bound to that peer
         /// </summary>
+        [StunValue(0x0006)]
         Send,
         /// <summary>
         /// Only indication semantics defined
         /// If relaying is permitted but no channel is bound to a peer, then
         /// the server forms and sends a Data indication
         /// </summary>
+        [StunValue(0x0007)]
         Data,
         /// <summary>
         /// Only request/response semantics defined
         /// TURN supports two ways for the client to install or refresh
         /// permissions on the server
         /// </summary>
+        [StunValue(0x0008)]
         CreatePermission,
         /// <summary>
         /// Only request/response semantics defined
@@ -640,6 +621,7 @@ namespace Jabber.Stun
         ///  * a transport address (of the peer); and
         ///  * A time-to-expiry timer.
         /// </summary>
+        [StunValue(0x0009)]
         ChannelBind,
         #endregion
 
@@ -650,6 +632,7 @@ namespace Jabber.Stun
         /// Binding Response, for the purposes of authentication and message integrity
         /// </summary>
         [Obsolete("Defined in RFC3489")]
+        [StunValue(0x0002)]
         SharedSecret
         #endregion
     }
@@ -669,18 +652,22 @@ namespace Jabber.Stun
         /// <summary>
         /// Request waiting for a response from peer STUN agent
         /// </summary>
+        [StunValue(0x0000)]
         Request,
         /// <summary>
         /// Request not waiting for any response from peer STUN agent
         /// </summary>
+        [StunValue(0x0010)]
         Indication,
         /// <summary>
         /// Request indicating a success response from peer STUN agent
         /// </summary>
+        [StunValue(0x0100)]
         SuccessResponse,
         /// <summary>
         /// Request indicating an error from peer STUN agent
         /// </summary>
+        [StunValue(0x0110)]
         Error
         #endregion
     }
