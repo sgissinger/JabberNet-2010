@@ -60,6 +60,13 @@ namespace Jabber.Connection
     public delegate void RoomParticipantEvent(Room room, RoomParticipant participant);
 
     /// <summary>
+    /// An IQ-related callback.
+    /// </summary>
+    /// <param name="room">The room the event is for</param>
+    /// <param name="iq">The IQ received</param>
+    public delegate void RoomIQEvent(Room room, IQ iq);
+
+    /// <summary>
     /// A participant-presence-related callback.
     /// </summary>
     /// <param name="room">The room the event is for</param>
@@ -236,7 +243,7 @@ namespace Jabber.Connection
         public event RoomParticipantPresenceEvent OnParticipantPresenceChange;
 
         /// <summary>
-        /// An invite was received.  A room object will be passed in as the sender.
+        /// An invite was received. A room object will be passed in as the sender.
         /// </summary>
         [Category("Manager")]
         public event MessageHandler OnInvite;
@@ -436,7 +443,6 @@ namespace Jabber.Connection
         /// </summary>
         private JID m_room;
         //private XmppStream m_stream;
-        private bool m_default = false;
         private ConferenceManager m_manager;
         private Message m_subject;
         private ParticipantCollection m_participants = new ParticipantCollection();
@@ -533,15 +539,23 @@ namespace Jabber.Connection
         public event RoomParticipantPresenceEvent OnPresenceChange;
 
         /// <summary>
+        /// Received an IQ from the room.
+        /// </summary>
+        [Category("Room")]
+        public event RoomIQEvent OnIQ;
+
+        /// <summary>
         /// Determines whether to use the default conference room configuration
         /// or to retrieve the configuration form from the XMPP server.
         /// </summary>
         [DefaultValue(false)]
-        public bool DefaultConfig
-        {
-            get { return m_default; }
-            set { m_default = value; }
-        }
+        public bool DefaultConfig { get; set; }
+
+        /// <summary>
+        /// True if you want to send an iq claiming ownership of a new room.
+        /// </summary>
+        [DefaultValue(false)]
+        public bool OwnNewRooms { get; set; }
 
         /// <summary>
         /// The subject of the room.  Set has the side-effect of sending to the server.
@@ -739,7 +753,8 @@ namespace Jabber.Connection
                     }
                     break;
                 case "iq":
-                    // TODO: IQs the room sends to us.
+                    if (OnIQ != null)
+                        OnIQ(this, (IQ)rp);
                     break;
             }
         }
@@ -763,13 +778,14 @@ namespace Jabber.Connection
                 // Old server.  Hope for the best.
                 if (OnJoin != null)
                     OnJoin(this);
+
                 return;
             }
 
-            if (x.HasStatus(RoomStatus.CREATED))
+            if (x.HasStatus(RoomStatus.CREATED) && this.OwnNewRooms)
             {
                 // room was created.  this must be me.
-                if (m_default || (OnRoomConfig == null))
+                if (this.DefaultConfig || OnRoomConfig == null)
                     FinishConfigDefault();
                 else
                     Configure();
@@ -964,6 +980,7 @@ namespace Jabber.Connection
         {
             if (m_state != STATE.running)
                 throw new InvalidOperationException("Must be in running state to send message: " + m_state.ToString());
+
             /*
             <message
                 to='darkcave@macbeth.shakespeare.lit'
