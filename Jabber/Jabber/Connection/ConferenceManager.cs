@@ -13,6 +13,7 @@
  * --------------------------------------------------------------------------*/
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using Jabber.Client;
@@ -59,6 +60,14 @@ namespace Jabber.Connection
     public delegate void RoomParticipantEvent(Room room, RoomParticipant participant);
 
     /// <summary>
+    /// A participant-presence-related callback.
+    /// </summary>
+    /// <param name="room">The room the event is for</param>
+    /// <param name="participant">The participant in the room</param>
+    /// <param name="oldPresence">The participant's old presence</param>
+    public delegate void RoomParticipantPresenceEvent(Room room, RoomParticipant participant, Presence oldPresence);
+
+    /// <summary>
     /// A participantCollection-related callback.
     /// </summary>
     /// <param name="room">The room the event is for</param>
@@ -71,7 +80,7 @@ namespace Jabber.Connection
     /// </summary>
     public partial class ConferenceManager : StreamComponent
     {
-        private Hashtable m_rooms = new Hashtable();
+        private Dictionary<JID, Room> m_rooms = new Dictionary<JID, Room>();
         private string m_nick = null;
 
         /// <summary>
@@ -107,20 +116,20 @@ namespace Jabber.Connection
             Message msg = rp as Message;
             if (msg == null)
                 return;
-/*
-<message
-    from='darkcave@macbeth.shakespeare.lit'
-    to='hecate@shakespeare.lit'>
-  <x xmlns='http://jabber.org/protocol/muc#user'>
-    <invite from='crone1@shakespeare.lit/desktop'>
-      <reason>
-        Hey Hecate, this is the place for all good witches!
-      </reason>
-    </invite>
-    <password>cauldronburn</password>
-  </x>
-</message>
- */
+            /*
+            <message
+                from='darkcave@macbeth.shakespeare.lit'
+                to='hecate@shakespeare.lit'>
+              <x xmlns='http://jabber.org/protocol/muc#user'>
+                <invite from='crone1@shakespeare.lit/desktop'>
+                  <reason>
+                    Hey Hecate, this is the place for all good witches!
+                  </reason>
+                </invite>
+                <password>cauldronburn</password>
+              </x>
+            </message>
+             */
             UserX x = msg["x", URI.MUC_USER] as UserX;
             if (x == null)
                 return;
@@ -211,13 +220,20 @@ namespace Jabber.Connection
         /// </summary>
         [Category("Room")]
         public event RoomParticipantEvent OnParticipantLeave;
+        
+        /// <summary>
+        /// You have changed presence, without joining or leaving the room.
+        /// If set, will be added to each room created through the manager.
+        /// </summary>
+        [Category("Room")]
+        public event RoomParticipantPresenceEvent OnPresenceChange;
 
         /// <summary>
         /// A participant has changed presence, without joining or leaving the room.  This will not fire for yourself.
         /// If set, will be added to each room created through the manager.
         /// </summary>
         [Category("Room")]
-        public event RoomParticipantEvent OnParticipantPresenceChange;
+        public event RoomParticipantPresenceEvent OnParticipantPresenceChange;
 
         /// <summary>
         /// An invite was received.  A room object will be passed in as the sender.
@@ -233,8 +249,8 @@ namespace Jabber.Connection
         [DefaultValue(null)]
         public string DefaultNick
         {
-            get 
-            { 
+            get
+            {
                 if (m_nick != null)
                     return m_nick;
                 if ((m_stream == null) || m_stream.JID == null)
@@ -260,15 +276,14 @@ namespace Jabber.Connection
             if (roomAndNick.Resource == null)
                 roomAndNick.Resource = DefaultNick;
 
-            Room r = (Room)m_rooms[roomAndNick];
-            if (r != null)
-                return r;
+            if (m_rooms.ContainsKey(roomAndNick))
+                return m_rooms[roomAndNick];
 
             // If no resource specified, pick up the user's name from their JID
             if (roomAndNick.Resource == null)
                 roomAndNick.Resource = m_stream.JID.User;
 
-            r = new Room(this, roomAndNick);
+            Room r = new Room(this, roomAndNick);
             r.OnJoin += OnJoin;
             r.OnLeave += OnLeave;
             r.OnPresenceError += OnPresenceError;
@@ -281,6 +296,7 @@ namespace Jabber.Connection
             r.OnParticipantJoin += OnParticipantJoin;
             r.OnParticipantLeave += OnParticipantLeave;
             r.OnParticipantPresenceChange += OnParticipantPresenceChange;
+            r.OnPresenceChange += OnPresenceChange;
 
             m_rooms[roomAndNick] = r;
             return r;
@@ -307,6 +323,17 @@ namespace Jabber.Connection
         {
             m_rooms.Remove(roomAndNick);
         }
+
+        public IEnumerable<Room> Rooms
+        {
+            get { return m_rooms.Values; }
+        }
+
+        public int Count
+        {
+            get { return m_rooms.Count; }
+        }
+
 
         private class UniqueState
         {
@@ -345,14 +372,14 @@ namespace Jabber.Connection
             if (callback == null)
                 throw new ArgumentNullException("callback");
 
-/*
-<iq from='crone1@shakespeare.lit/desktop'
-    id='unique1'
-    to='macbeth.shakespeare.lit'
-    type='get'>
-  <unique xmlns='http://jabber.org/protocol/muc#unique'/>
-</iq>
- */
+            /*
+            <iq from='crone1@shakespeare.lit/desktop'
+                id='unique1'
+                to='macbeth.shakespeare.lit'
+                type='get'>
+              <unique xmlns='http://jabber.org/protocol/muc#unique'/>
+            </iq>
+             */
             UniqueIQ iq = new UniqueIQ(m_stream.Document);
             iq.To = server;
             BeginIQ(iq, new IqCB(GotUnique), new UniqueState(nick, callback, state));
@@ -367,16 +394,16 @@ namespace Jabber.Connection
                 return;
             }
 
-/*
-<iq from='macbeth.shakespeare.lit'
-    id='unique1'
-    to='crone1@shakespeare.lit/desktop'
-    type='result'>
-  <unique xmlns='http://jabber.org/protocol/muc#unique'>
-    6d9423a55f499b29ad20bf7b2bdea4f4b885ead1
-  </unique>
-</iq>
- */
+            /*
+            <iq from='macbeth.shakespeare.lit'
+                id='unique1'
+                to='crone1@shakespeare.lit/desktop'
+                type='result'>
+              <unique xmlns='http://jabber.org/protocol/muc#unique'>
+                6d9423a55f499b29ad20bf7b2bdea4f4b885ead1
+              </unique>
+            </iq>
+             */
             UniqueRoom unique = (UniqueRoom)iq.Query;
             Room r = GetRoom(new JID(unique.RoomNode, iq.From.Server, us.Nick));
             us.Callback(r, us.State);
@@ -497,7 +524,13 @@ namespace Jabber.Connection
         /// A participant has changed presence, without joining or leaving the room.  This will not fire for yourself.
         /// </summary>
         [Category("Room")]
-        public event RoomParticipantEvent OnParticipantPresenceChange;
+        public event RoomParticipantPresenceEvent OnParticipantPresenceChange;
+
+        /// <summary>
+        /// You have changed presence, without joining or leaving the room.
+        /// </summary>
+        [Category("Room")]
+        public event RoomParticipantPresenceEvent OnPresenceChange;
 
         /// <summary>
         /// Determines whether to use the default conference room configuration
@@ -515,7 +548,13 @@ namespace Jabber.Connection
         /// </summary>
         public string Subject
         {
-            get { return m_subject.Subject; }
+            get
+            {
+                if (m_subject != null)
+                    return m_subject.Subject;
+                else
+                    return null;
+            }
             set
             {
                 Message m = new Message(m_manager.Stream.Document);
@@ -610,110 +649,114 @@ namespace Jabber.Connection
 
             switch (rp.LocalName)
             {
-            case "presence":
-                Presence p = (Presence)rp;
-                if (p.Error != null)
-                {
-                    m_state = STATE.error;
-                    if (OnPresenceError != null)
-                        OnPresenceError(this, p);
-                    return;
-                }
+                case "presence":
+                    Presence p = (Presence)rp;
+                    if (p.Error != null)
+                    {
+                        m_state = STATE.error;
+                        if (OnPresenceError != null)
+                            OnPresenceError(this, p);
+                        return;
+                    }
 
-                ParticipantCollection.Modification mod = ParticipantCollection.Modification.NONE;
-                RoomParticipant party = m_participants.Modify(p, out mod);
+                    Presence oldPresence = (m_participants[from] != null) ? ((RoomParticipant)m_participants[from]).Presence : null;
 
-                // if this is ours
-                if (p.From == m_jid)
-                {
-                    switch (m_state)
+                    ParticipantCollection.Modification mod = ParticipantCollection.Modification.NONE;
+                    RoomParticipant party = m_participants.Modify(p, out mod);
+
+                    // if this is ours
+                    if (p.From == m_jid)
                     {
-                    case STATE.join:
-                        OnJoinPresence(p);
-                        break;
-                    case STATE.leaving:
-                        OnLeavePresence(p);
-                        break;
-                    case STATE.running:
-                        if (p.Type == PresenceType.unavailable)
-                            OnLeavePresence(p);
-                        break;
-                    }
-                }
-                else
-                {
-                    switch (mod)
-                    {
-                    case ParticipantCollection.Modification.NONE:
-                        if (OnParticipantPresenceChange != null)
-                            OnParticipantPresenceChange(this, party);
-                        break;
-                    case ParticipantCollection.Modification.JOIN:
-                        if (OnParticipantJoin != null)
-                            OnParticipantJoin(this, party);
-                        break;
-                    case ParticipantCollection.Modification.LEAVE:
-                        if (OnParticipantLeave != null)
-                            OnParticipantLeave(this, party);
-                        break;
-                    }
-                }
-                break;
-            case "message":
-                Message m = (Message)rp;
-                if (m.Type == MessageType.groupchat)
-                {
-                    if (m.Subject != null)
-                    {
-                        if (OnSubjectChange != null)
-                            OnSubjectChange(this, m);
-                        m_subject = m;
-                    }
-                    else if (m.From == m_jid)
-                    {
-                        if (OnSelfMessage != null)
-                            OnSelfMessage(this, m);
+                        switch (m_state)
+                        {
+                            case STATE.join:
+                                OnJoinPresence(p);
+                                break;
+                            case STATE.leaving:
+                                OnLeavePresence(p);
+                                break;
+                            case STATE.running:
+                                if (p.Type == PresenceType.unavailable)
+                                    OnLeavePresence(p);
+                                else
+                                    OnPresenceChange(this, party, oldPresence);
+                                break;
+                        }
                     }
                     else
                     {
-                        if (OnRoomMessage != null)
-                            OnRoomMessage(this, m);
+                        switch (mod)
+                        {
+                            case ParticipantCollection.Modification.NONE:
+                                if (OnParticipantPresenceChange != null)
+                                    OnParticipantPresenceChange(this, party, oldPresence);
+                                break;
+                            case ParticipantCollection.Modification.JOIN:
+                                if (OnParticipantJoin != null)
+                                    OnParticipantJoin(this, party);
+                                break;
+                            case ParticipantCollection.Modification.LEAVE:
+                                if (OnParticipantLeave != null)
+                                    OnParticipantLeave(this, party);
+                                break;
+                        }
                     }
-                }
-                else
-                {
-                    if (m.From.Resource == null)
+                    break;
+                case "message":
+                    Message m = (Message)rp;
+                    if (m.Type == MessageType.groupchat)
                     {
-                        // room notification of some kind
-                        if (OnAdminMessage != null)
-                            OnAdminMessage(this, m);
+                        if (m.Subject != null)
+                        {
+                            if (OnSubjectChange != null)
+                                OnSubjectChange(this, m);
+                            m_subject = m;
+                        }
+                        else if (m.From == m_jid)
+                        {
+                            if (OnSelfMessage != null)
+                                OnSelfMessage(this, m);
+                        }
+                        else
+                        {
+                            if (OnRoomMessage != null)
+                                OnRoomMessage(this, m);
+                        }
                     }
                     else
                     {
-                        if (OnPrivateMessage != null)
-                            OnPrivateMessage(this, m);
+                        if (m.From.Resource == null)
+                        {
+                            // room notification of some kind
+                            if (OnAdminMessage != null)
+                                OnAdminMessage(this, m);
+                        }
+                        else
+                        {
+                            if (OnPrivateMessage != null)
+                                OnPrivateMessage(this, m);
+                        }
                     }
-                }
-                break;
-            case "iq":
-                // TODO: IQs the room sends to us.
-                break;
+                    break;
+                case "iq":
+                    // TODO: IQs the room sends to us.
+                    break;
             }
         }
 
         private void OnJoinPresence(Presence p)
         {
             // from is always us.
-/*
-<presence
-    to='crone1@shakespeare.lit/desktop'>
-  <x xmlns='http://jabber.org/protocol/muc#user'>
-    <item affiliation='owner'
-          role='moderator'/>
-    <status code='201'/>
-  </x>
-</presence>
- */
+            /*
+            <presence
+                to='crone1@shakespeare.lit/desktop'>
+              <x xmlns='http://jabber.org/protocol/muc#user'>
+                <item affiliation='owner'
+                      role='moderator'/>
+                <status code='201'/>
+              </x>
+            </presence>
+             */
             UserX x = p["x", URI.MUC_USER] as UserX;
             if (x == null)
             {
@@ -741,25 +784,31 @@ namespace Jabber.Connection
 
         private void OnLeavePresence(Presence p)
         {
-/*
-<presence
-    to='hag66@shakespeare.lit/pda'
-    type='unavailable'>
-  <x xmlns='http://jabber.org/protocol/muc#user'>
-    <item affiliation='member' role='none'/>
-    <status code='110'/>
-  </x>
-</presence>
- */
+            /*
+            <presence
+                to='hag66@shakespeare.lit/pda'
+                type='unavailable'>
+              <x xmlns='http://jabber.org/protocol/muc#user'>
+                <item affiliation='member' role='none'/>
+                <status code='110'/>
+              </x>
+            </presence>
+             */
             // not quite an assert.  some sort of race.
             if (p.Type != PresenceType.unavailable)
                 return;
 
-            m_manager.Stream.OnProtocol -= new Jabber.Protocol.ProtocolHandler(m_stream_OnProtocol);
-            Jabber.Client.JabberClient jc = m_manager.Stream as Jabber.Client.JabberClient;
+            m_state = STATE.leaving;
+
+            m_manager.Stream.OnProtocol -= new ProtocolHandler(m_stream_OnProtocol);
+
+            JabberClient jc = m_manager.Stream as JabberClient;
+
             if (jc != null)
-                jc.OnAfterPresenceOut -= new Jabber.Client.PresenceHandler(m_stream_OnAfterPresenceOut);
+                jc.OnAfterPresenceOut -= new PresenceHandler(m_stream_OnAfterPresenceOut);
+
             m_manager.RemoveRoom(m_jid); // should cause this object to GC.
+
             if (OnLeave != null)
                 OnLeave(this, p);
         }
@@ -776,13 +825,13 @@ namespace Jabber.Connection
             if (OnRoomConfig == null)
                 throw new ArgumentNullException("Must set OnRoomConfig before calling Configure()", "OnRoomConfig");
 
-/*
-<iq id='create1'
-    to='darkcave@macbeth.shakespeare.lit'
-    type='get'>
-  <query xmlns='http://jabber.org/protocol/muc#owner'/>
-</iq>
- */
+            /*
+            <iq id='create1'
+                to='darkcave@macbeth.shakespeare.lit'
+                type='get'>
+              <query xmlns='http://jabber.org/protocol/muc#owner'/>
+            </iq>
+             */
             m_state = STATE.configGet;
             OwnerIQ iq = new OwnerIQ(m_manager.Stream.Document);
             iq.Type = IQType.get;
@@ -835,16 +884,16 @@ namespace Jabber.Connection
         /// </summary>
         private void FinishConfigDefault()
         {
-/*
-<iq from='crone1@shakespeare.lit/desktop'
-    id='create1'
-    to='darkcave@macbeth.shakespeare.lit'
-    type='set'>
-  <query xmlns='http://jabber.org/protocol/muc#owner'>
-    <x xmlns='jabber:x:data' type='submit'/>
-  </query>
-</iq>
- */
+            /*
+            <iq from='crone1@shakespeare.lit/desktop'
+                id='create1'
+                to='darkcave@macbeth.shakespeare.lit'
+                type='set'>
+              <query xmlns='http://jabber.org/protocol/muc#owner'>
+                <x xmlns='jabber:x:data' type='submit'/>
+              </query>
+            </iq>
+             */
             m_state = STATE.configSet;
             OwnerIQ iq = new OwnerIQ(m_manager.Stream.Document);
             iq.Type = IQType.set;
@@ -889,13 +938,13 @@ namespace Jabber.Connection
         {
             m_state = STATE.leaving;
 
-/*
-<presence
-    to='darkcave@macbeth.shakespeare.lit/oldhag'
-    type='unavailable'>
-  <status>gone where the goblins go</status>
-</presence>
- */
+            /*
+            <presence
+                to='darkcave@macbeth.shakespeare.lit/oldhag'
+                type='unavailable'>
+              <status>gone where the goblins go</status>
+            </presence>
+             */
             Presence p = new Presence(m_manager.Stream.Document);
             p.To = m_jid;
             p.Type = PresenceType.unavailable;
@@ -915,13 +964,13 @@ namespace Jabber.Connection
         {
             if (m_state != STATE.running)
                 throw new InvalidOperationException("Must be in running state to send message: " + m_state.ToString());
-/*
-<message
-    to='darkcave@macbeth.shakespeare.lit'
-    type='groupchat'>
-  <body>Harpier cries: 'tis time, 'tis time.</body>
-</message>
- */
+            /*
+            <message
+                to='darkcave@macbeth.shakespeare.lit'
+                type='groupchat'>
+              <body>Harpier cries: 'tis time, 'tis time.</body>
+            </message>
+             */
             if (body == null)
                 throw new ArgumentNullException("body");
             Message m = new Message(m_manager.Stream.Document);
@@ -941,13 +990,13 @@ namespace Jabber.Connection
             if (m_state != STATE.running)
                 throw new InvalidOperationException("Must be in running state to send message: " + m_state.ToString());
 
-/*
-<message
-    to='darkcave@macbeth.shakespeare.lit/firstwitch'
-    type='chat'>
-  <body>I'll give thee a wind.</body>
-</message>
- */
+            /*
+            <message
+                to='darkcave@macbeth.shakespeare.lit/firstwitch'
+                type='chat'>
+              <body>I'll give thee a wind.</body>
+            </message>
+             */
             if (nick == null)
                 throw new ArgumentNullException("nick");
             if (body == null)
@@ -972,19 +1021,19 @@ namespace Jabber.Connection
 
             if (invitee == null)
                 throw new ArgumentNullException("invitee");
-/*
-<message
-    from='crone1@shakespeare.lit/desktop'
-    to='darkcave@macbeth.shakespeare.lit'>
-  <x xmlns='http://jabber.org/protocol/muc#user'>
-    <invite to='hecate@shakespeare.lit'>
-      <reason>
-        Hey Hecate, this is the place for all good witches!
-      </reason>
-    </invite>
-  </x>
-</message>
- */
+            /*
+            <message
+                from='crone1@shakespeare.lit/desktop'
+                to='darkcave@macbeth.shakespeare.lit'>
+              <x xmlns='http://jabber.org/protocol/muc#user'>
+                <invite to='hecate@shakespeare.lit'>
+                  <reason>
+                    Hey Hecate, this is the place for all good witches!
+                  </reason>
+                </invite>
+              </x>
+            </message>
+             */
             Message m = new Message(m_manager.Stream.Document);
             m.To = m_room;
             UserX x = new UserX(m_manager.Stream.Document);
@@ -993,7 +1042,7 @@ namespace Jabber.Connection
             m_manager.Write(m);
         }
 
-#region Moderator use cases
+        #region Moderator use cases
         /// <summary>
         /// Change the role of a user in the room, by nickname.  Must be a moderator.
         /// </summary>
@@ -1009,18 +1058,18 @@ namespace Jabber.Connection
                 throw new ArgumentNullException("nick");
             if (role == RoomRole.UNSPECIFIED)
                 throw new ArgumentNullException("role");
-/*
-<iq from='fluellen@shakespeare.lit/pda'
-    id='kick1'
-    to='harfleur@henryv.shakespeare.lit'
-    type='set'>
-  <query xmlns='http://jabber.org/protocol/muc#admin'>
-    <item nick='pistol' role='none'>
-      <reason>Avaunt, you cullion!</reason>
-    </item>
-  </query>
-</iq>
-*/
+            /*
+            <iq from='fluellen@shakespeare.lit/pda'
+                id='kick1'
+                to='harfleur@henryv.shakespeare.lit'
+                type='set'>
+              <query xmlns='http://jabber.org/protocol/muc#admin'>
+                <item nick='pistol' role='none'>
+                  <reason>Avaunt, you cullion!</reason>
+                </item>
+              </query>
+            </iq>
+            */
             RoomAdminIQ iq = new RoomAdminIQ(m_manager.Stream.Document);
             iq.To = m_room;
             iq.Type = IQType.set;
@@ -1085,16 +1134,16 @@ namespace Jabber.Connection
         {
             if (callback == null)
                 throw new ArgumentNullException("callback");
-/*
-<iq from='bard@shakespeare.lit/globe'
-    id='voice3'
-    to='goodfolk@chat.shakespeare.lit'
-    type='get'>
-  <query xmlns='http://jabber.org/protocol/muc#admin'>
-    <item role='participant'/>
-  </query>
-</iq>
-*/
+            /*
+            <iq from='bard@shakespeare.lit/globe'
+                id='voice3'
+                to='goodfolk@chat.shakespeare.lit'
+                type='get'>
+              <query xmlns='http://jabber.org/protocol/muc#admin'>
+                <item role='participant'/>
+              </query>
+            </iq>
+            */
             RoomAdminIQ iq = new RoomAdminIQ(m_manager.Stream.Document);
             iq.To = m_room;
             AdminQuery query = iq.Instruction;
@@ -1110,19 +1159,19 @@ namespace Jabber.Connection
                 rps.Callback(this, null, rps.State);
                 return;
             }
-/*
-<iq from='southampton@henryv.shakespeare.lit'
-    id='ban2'
-    to='kinghenryv@shakespeare.lit/throne'
-    type='result'>
-  <query xmlns='http://jabber.org/protocol/muc#admin'>
-    <item affiliation='outcast'
-          jid='earlofcambridge@shakespeare.lit'>
-      <reason>Treason</reason>
-    </item>
-  </query>
-</iq>
-*/
+            /*
+            <iq from='southampton@henryv.shakespeare.lit'
+                id='ban2'
+                to='kinghenryv@shakespeare.lit/throne'
+                type='result'>
+              <query xmlns='http://jabber.org/protocol/muc#admin'>
+                <item affiliation='outcast'
+                      jid='earlofcambridge@shakespeare.lit'>
+                  <reason>Treason</reason>
+                </item>
+              </query>
+            </iq>
+            */
             ParticipantCollection parties = new ParticipantCollection();
             AdminQuery query = (AdminQuery)iq.Query;
             ParticipantCollection.Modification mod;
@@ -1154,25 +1203,25 @@ namespace Jabber.Connection
         /// <param name="state">Caller's state information</param>
         public void ModifyRoles(ParticipantCollection parties, string reason, IqCB callback, object state)
         {
-/*
-<iq from='bard@shakespeare.lit/globe'
-    id='voice4'
-    to='goodfolk@chat.shakespeare.lit'
-    type='set'>
-  <query xmlns='http://jabber.org/protocol/muc#admin'>
-    <item nick='Hecate'
-          role='visitor'/>
-    <item nick='rosencrantz'
-          role='participant'>
-      <reason>A worthy fellow.</reason>
-    </item>
-    <item nick='guildenstern'
-          role='participant'>
-      <reason>A worthy fellow.</reason>
-    </item>
-  </query>
-</iq>
-*/
+            /*
+            <iq from='bard@shakespeare.lit/globe'
+                id='voice4'
+                to='goodfolk@chat.shakespeare.lit'
+                type='set'>
+              <query xmlns='http://jabber.org/protocol/muc#admin'>
+                <item nick='Hecate'
+                      role='visitor'/>
+                <item nick='rosencrantz'
+                      role='participant'>
+                  <reason>A worthy fellow.</reason>
+                </item>
+                <item nick='guildenstern'
+                      role='participant'>
+                  <reason>A worthy fellow.</reason>
+                </item>
+              </query>
+            </iq>
+            */
             RoomAdminIQ iq = new RoomAdminIQ(m_manager.Stream.Document);
             iq.To = m_room;
             iq.Type = IQType.set;
@@ -1196,9 +1245,9 @@ namespace Jabber.Connection
                 callback(this, null, state);
         }
 
-#endregion
+        #endregion
 
-#region Admin use cases
+        #region Admin use cases
         /// <summary>
         /// Change the affiliation (long-term) with the room of a user, based on their real JID.
         /// </summary>
@@ -1213,19 +1262,19 @@ namespace Jabber.Connection
                 throw new ArgumentNullException("jid");
             if (affiliation == RoomAffiliation.UNSPECIFIED)
                 throw new ArgumentNullException("affiliation");
-/*
-<iq from='kinghenryv@shakespeare.lit/throne'
-    id='ban1'
-    to='southampton@henryv.shakespeare.lit'
-    type='set'>
-  <query xmlns='http://jabber.org/protocol/muc#admin'>
-    <item affiliation='outcast'
-          jid='earlofcambridge@shakespeare.lit'>
-      <reason>Treason</reason>
-    </item>
-  </query>
-</iq>
- */
+            /*
+            <iq from='kinghenryv@shakespeare.lit/throne'
+                id='ban1'
+                to='southampton@henryv.shakespeare.lit'
+                type='set'>
+              <query xmlns='http://jabber.org/protocol/muc#admin'>
+                <item affiliation='outcast'
+                      jid='earlofcambridge@shakespeare.lit'>
+                  <reason>Treason</reason>
+                </item>
+              </query>
+            </iq>
+             */
             RoomAdminIQ iq = new RoomAdminIQ(m_manager.Stream.Document);
             iq.To = m_room;
             iq.Type = IQType.set;
@@ -1288,16 +1337,16 @@ namespace Jabber.Connection
         {
             if (callback == null)
                 throw new ArgumentNullException("callback");
-/*
-<iq from='kinghenryv@shakespeare.lit/throne'
-    id='ban2'
-    to='southampton@henryv.shakespeare.lit'
-    type='get'>
-  <query xmlns='http://jabber.org/protocol/muc#admin'>
-    <item affiliation='outcast'/>
-  </query>
-</iq>
-*/
+            /*
+            <iq from='kinghenryv@shakespeare.lit/throne'
+                id='ban2'
+                to='southampton@henryv.shakespeare.lit'
+                type='get'>
+              <query xmlns='http://jabber.org/protocol/muc#admin'>
+                <item affiliation='outcast'/>
+              </query>
+            </iq>
+            */
             RoomAdminIQ iq = new RoomAdminIQ(m_manager.Stream.Document);
             iq.To = m_room;
             AdminQuery query = iq.Instruction;
@@ -1317,19 +1366,19 @@ namespace Jabber.Connection
         /// <param name="state">Caller's state information</param>
         public void ModifyAffiliations(ParticipantCollection parties, string reason, IqCB callback, object state)
         {
-/*
-<iq from='southampton@henryv.shakespeare.lit'
-    id='ban2'
-    to='kinghenryv@shakespeare.lit/throne'
-    type='result'>
-  <query xmlns='http://jabber.org/protocol/muc#admin'>
-    <item affiliation='outcast'
-          jid='earlofcambridge@shakespeare.lit'>
-      <reason>Treason</reason>
-    </item>
-  </query>
-</iq>
-*/
+            /*
+            <iq from='southampton@henryv.shakespeare.lit'
+                id='ban2'
+                to='kinghenryv@shakespeare.lit/throne'
+                type='result'>
+              <query xmlns='http://jabber.org/protocol/muc#admin'>
+                <item affiliation='outcast'
+                      jid='earlofcambridge@shakespeare.lit'>
+                  <reason>Treason</reason>
+                </item>
+              </query>
+            </iq>
+            */
             RoomAdminIQ iq = new RoomAdminIQ(m_manager.Stream.Document);
             iq.To = m_room;
             iq.Type = IQType.set;
@@ -1352,7 +1401,7 @@ namespace Jabber.Connection
             else
                 callback(this, null, state);
         }
-#endregion
+        #endregion
     }
 
     /// <summary>
@@ -1588,17 +1637,17 @@ namespace Jabber.Connection
         {
             get
             {
-/*
-<presence
-    from='darkcave@macbeth.shakespeare.lit/thirdwitch'
-    to='crone1@shakespeare.lit/desktop'>
-  <x xmlns='http://jabber.org/protocol/muc#user'>
-    <item affiliation='none'
-          jid='hag66@shakespeare.lit/pda'
-          role='participant'/>
-  </x>
-</presence>
- */
+                /*
+                <presence
+                    from='darkcave@macbeth.shakespeare.lit/thirdwitch'
+                    to='crone1@shakespeare.lit/desktop'>
+                  <x xmlns='http://jabber.org/protocol/muc#user'>
+                    <item affiliation='none'
+                          jid='hag66@shakespeare.lit/pda'
+                          role='participant'/>
+                  </x>
+                </presence>
+                 */
                 RoomItem item = Item;
                 if (item == null)
                     return null;

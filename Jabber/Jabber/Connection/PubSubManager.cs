@@ -21,6 +21,7 @@ using System.Xml;
 using Jabber.Protocol;
 using Jabber.Protocol.Client;
 using Jabber.Protocol.IQ;
+using System.Globalization;
 
 namespace Jabber.Connection
 {
@@ -106,7 +107,9 @@ namespace Jabber.Connection
                 CBHolder holder = null;
                 if (!m_callbacks.TryGetValue(node, out holder))
                 {
-                    Console.WriteLine("WARNING: notification received for unknown pubsub node");
+                    Console.WriteLine(String.Format(CultureInfo.CurrentCulture,
+                                                    "WARNING: notification received for unknown pubsub node: {0}",
+                                                    node));
                     return;
                 }
                 psn = new PubSubNode(m_stream, from, node, holder.Max);

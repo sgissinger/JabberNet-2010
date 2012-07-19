@@ -272,10 +272,10 @@ namespace Jabber.Client
                 JingleContent jcnt = jingleIq.Instruction.AddContent(contentName);
 
                 if (description != null)
-                    jcnt.AppendChild(description);
+                    jcnt.AddChild(description);
 
                 if (transport != null)
-                    jcnt.AppendChild(transport);
+                    jcnt.AddChild(transport);
             }
             else
             {
@@ -426,7 +426,7 @@ namespace Jabber.Client
             jingleIq.Instruction.Sid = sid;
 
             if (payload != null)
-                jingleIq.Instruction.AppendChild(payload);
+                jingleIq.Instruction.AddChild(payload);
 
             return jingleIq;
         }

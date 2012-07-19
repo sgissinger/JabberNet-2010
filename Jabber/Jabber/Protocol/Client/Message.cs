@@ -106,10 +106,10 @@ namespace Jabber.Protocol.Client
                 // Thanks, Mr. Postel.
                 XmlElement h = this["html"];
                 if (h == null)
-                    return "";
+                    return null;
                 XmlElement b = h["body"];
                 if (b == null)
-                    return "";
+                    return null;
                 string xml = b.InnerXml;
                 // HACK: yeah, yeah, I know.
                 return xml.Replace(" xmlns=\"" + URI.XHTML + "\"", "");

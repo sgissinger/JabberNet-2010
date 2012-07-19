@@ -12,7 +12,10 @@
  * See LICENSE.txt for details.
  * --------------------------------------------------------------------------*/
 using System;
-
+using System.Drawing;
+using System.Drawing.Imaging;
+using System.IO;
+using System.Diagnostics;
 using System.Xml;
 
 
@@ -145,7 +148,8 @@ namespace Jabber.Protocol.IQ
         /// Create a vCard IQ
         /// </summary>
         /// <param name="doc"></param>
-        public VCardIQ(XmlDocument doc) : base(doc)
+        public VCardIQ(XmlDocument doc)
+            : base(doc)
         {
         }
 
@@ -167,9 +171,10 @@ namespace Jabber.Protocol.IQ
         ///
         /// </summary>
         /// <param name="doc"></param>
-        public VCard(XmlDocument doc) : base("vCard", URI.VCARD, doc)
+        public VCard(XmlDocument doc)
+            : base("vCard", URI.VCARD, doc)
         {
-        //  SetElem("PRODID", "jabber-net: " + this.GetType().Assembly.FullName);
+            //  SetElem("PRODID", "jabber-net: " + this.GetType().Assembly.FullName);
         }
 
         /// <summary>
@@ -305,10 +310,10 @@ namespace Jabber.Protocol.IQ
         {
             XmlNodeList nl = GetElementsByTagName("TEL", URI.VCARD);
             VTelephone[] numbers = new VTelephone[nl.Count];
-            int i=0;
+            int i = 0;
             foreach (XmlNode n in nl)
             {
-                numbers[i] = (VTelephone) n;
+                numbers[i] = (VTelephone)n;
                 i++;
             }
             return numbers;
@@ -338,10 +343,10 @@ namespace Jabber.Protocol.IQ
         {
             XmlNodeList nl = GetElementsByTagName("ADR", URI.VCARD);
             VAddress[] addresses = new VAddress[nl.Count];
-            int i=0;
+            int i = 0;
             foreach (XmlNode n in nl)
             {
-                addresses[i] = (VAddress) n;
+                addresses[i] = (VAddress)n;
                 i++;
             }
             return addresses;
@@ -370,7 +375,7 @@ namespace Jabber.Protocol.IQ
         {
             XmlNodeList nl = GetElementsByTagName("EMAIL", URI.VCARD);
             VEmail[] emails = new VEmail[nl.Count];
-            int i=0;
+            int i = 0;
             foreach (XmlNode n in nl)
             {
                 emails[i] = (VEmail)n;
@@ -433,7 +438,8 @@ namespace Jabber.Protocol.IQ
             ///
             /// </summary>
             /// <param name="doc"></param>
-            public VName(XmlDocument doc) : base("N", URI.VCARD, doc)
+            public VName(XmlDocument doc)
+                : base("N", URI.VCARD, doc)
             {
             }
 
@@ -485,7 +491,8 @@ namespace Jabber.Protocol.IQ
             ///
             /// </summary>
             /// <param name="doc"></param>
-            public VOrganization(XmlDocument doc) : base("ORG", URI.VCARD, doc)
+            public VOrganization(XmlDocument doc)
+                : base("ORG", URI.VCARD, doc)
             {
             }
 
@@ -528,7 +535,8 @@ namespace Jabber.Protocol.IQ
             ///
             /// </summary>
             /// <param name="doc"></param>
-            public VTelephone(XmlDocument doc) : base("TEL", URI.VCARD, doc)
+            public VTelephone(XmlDocument doc)
+                : base("TEL", URI.VCARD, doc)
             {
             }
 
@@ -623,7 +631,8 @@ namespace Jabber.Protocol.IQ
             ///
             /// </summary>
             /// <param name="doc"></param>
-            public VAddress(XmlDocument doc) : base("ADR", URI.VCARD, doc)
+            public VAddress(XmlDocument doc)
+                : base("ADR", URI.VCARD, doc)
             {
             }
 
@@ -730,7 +739,8 @@ namespace Jabber.Protocol.IQ
             ///
             /// </summary>
             /// <param name="doc"></param>
-            public VEmail(XmlDocument doc) : base("EMAIL", URI.VCARD, doc)
+            public VEmail(XmlDocument doc)
+                : base("EMAIL", URI.VCARD, doc)
             {
             }
 
@@ -817,7 +827,8 @@ namespace Jabber.Protocol.IQ
             ///
             /// </summary>
             /// <param name="doc"></param>
-            public VGeo(XmlDocument doc) : base("GEO", URI.VCARD, doc)
+            public VGeo(XmlDocument doc)
+                : base("GEO", URI.VCARD, doc)
             {
             }
 
@@ -860,7 +871,8 @@ namespace Jabber.Protocol.IQ
             ///
             /// </summary>
             /// <param name="doc"></param>
-            public VPhoto(XmlDocument doc) : base("PHOTO", URI.VCARD, doc)
+            public VPhoto(XmlDocument doc)
+                : base("PHOTO", URI.VCARD, doc)
             {
             }
 
@@ -879,11 +891,11 @@ namespace Jabber.Protocol.IQ
             /// The MIME type of the image.  Must be set before
             /// calling Image.set.
             /// </summary>
-            public System.Drawing.Imaging.ImageFormat ImageType
+            public ImageFormat ImageType
             {
-                get 
+                get
                 {
-                    System.Drawing.Imaging.ImageFormat def = System.Drawing.Imaging.ImageFormat.Png;
+                    ImageFormat def = ImageFormat.Png;
 
                     // Strip off all but everything after the last slash,
                     // if any.
@@ -898,16 +910,16 @@ namespace Jabber.Protocol.IQ
                     {
                         case "jpeg":
                         case "jpg":
-                            return System.Drawing.Imaging.ImageFormat.Jpeg;
+                            return ImageFormat.Jpeg;
                         case "png":
-                            return System.Drawing.Imaging.ImageFormat.Png;
+                            return ImageFormat.Png;
                         case "bmp":
-                            return System.Drawing.Imaging.ImageFormat.Bmp;
+                            return ImageFormat.Bmp;
                         case "gif":
-                            return System.Drawing.Imaging.ImageFormat.Gif;
+                            return ImageFormat.Gif;
                         case "tif":
                         case "tiff":
-                            return System.Drawing.Imaging.ImageFormat.Tiff;
+                            return ImageFormat.Tiff;
                     }
                     return def;
                 }
@@ -922,9 +934,18 @@ namespace Jabber.Protocol.IQ
                 get
                 {
                     string b64 = GetElem("BINVAL");
+
                     if (b64 == null)
                         return null;
-                    return Convert.FromBase64String(b64);
+
+                    try
+                    {
+                        return Convert.FromBase64String(b64);
+                    }
+                    catch
+                    {
+                        return null;
+                    }
                 }
                 set { SetElem("BINVAL", Convert.ToBase64String(value)); }
             }
@@ -933,19 +954,31 @@ namespace Jabber.Protocol.IQ
             /// An Image representation of the bytes in the picture.
             /// The MimeType MUST be set before calling set.
             /// </summary>
-            public System.Drawing.Image Image
+            public Image Image
             {
                 get
                 {
                     byte[] bin = this.BinVal;
+
                     if (bin == null)
                         return null;
-                    System.IO.MemoryStream ms = new System.IO.MemoryStream(bin);
-                    return System.Drawing.Image.FromStream(ms);
+
+                    try
+                    {
+                        MemoryStream ms = new MemoryStream(bin);
+
+                        return Image.FromStream(ms);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine("Failed to load VCard Image: " + ex);
+
+                        return null;
+                    }
                 }
                 set
                 {
-                    System.IO.MemoryStream ms = new System.IO.MemoryStream();
+                    MemoryStream ms = new MemoryStream();
                     Image.Save(ms, this.ImageType);
                     this.BinVal = ms.GetBuffer();
                 }

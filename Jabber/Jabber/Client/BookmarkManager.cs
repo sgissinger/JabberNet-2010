@@ -58,7 +58,7 @@ namespace Jabber.Client
 
             this.OnStreamChanged += new Bedrock.ObjectHandler(BookmarkManager_OnStreamChanged);
         }
-        
+
         /// <summary>
         /// Automatically request bookmarks using iq:private on login.
         /// </summary>
@@ -209,6 +209,22 @@ namespace Jabber.Client
                 }
                 m_stream.Tracker.BeginIQ(biq, BookmarksSet, prev);
             }
+        }
+
+        /// <summary>
+        /// Returns the number of bookmarked conferences.
+        /// </summary>
+        public int Count
+        {
+            get { return m_conferences.Count; }
+        }
+
+        /// <summary>
+        /// Exposes an enumerator for all bookmarked conferences.
+        /// </summary>
+        public IEnumerable<BookmarkConference> Conferences
+        {
+            get { return m_conferences.Values; }
         }
 
         private void BookmarksSet(object sender, IQ iq, object state)

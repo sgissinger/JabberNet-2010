@@ -18,6 +18,7 @@ using System.Diagnostics;
 using Bedrock.Collections;
 using Jabber.Protocol.Client;
 using Jabber.Protocol.IQ;
+using System.Collections.Generic;
 
 namespace Jabber.Client
 {
@@ -70,9 +71,9 @@ namespace Jabber.Client
     /// <summary>
     /// Manages the roster of the client.
     /// </summary>
-    public partial class RosterManager : Jabber.Connection.StreamComponent, IEnumerable
+    public partial class RosterManager : Jabber.Connection.StreamComponent, IEnumerable<JID>
     {
-        private Tree m_items = new Tree();
+        private Dictionary<JID, Item> m_items = new Dictionary<JID, Item>();
         private AutoSubscriptionHanding m_autoAllow = AutoSubscriptionHanding.NONE;
         private bool m_autoSubscribe = false;
 
@@ -119,7 +120,7 @@ namespace Jabber.Client
         [ReadOnly(true)]
         public JabberClient Client
         {
-            get { return (JabberClient) this.Stream; }
+            get { return (JabberClient)this.Stream; }
             set { this.Stream = value; }
         }
 
@@ -201,7 +202,7 @@ namespace Jabber.Client
             get
             {
                 lock (this)
-                    return (Item) m_items[jid];
+                    return m_items.ContainsKey(jid) ? m_items[jid] : null;
             }
         }
 
@@ -230,73 +231,73 @@ namespace Jabber.Client
             PresenceType typ = pres.Type;
             switch (typ)
             {
-            case PresenceType.available:
-            case PresenceType.unavailable:
-            case PresenceType.error:
-            case PresenceType.probe:
-                return;
-            case PresenceType.subscribe:
-                switch (m_autoAllow)
-                {
-                case AutoSubscriptionHanding.AllowAll:
-                    ReplyAllow(pres);
+                case PresenceType.available:
+                case PresenceType.unavailable:
+                case PresenceType.error:
+                case PresenceType.probe:
                     return;
-                case AutoSubscriptionHanding.DenyAll:
-                    ReplyDeny(pres);
-                    return;
-                case AutoSubscriptionHanding.NONE:
-                    if (OnSubscription != null)
-                        OnSubscription(this, this[pres.From], pres);
-                    return;
-                case AutoSubscriptionHanding.AllowIfSubscribed:
-                    Item ri = this[pres.From];
-                    if (ri != null)
+                case PresenceType.subscribe:
+                    switch (m_autoAllow)
                     {
-                        switch (ri.Subscription)
-                        {
-                        case Subscription.to:
+                        case AutoSubscriptionHanding.AllowAll:
                             ReplyAllow(pres);
                             return;
-                        case Subscription.from:
-                        case Subscription.both:
-                            // Almost an assert
-                            throw new InvalidOperationException("Server sent a presence subscribe for an already-subscribed contact");
-                        case Subscription.none:
-                            if (ri.Ask == Ask.subscribe)
+                        case AutoSubscriptionHanding.DenyAll:
+                            ReplyDeny(pres);
+                            return;
+                        case AutoSubscriptionHanding.NONE:
+                            if (OnSubscription != null)
+                                OnSubscription(this, this[pres.From], pres);
+                            return;
+                        case AutoSubscriptionHanding.AllowIfSubscribed:
+                            Item ri = this[pres.From];
+                            if (ri != null)
                             {
-                                ReplyAllow(pres);
-                                return;
+                                switch (ri.Subscription)
+                                {
+                                    case Subscription.to:
+                                        ReplyAllow(pres);
+                                        return;
+                                    case Subscription.from:
+                                    case Subscription.both:
+                                        // Almost an assert
+                                        throw new InvalidOperationException("Server sent a presence subscribe for an already-subscribed contact");
+                                    case Subscription.none:
+                                        if (ri.Ask == Ask.subscribe)
+                                        {
+                                            ReplyAllow(pres);
+                                            return;
+                                        }
+                                        break;
+                                }
                             }
+                            if (OnSubscription != null)
+                                OnSubscription(this, ri, pres);
                             break;
-                        }
                     }
-                    if (OnSubscription != null)
-                        OnSubscription(this, ri, pres);
                     break;
-                }
-                break;
-            case PresenceType.subscribed:
-                // This is the new ack case.
-                Presence sub_ack = new Presence(m_stream.Document);
-                sub_ack.To = pres.From;
-                sub_ack.Type = PresenceType.subscribe;
-                Write(sub_ack);                
-                break;
-            case PresenceType.unsubscribe:
-                // ack.  we'll likely get an unsubscribed soon, anyway.
-                Presence un_ack = new Presence(m_stream.Document);
-                un_ack.To = pres.From;
-                un_ack.Type = PresenceType.unsubscribed;
-                Write(un_ack);
-                break;
-            case PresenceType.unsubscribed:
-                bool remove = true;
-                if (OnUnsubscription != null)
-                    OnUnsubscription(this, pres, ref remove);
+                case PresenceType.subscribed:
+                    // This is the new ack case.
+                    Presence sub_ack = new Presence(m_stream.Document);
+                    sub_ack.To = pres.From;
+                    sub_ack.Type = PresenceType.subscribe;
+                    Write(sub_ack);
+                    break;
+                case PresenceType.unsubscribe:
+                    // ack.  we'll likely get an unsubscribed soon, anyway.
+                    Presence un_ack = new Presence(m_stream.Document);
+                    un_ack.To = pres.From;
+                    un_ack.Type = PresenceType.unsubscribed;
+                    Write(un_ack);
+                    break;
+                case PresenceType.unsubscribed:
+                    bool remove = true;
+                    if (OnUnsubscription != null)
+                        OnUnsubscription(this, pres, ref remove);
 
-                if (remove)
-                    Remove(pres.From);
-                break;
+                    if (remove)
+                        Remove(pres.From);
+                    break;
             }
         }
 
@@ -317,7 +318,7 @@ namespace Jabber.Client
                 return;
 
             iq.Handled = true;
-            Roster r = (Roster) iq.Query;
+            Roster r = (Roster)iq.Query;
             if ((iq.Type == IQType.result) && (OnRosterBegin != null))
                 OnRosterBegin(this);
 
@@ -331,7 +332,7 @@ namespace Jabber.Client
                     }
                     else
                     {
-                        if (m_items.Contains(i.JID))
+                        if (m_items.ContainsKey(i.JID))
                             m_items.Remove(i.JID);
                         m_items[i.JID] = i;
                     }
@@ -388,13 +389,13 @@ namespace Jabber.Client
         /// <param name="jid">Typically just a user@host JID</param>
         public void Remove(JID jid)
         {
-/*
-C: <iq from='juliet@example.com/balcony' type='set' id='delete_1'>
-     <query xmlns='jabber:iq:roster'>
-       <item jid='nurse@example.com' subscription='remove'/>
-     </query>
-   </iq>
- */
+            /*
+            C: <iq from='juliet@example.com/balcony' type='set' id='delete_1'>
+                 <query xmlns='jabber:iq:roster'>
+                   <item jid='nurse@example.com' subscription='remove'/>
+                 </query>
+               </iq>
+             */
             RosterIQ iq = new RosterIQ(m_stream.Document);
             iq.Type = IQType.set;
             Roster r = iq.Instruction;
@@ -415,7 +416,12 @@ C: <iq from='juliet@example.com/balcony' type='set' id='delete_1'>
             RosterIQ iq = new RosterIQ(m_stream.Document);
             iq.Type = IQType.set;
             Roster r = iq.Instruction;
-            r.AppendChild(item);
+
+            if (item.OwnerDocument != m_stream.Document)
+                r.AppendChild(item.CloneNode(true, m_stream.Document));
+            else
+                r.AppendChild(item);
+
             Write(iq);  // ignore response
         }
 
@@ -426,6 +432,10 @@ C: <iq from='juliet@example.com/balcony' type='set' id='delete_1'>
             return m_items.Keys.GetEnumerator();
         }
 
+        IEnumerator<JID> IEnumerable<JID>.GetEnumerator()
+        {
+            return m_items.Keys.GetEnumerator();
+        }
         #endregion
     }
 }

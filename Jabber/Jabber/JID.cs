@@ -254,6 +254,20 @@ namespace Jabber
             return m_JID.Equals(((JID)other).m_JID);
         }
 
+        public static bool TryParse(string j, out JID jid)
+        {
+            try
+            {
+                jid = new JID(j);
+                return true;
+            }
+            catch { }
+
+            jid = null;
+
+            return false;
+        }
+
         /// <summary>
         /// Determines whether two JIDs have the same value.
         /// </summary>

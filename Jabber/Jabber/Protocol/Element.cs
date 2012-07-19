@@ -19,7 +19,6 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
 
-
 namespace Jabber.Protocol
 {
     /// <summary>
@@ -136,13 +135,13 @@ namespace Jabber.Protocol
         /// <param name="value"></param>
         public void AddChild(XmlElement value)
         {
-            if (this.OwnerDocument == value.OwnerDocument)
+            if (this.OwnerDocument != value.OwnerDocument && value is Element)
             {
-                this.AppendChild(value);
+                this.AppendChild(((Element)value).CloneNode(true, this.OwnerDocument));
             }
             else
             {
-                this.AppendChild(this.OwnerDocument.ImportNode(value, true));
+                this.AppendChild(value);
             }
         }
 
