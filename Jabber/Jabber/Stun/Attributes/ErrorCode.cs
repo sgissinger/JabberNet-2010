@@ -58,25 +58,7 @@ namespace Jabber.Stun.Attributes
         /// </summary>
         public ErrorCodeType ErrorType
         {
-            get
-            {
-                foreach (FieldInfo field in typeof(ErrorCodeType).GetFields())
-                {
-                    Object[] fieldAttributes = field.GetCustomAttributes(typeof(StunValueAttribute), false);
-
-                    if (fieldAttributes.Length == 1)
-                    {
-                        StunValueAttribute stunValueAttribute = fieldAttributes.GetValue(0) as StunValueAttribute;
-
-                        if (stunValueAttribute != null &&
-                            stunValueAttribute.Value == this.ErrorTypeShort)
-                        {
-                            return (ErrorCodeType)Enum.Parse(typeof(ErrorCodeType), field.Name);
-                        }
-                    }
-                }
-                return ErrorCodeType.Unknown;
-            }
+            get { return ErrorCode.UInt16ToErrorCodeType(this.ErrorTypeShort); }
         }
         #endregion
 
@@ -106,6 +88,63 @@ namespace Jabber.Stun.Attributes
                                  this.ErrorType);
         }
         #endregion
+
+        #region STATICS
+        /// <summary>
+        /// Convert a ErrorCodeType to an host-byte ordered unsigned short
+        /// </summary>
+        /// <param name="mClass">The ErrorCodeType to convert</param>
+        /// <returns>
+        /// The unsigned short (16bits) matching the ErrorCodeType
+        /// Return max UInt16 value if the mClass parameter is ErrorCodeType.Unmanaged
+        /// </returns>
+        public static UInt16 ErrorCodeTypeToUInt16(ErrorCodeType mClass)
+        {
+            foreach (FieldInfo field in typeof(ErrorCodeType).GetFields())
+            {
+                if (field.Name == mClass.ToString())
+                {
+                    Object[] fieldAttributes = field.GetCustomAttributes(typeof(StunValueAttribute), false);
+
+                    if (fieldAttributes.Length == 1)
+                    {
+                        StunValueAttribute stunValueAttribute = fieldAttributes.GetValue(0) as StunValueAttribute;
+
+                        return stunValueAttribute.Value;
+                    }
+                }
+            }
+            return 0xFFFF;
+        }
+
+        /// <summary>
+        /// Convert an host-byte ordered unsigned short to a ErrorCodeType
+        /// </summary>
+        /// <param name="mType">An unsigned short representing an ErrorCodeType</param>
+        /// <returns>
+        /// The ErrorCodeType matching the unsigned short (16bits)
+        /// Returns ErrorCodeType.Unmanaged if the unsigned short doesn't match any ErrorCodeType StunValue's
+        /// </returns>
+        public static ErrorCodeType UInt16ToErrorCodeType(UInt16 mType)
+        {
+            foreach (FieldInfo field in typeof(ErrorCodeType).GetFields())
+            {
+                Object[] fieldAttributes = field.GetCustomAttributes(typeof(StunValueAttribute), false);
+
+                if (fieldAttributes.Length == 1)
+                {
+                    StunValueAttribute stunValueAttribute = fieldAttributes.GetValue(0) as StunValueAttribute;
+
+                    if (stunValueAttribute != null &&
+                        stunValueAttribute.Value == mType)
+                    {
+                        return (ErrorCodeType)Enum.Parse(typeof(ErrorCodeType), field.Name);
+                    }
+                }
+            }
+            return ErrorCodeType.Unmanaged;
+        }
+        #endregion
     }
 
     /// <summary>
@@ -115,10 +154,10 @@ namespace Jabber.Stun.Attributes
     public enum ErrorCodeType
     {
         /// <summary>
-        /// Miscellaneous errors unknown to this library
+        /// Represents errors whose type is not managed by this library
         /// </summary>
         [StunValue(0xFFFF)]
-        Unknown,
+        Unmanaged,
 
         #region STUN Core
         /// <summary>

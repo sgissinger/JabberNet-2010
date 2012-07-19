@@ -211,7 +211,7 @@ namespace Jabber.Stun
         /// <param name="type">The StunAttributeType to convert</param>
         /// <returns>
         /// The array of 2 bytes (16bits) matching the StunAttributeType
-        /// Returns { 0, 0 } if the type parameter is StunAttributeType.Unknown
+        /// Returns max UInt16 value if the type parameter is StunAttributeType.Unmanaged
         /// </returns>
         public static byte[] AttributeTypeToBytes(StunAttributeType type)
         {
@@ -232,7 +232,7 @@ namespace Jabber.Stun
                     }
                 }
             }
-            return new byte[] { 255, 255 };
+            return BitConverter.GetBytes(0xFFFF);
         }
 
         /// <summary>
@@ -241,7 +241,7 @@ namespace Jabber.Stun
         /// <param name="bytes">An array of 2 bytes (16bits) representing an attribute type</param>
         /// <returns>
         /// The StunAttributeType matching the array of bytes
-        /// Returns StunAttributeType.Unknown if the byte array doesn't match any constants
+        /// Returns StunAttributeType.Unmanaged if the byte array doesn't match any StunAttributeType StunValue's
         /// </returns>
         public static StunAttributeType BytesToAttributeType(byte[] bytes)
         {
@@ -262,7 +262,7 @@ namespace Jabber.Stun
                     }
                 }
             }
-            return StunAttributeType.Unknown;
+            return StunAttributeType.Unmanaged;
         }
         #endregion
     }
@@ -274,10 +274,10 @@ namespace Jabber.Stun
     public enum StunAttributeType
     {
         /// <summary>
-        /// Miscellaneous attributes unknown to this library
+        /// Represents attributes whose type is not managed by this library
         /// </summary>
         [StunValue(0xFFFF)]
-        Unknown,
+        Unmanaged,
 
         #region STUN Core required
         /// <summary>

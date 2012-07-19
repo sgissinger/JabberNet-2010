@@ -35,15 +35,13 @@ namespace Jabber.Stun
 
         #region MEMBERS
         /// <summary>
-        /// Contains the list of every known attributes which have a StunAttributeType
-        /// matching one of the StunAttribute constants
+        /// Contains the list of every managed attributes of type other than StunAttributeType.Unmanaged
         /// </summary>
         private Dictionary<StunAttributeType, StunAttribute> attributesList = new Dictionary<StunAttributeType, StunAttribute>();
         /// <summary>
-        /// Contains the list of every unknown attributes which haven't any StunAttributeType
-        /// matching one of the StunAttribute constants
+        /// Contains the list of every unmanaged attributes of type StunAttributeType.Unmanaged
         /// </summary>
-        private List<StunAttribute> unknownAttributesList = new List<StunAttribute>();
+        private List<StunAttribute> unmanagedAttributesList = new List<StunAttribute>();
         #endregion
 
         #region PROPERTIES
@@ -56,8 +54,7 @@ namespace Jabber.Stun
         }
 
         /// <summary>
-        /// Contains a copy of the list of every known attributes which have a StunAttributeType
-        /// matching one of the StunAttribute constants
+        /// Contains a copy of the list of every managed attributes of type other than StunAttributeType.Unmanaged
         /// </summary>
         public StunAttribute[] AttributesList
         {
@@ -71,16 +68,15 @@ namespace Jabber.Stun
             }
         }
         /// <summary>
-        /// Contains a copy of the list of every unknown attributes which haven't any StunAttributeType
-        /// matching one of the StunAttribute constants
+        /// Contains a copy of the list of every unmanaged attributes of type StunAttributeType.Unmanaged
         /// </summary>
-        public StunAttribute[] UnknownAttributesList
+        public StunAttribute[] UnmanagedAttributesList
         {
             get
             {
-                StunAttribute[] attrs = new StunAttribute[this.unknownAttributesList.Count];
+                StunAttribute[] attrs = new StunAttribute[this.unmanagedAttributesList.Count];
 
-                this.unknownAttributesList.CopyTo(attrs, 0);
+                this.unmanagedAttributesList.CopyTo(attrs, 0);
 
                 return attrs;
             }
@@ -100,7 +96,7 @@ namespace Jabber.Stun
         {
             get
             {
-                return (UInt16)(StunUtilities.GetBytes(this.AttributesList).Length + StunUtilities.GetBytes(this.UnknownAttributesList).Length);
+                return (UInt16)(StunUtilities.GetBytes(this.AttributesList).Length + StunUtilities.GetBytes(this.UnmanagedAttributesList).Length);
             }
         }
         /// <summary>
@@ -297,7 +293,7 @@ namespace Jabber.Stun
 
         /// <summary>
         /// Add an attribute to this message
-        /// If the attribute is not known, it will be added to the UnknownAttributes list
+        /// If the attribute is not managed by this library, it will be added to the UnmanagedAttributes list
         /// </summary>
         /// <param name="attribute">The attribute to add</param>
         /// <param name="replaceExistingAttribute">
@@ -306,9 +302,9 @@ namespace Jabber.Stun
         /// </param>
         public void SetAttribute(StunAttribute attribute, Boolean replaceExistingAttribute)
         {
-            if (attribute.Type == StunAttributeType.Unknown)
+            if (attribute.Type == StunAttributeType.Unmanaged)
             {
-                this.unknownAttributesList.Add(attribute);
+                this.unmanagedAttributesList.Add(attribute);
             }
             else
             {
@@ -412,12 +408,12 @@ namespace Jabber.Stun
         }
 
         /// <summary>
-        /// Empty every known and unknown attributes in this message
+        /// Empty every managed and unmanaged attributes in this StunMessage
         /// </summary>
         public void ClearAttributes()
         {
             this.attributesList.Clear();
-            this.unknownAttributesList.Clear();
+            this.unmanagedAttributesList.Clear();
         }
 
         /// <summary>
@@ -486,8 +482,8 @@ namespace Jabber.Stun
         }
 
         /// <summary>
-        /// Parses an array of bytes containing every attributes of a message and add
-        /// them to known and unknown attributes lists
+        /// Parses an array of bytes containing every attributes of a message and
+        /// add them to managed and unmanaged attributes lists
         /// </summary>
         /// <param name="attributes">The array of byte which contains every attributes of a message</param>
         private void ImportAttributes(byte[] attributes)
@@ -523,7 +519,7 @@ namespace Jabber.Stun
         /// <param name="mType">The StunMethodType to convert</param>
         /// <returns>
         /// The unsigned short (16bits) matching the StunMethodType
-        /// Returns 0 if type parameter is StunMethodType.Unknown
+        /// Returns max UInt16 value if type parameter is StunMethodType.Unmanaged
         /// </returns>
         public static UInt16 MethodTypeToUInt16(StunMethodType mType)
         {
@@ -550,7 +546,7 @@ namespace Jabber.Stun
         /// <param name="mClass">The StunMethodClass to convert</param>
         /// <returns>
         /// The unsigned short (16bits) matching the StunMethodClass
-        /// Return 0 if the mClass parameter is StunMethodClass.Unknown
+        /// Return max UInt16 value if the mClass parameter is StunMethodClass.Unmanaged
         /// </returns>
         public static UInt16 MethodClassToUInt16(StunMethodClass mClass)
         {
@@ -577,7 +573,7 @@ namespace Jabber.Stun
         /// <param name="mType">An unsigned short representing a method type</param>
         /// <returns>
         /// The StunMethodType matching the unsigned short (16bits)
-        /// Returns StunMethodType.Unknown if the unsigned short doesn't match any constants
+        /// Returns StunMethodType.Unmanaged if the unsigned short doesn't match any StunMethodType StunValue's
         /// </returns>
         public static StunMethodType UInt16ToMethodType(UInt16 mType)
         {
@@ -596,7 +592,7 @@ namespace Jabber.Stun
                     }
                 }
             }
-            return StunMethodType.Unknown;
+            return StunMethodType.Unmanaged;
         }
 
         /// <summary>
@@ -605,7 +601,7 @@ namespace Jabber.Stun
         /// <param name="mClass">An unsigned short representing a method class</param>
         /// <returns>
         /// The StunMethodClass matching the unsigned short (16bits)
-        /// Returns StunMethodClass.Unknown if the unsigned short doesn't match any constants
+        /// Returns StunMethodClass.Unmanaged if the unsigned short doesn't match any StunMethodClass StunValue's
         /// </returns>
         public static StunMethodClass UInt16ToMethodClass(UInt16 mClass)
         {
@@ -624,7 +620,7 @@ namespace Jabber.Stun
                     }
                 }
             }
-            return StunMethodClass.Unknown;
+            return StunMethodClass.Unmanaged;
         }
         #endregion
     }
@@ -636,10 +632,10 @@ namespace Jabber.Stun
     public enum StunMethodType
     {
         /// <summary>
-        /// Miscellaneous method types unknown to this library
+        /// Represents methods whose type is not managed by this library
         /// </summary>
         [StunValue(0xFFFF)]
-        Unknown,
+        Unmanaged,
 
         #region STUN Core
         /// <summary>
@@ -731,10 +727,10 @@ namespace Jabber.Stun
     public enum StunMethodClass
     {
         /// <summary>
-        /// Miscellaneous method classes unknown to this library
+        /// Represents methods whose class is not managed by this library
         /// </summary>
         [StunValue(0xFFFF)]
-        Unknown,
+        Unmanaged,
 
         #region STUN Core
         /// <summary>
