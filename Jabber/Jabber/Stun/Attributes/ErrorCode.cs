@@ -27,14 +27,14 @@ namespace Jabber.Stun.Attributes
         /// </summary>
         public byte Class
         {
-            get { return StunUtilities.SubArray(this.Value, 2, 1)[0]; }
+            get { return this.Value[2]; }
         }
         /// <summary>
         /// The Number represents the error code modulo 100, and its value MUST be between 0 and 99.
         /// </summary>
         public byte Code
         {
-            get { return StunUtilities.SubArray(this.Value, 3, 1)[0]; }
+            get { return this.Value[3]; }
         }
         /// <summary>
         /// The reason phrase is meant for user consumption, and can be anything appropriate for the error code.
@@ -49,7 +49,7 @@ namespace Jabber.Stun.Attributes
         /// <summary>
         /// Represents the entire error code, the class * 100 + the code
         /// </summary>
-        public UInt16 ErrorTypeUInt16
+        public UInt16 ErrorTypeShort
         {
             get { return (UInt16)(this.Class * 100 + this.Code); }
         }
@@ -69,7 +69,7 @@ namespace Jabber.Stun.Attributes
                         StunValueAttribute stunValueAttribute = fieldAttributes.GetValue(0) as StunValueAttribute;
 
                         if (stunValueAttribute != null &&
-                            stunValueAttribute.Value == this.ErrorTypeUInt16)
+                            stunValueAttribute.Value == this.ErrorTypeShort)
                         {
                             return (ErrorCodeType)Enum.Parse(typeof(ErrorCodeType), field.Name);
                         }
@@ -117,6 +117,7 @@ namespace Jabber.Stun.Attributes
         /// <summary>
         /// Miscellaneous errors unknown to this library
         /// </summary>
+        [StunValue(0xFFFF)]
         Unknown,
 
         #region STUN Core

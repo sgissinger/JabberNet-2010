@@ -10,8 +10,11 @@
  * --------------------------------------------------------------------------*/
 using System;
 using System.Collections.Generic;
-using Jabber.Stun.Attributes;
+using System.Globalization;
 using System.Reflection;
+using System.Security.Cryptography;
+using Jabber.Stun.Attributes;
+using StringPrep;
 
 namespace Jabber.Stun
 {
@@ -44,6 +47,14 @@ namespace Jabber.Stun
         #endregion
 
         #region PROPERTIES
+        /// <summary>
+        /// Contains the array of bytes representation of this message
+        /// </summary>
+        public byte[] Bytes
+        {
+            get { return this; }
+        }
+
         /// <summary>
         /// Contains a copy of the list of every known attributes which have a StunAttributeType
         /// matching one of the StunAttribute constants
@@ -100,6 +111,8 @@ namespace Jabber.Stun
         ///  * For indications, it is chosen by the agent sending the indication.
         /// </summary>
         public byte[] TransactionID { get; private set; }
+
+        #region MESSAGE ATTRIBUTES
         /// <summary>
         /// Contains a MAPPED-ADDRESS or XOR-MAPPED-ADDRESS attribute if this message contains one of these
         /// The XOR-MAPPED-ADDRESS is parsed prior to MAPPED-ADDRESS
@@ -254,6 +267,7 @@ namespace Jabber.Stun
             }
         }
         #endregion
+        #endregion
 
         #region CONSTRUCTORS & FINALIZERS
         /// <summary>
@@ -272,17 +286,8 @@ namespace Jabber.Stun
 
         #region METHODS
         /// <summary>
-        /// Helper method to auto-cast this message to an array of bytes
-        /// </summary>
-        /// <returns>The array of bytes representation of this message</returns>
-        public byte[] GetBytes()
-        {
-            return this;
-        }
-
-        /// <summary>
         /// Add an attribute to this message
-        /// Any existing attribute of the same type will be replaced by the attribute in parameter
+        /// Any existing attribute of the same type will be replaced by the attribute in parameter.
         /// </summary>
         /// <param name="attribute">The attribute to add</param>
         public void SetAttribute(StunAttribute attribute)
@@ -323,6 +328,87 @@ namespace Jabber.Stun
         public StunAttribute GetAttribute(StunAttributeType type)
         {
             return this.attributesList.ContainsKey(type) ? this.attributesList[type] : null;
+        }
+
+        /// <summary>
+        /// Add the MESSAGE-INTEGRITY attribute to the message.
+        /// This should be fired just before a call to StunClient.SendMessage as it needs existing
+        /// attribute to be computed. But these attributes MUST be added before the MESSAGE-ATTRIBUTE
+        /// except for FINGERPRINT attribute which MUST be added at the end of the StunMessage
+        /// and also used in the MESSAGE-INTEGRITY computation
+        /// </summary>
+        /// <param name="password">The password used to authenticate the StunMessage</param>
+        /// <param name="useLongTermCredentials">True if this StunMessage should authenticate using longterm credentials</param>
+        public void AddMessageIntegrity(String password, Boolean useLongTermCredentials)
+        {
+            password = new SASLprep().Prepare(password);
+
+            byte[] hmacSha1Key;
+
+            if (useLongTermCredentials)
+            {
+                if (this.Username == null)
+                    throw new ArgumentException("a USERNAME attribute must be defined prior to long-term credentials MESSAGE-INTEGRITY creation", "this.Username");
+
+                if (this.Realm == null)
+                    throw new ArgumentException("a REALM attribute must be defined prior to long-term credentials MESSAGE-INTEGRITY creation", "this.Realm");
+
+                using (MD5CryptoServiceProvider md5 = new MD5CryptoServiceProvider())
+                {
+                    String valueToHashMD5 = String.Format(CultureInfo.CurrentCulture,
+                                                          "{0}:{1}:{2}",
+                                                          this.Username.ValueString,
+                                                          this.Realm.ValueString,
+                                                          password);
+
+                    hmacSha1Key = md5.ComputeHash(StunAttribute.Encoder.GetBytes(valueToHashMD5));
+                }
+            }
+            else
+            {
+                hmacSha1Key = StunAttribute.Encoder.GetBytes(password);
+            }
+
+            StunAttribute messageIntegrity = new StunAttribute(StunAttributeType.MessageIntegrity,
+                                                               this.ComputeHMAC(hmacSha1Key));
+            this.SetAttribute(messageIntegrity);
+        }
+
+        /// <summary>
+        /// Computes a HMAC SHA1 based on this StunMessage attributes
+        /// </summary>
+        /// <param name="hmacSha1Key">The key of HMAC SHA1 computation algorithm</param>
+        /// <returns>The HMAC computed value of this StunMessage</returns>
+        private byte[] ComputeHMAC(byte[] hmacSha1Key)
+        {
+            byte[] hashed;
+
+            using (HMACSHA1 hmacSha1 = new HMACSHA1(hmacSha1Key))
+            {
+                StunMessage thisCopy = new StunMessage(this.MethodType, this.MethodClass, this.TransactionID);
+
+                foreach (var item in this.attributesList)
+                {
+                    if (item.Key == StunAttributeType.MessageIntegrity)
+                        break;
+
+                    thisCopy.SetAttribute(item.Value);
+                }
+
+                if (this.FingerPrint != null)
+                    thisCopy.SetAttribute(this.FingerPrint);
+
+                byte[] thisCopyBytes = thisCopy;
+
+                // Insert a fake message length for HMAC computation as described in [RFC5489#15.4]
+                UInt16 dummyLength = StunUtilities.ReverseBytes((UInt16)(thisCopy.MessageLength + 24)); // 20 hmac + 4 header
+
+                BitConverter.GetBytes(dummyLength).CopyTo(thisCopyBytes, 2);
+
+                hashed = hmacSha1.ComputeHash(thisCopyBytes);
+            }
+
+            return hashed;
         }
 
         /// <summary>
@@ -552,6 +638,7 @@ namespace Jabber.Stun
         /// <summary>
         /// Miscellaneous method types unknown to this library
         /// </summary>
+        [StunValue(0xFFFF)]
         Unknown,
 
         #region STUN Core
@@ -646,6 +733,7 @@ namespace Jabber.Stun
         /// <summary>
         /// Miscellaneous method classes unknown to this library
         /// </summary>
+        [StunValue(0xFFFF)]
         Unknown,
 
         #region STUN Core

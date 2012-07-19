@@ -318,7 +318,7 @@ namespace Jabber.Stun
         /// <returns>The STUN Server response StunMessage or null if msg parameter is an indication StunMessage</returns>
         public StunMessage SendMessage(StunMessage msg)
         {
-            return this.SendMessage(msg.GetBytes(), msg.MethodClass != StunMethodClass.Indication);
+            return this.SendMessage(msg.Bytes, msg.MethodClass != StunMethodClass.Indication);
         }
 
         /// <summary>

@@ -21,6 +21,13 @@ namespace Jabber.Stun
     /// </summary>
     public class StunAttribute
     {
+        #region CONSTANTS
+        protected const byte IPV4 = 0x01;
+        protected const byte IPV6 = 0x02;
+        public const byte CODE_POINT_TCP = 0X06;
+        public const byte CODE_POINT_UDP = 0x11;
+        #endregion
+
         #region MEMBERS
         /// <summary>
         /// Default encoder used to UT8 encode strings attribute values
@@ -52,7 +59,7 @@ namespace Jabber.Stun
         /// <summary>
         /// Contains the unsigned int representation, in network-byte order, of this attribute's type
         /// </summary>
-        public UInt16 TypeUInt16
+        public UInt16 TypeShort
         {
             get { return StunUtilities.ReverseBytes(BitConverter.ToUInt16(this.TypeBytes, 0)); }
         }
@@ -269,6 +276,7 @@ namespace Jabber.Stun
         /// <summary>
         /// Miscellaneous attributes unknown to this library
         /// </summary>
+        [StunValue(0xFFFF)]
         Unknown,
 
         #region STUN Core required

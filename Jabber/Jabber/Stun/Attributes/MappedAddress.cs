@@ -21,11 +21,6 @@ namespace Jabber.Stun.Attributes
     /// </summary>
     public class MappedAddress : StunAttribute
     {
-        #region CONSTANTS
-        private const byte IPV4 = 0x01;
-        private const byte IPV6 = 0x02;
-        #endregion
-
         #region PROPERTIES
         /// <summary>
         /// Contains the address family of the Address
@@ -34,11 +29,11 @@ namespace Jabber.Stun.Attributes
         {
             get
             {
-                byte addressFamilyByte = StunUtilities.SubArray(this.Value, 1, 1)[0];
+                byte addressFamilyByte = this.Value[1];
 
-                if (addressFamilyByte == MappedAddress.IPV4)
+                if (addressFamilyByte == StunAttribute.IPV4)
                     return AddressFamily.InterNetwork;
-                else if (addressFamilyByte == MappedAddress.IPV6)
+                else if (addressFamilyByte == StunAttribute.IPV6)
                     return AddressFamily.InterNetworkV6;
 
                 return AddressFamily.Unknown;

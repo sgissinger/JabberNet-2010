@@ -9,8 +9,6 @@
  * See LICENSE.txt for details.
  * --------------------------------------------------------------------------*/
 using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Globalization;
 
 namespace Jabber.Stun.Attributes
