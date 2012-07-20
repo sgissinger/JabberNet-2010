@@ -31,9 +31,9 @@ namespace Jabber.Stun.Attributes
             {
                 byte addressFamilyByte = this.Value[1];
 
-                if (addressFamilyByte == StunAttribute.IPV4)
+                if (addressFamilyByte == StunMessage.ADDRESS_FAMILY_IPV4)
                     return AddressFamily.InterNetwork;
-                else if (addressFamilyByte == StunAttribute.IPV6)
+                else if (addressFamilyByte == StunMessage.ADDRESS_FAMILY_IPV6)
                     return AddressFamily.InterNetworkV6;
 
                 return AddressFamily.Unknown;
@@ -79,17 +79,6 @@ namespace Jabber.Stun.Attributes
         /// <summary>
         /// Constructs a MappedAddress based on an existing StunAttribute
         /// </summary>
-        /// <param name="attribute">The StunAttribute base for this MappedAddress</param>
-        public MappedAddress(StunAttribute attribute)
-            : base(StunAttributeType.MappedAddress, attribute.Value)
-        {
-            if (attribute.Type != StunAttributeType.MappedAddress)
-                throw new ArgumentException("is not a valid MAPPED-ADDRESS attribute", "attribute");
-        }
-
-        /// <summary>
-        /// Constructs a MappedAddress based on an existing StunAttribute
-        /// </summary>
         /// <param name="type">The StunAttributeType associated with the attribute parameter</param>
         /// <param name="attribute">The StunAttribute base for this MappedAddress</param>
         public MappedAddress(StunAttributeType type, StunAttribute attribute)
@@ -108,26 +97,6 @@ namespace Jabber.Stun.Attributes
                                  "{0}, {1}",
                                  this.Type,
                                  this.EndPoint);
-        }
-        #endregion
-    }
-
-    /// <summary>
-    /// Represents ALTERNATE-SERVER attribute returned by a STUN Server and
-    /// identifying a different STUN server that the STUN client should try
-    /// </summary>
-    public class AlternateServer : MappedAddress
-    {
-        #region CONSTRUCTORS & FINALIZERS
-        /// <summary>
-        /// Constructs an AlternateServer based on an existing StunAttribute
-        /// </summary>
-        /// <param name="attribute">The StunAttribute base for this AlternateServer</param>
-        public AlternateServer(StunAttribute attribute)
-            : base(StunAttributeType.AlternateServer, attribute)
-        {
-            if (attribute.Type != StunAttributeType.AlternateServer)
-                throw new ArgumentException("is not a valid ALTERNATE-SERVER attribute", "attribute");
         }
         #endregion
     }
@@ -201,23 +170,6 @@ namespace Jabber.Stun.Attributes
         /// <summary>
         /// Constructs a XorMappedAddress based on an existing StunAttribute
         /// </summary>
-        /// <param name="attribute">The StunAttribute base for this XorMappedAddress</param>
-        /// <param name="transactionID">
-        /// The transaction ID of the message from where the attribute parameter originates
-        /// It may be used by this XorMappedAddress to decode an IPV6 address
-        /// </param>
-        public XorMappedAddress(StunAttribute attribute, byte[] transactionID)
-            : base(StunAttributeType.XorMappedAddress, attribute)
-        {
-            if (attribute.Type != StunAttributeType.XorMappedAddress)
-                throw new ArgumentException("is not a valid XOR-MAPPED-ADDRESS attribute", "attribute");
-
-            this.TransactionID = transactionID;
-        }
-
-        /// <summary>
-        /// Constructs a XorMappedAddress based on an existing StunAttribute
-        /// </summary>
         /// <param name="type">The StunAttributeType associated with the attribute parameter</param>
         /// <param name="attribute">The StunAttribute base for this XorMappedAddress</param>
         /// <param name="transactionID">
@@ -228,79 +180,6 @@ namespace Jabber.Stun.Attributes
             : base(type, attribute)
         {
             this.TransactionID = transactionID;
-        }
-        #endregion
-    }
-
-    /// <summary>
-    /// This alternate XOR-MAPPED-ADDRESS attribute may be used in some STUN Servers
-    /// implementation like Vovida or MS-TURN http://msdn.microsoft.com/en-us/library/dd909268
-    /// </summary>
-    public class XorMappedAddressAlt : XorMappedAddress
-    {
-        #region CONSTRUCTORS & FINALIZERS
-        /// <summary>
-        /// Constructs a XorMappedAddressAlt based on an existing StunAttribute
-        /// </summary>
-        /// <param name="attribute">The StunAttribute base for this XorMappedAddressAlt</param>
-        /// <param name="transactionID">
-        /// The transaction ID of the message from where the attribute parameter originates
-        /// It may be used by this XorMappedAddress to decode an IPV6 address
-        /// </param>
-        public XorMappedAddressAlt(StunAttribute attribute, byte[] transactionID)
-            : base(StunAttributeType.XorMappedAddressAlt, attribute, transactionID)
-        {
-            if (attribute.Type != StunAttributeType.XorMappedAddressAlt)
-                throw new ArgumentException("is not a valid XOR-MAPPED-ADDRESS-VOVIDA attribute", "attribute");
-        }
-        #endregion
-    }
-
-    /// <summary>
-    /// The XOR-PEER-ADDRESS specifies the address and port of the peer as
-    /// seen from the TURN server. (For example, the peer's server-reflexive
-    /// transport address if the peer is behind a NAT)
-    /// </summary>
-    public class XorPeerAddress : XorMappedAddress
-    {
-        #region CONSTRUCTORS & FINALIZERS
-        /// <summary>
-        /// Constructs a XorPeerAddress based on an existing StunAttribute
-        /// </summary>
-        /// <param name="attribute">The StunAttribute base for this XorPeerAddress</param>
-        /// <param name="transactionID">
-        /// The transaction ID of the message from where the attribute parameter originates
-        /// It may be used by this XorMappedAddress to decode an IPV6 address
-        /// </param>
-        public XorPeerAddress(StunAttribute attribute, byte[] transactionID)
-            : base(StunAttributeType.XorPeerAddress, attribute, transactionID)
-        {
-            if (attribute.Type != StunAttributeType.XorPeerAddress)
-                throw new ArgumentException("is not a valid XOR-PEER-ADDRESS attribute", "attribute");
-        }
-        #endregion
-    }
-
-    /// <summary>
-    /// The XOR-RELAYED-ADDRESS is present in Allocate responses. It
-    /// specifies the address and port that the server allocated to the client
-    /// </summary>
-    public class XorRelayedAddress : XorMappedAddress
-    {
-        #region CONSTRUCTORS & FINALIZERS
-        /// <summary>
-        /// Constructs a XorRelayedAddress based on an existing StunAttribute
-        /// </summary>
-        /// <param name="attribute">The StunAttribute base for this XorRelayedAddress</param>
-        /// <param name="transactionID">
-        /// The transaction ID of the message from where the attribute parameter originates
-        /// It may be used by this XorMappedAddress to decode an IPV6 address
-        /// </param>
-        public XorRelayedAddress(StunAttribute attribute, byte[] transactionID)
-            : base(StunAttributeType.XorRelayedAddress, attribute, transactionID)
-        {
-            if (attribute.Type != StunAttributeType.XorRelayedAddress)
-                throw new ArgumentException("is not a valid XOR-RELAYED-ADDRESS attribute", "attribute");
         }
         #endregion
     }

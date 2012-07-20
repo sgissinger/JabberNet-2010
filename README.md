@@ -18,9 +18,23 @@ This project is based on [ffailla-jabber-net] VS2010 fork of the original [jabbe
 * [XEP-0199]: XMPP Ping 
 * [XEP-0166]: Jingle coupled to a Jingle Manager for session management only
 * [XEP-0176]: Jingle ICE-UDP Transport Method
-* [RFC 5389]: Session Traversal Utilities for NAT (STUN). Can parse STUN messages and attributes coupled to a minimal client that can request a STUN server for its reflexive address. IPv6 is not handled.
-* [RFC 5766]: Traversal Using Relays around NAT (TURN). Can parse TURN messages and attributes
-* [RFC 3489]: STUN Classic deprecated in favor of RFC 5389. Can parse STUN Classic messages and attributes for debugging purposes only. Code elements of this RFC are annotated as deprecated.
+
+## STUN and extensions whose messages, attributes and errors are understood
+* [RFC 3489]: STUN Classic deprecated in favor of RFC 5389 code elements of this RFC are annotated as deprecated.
+
+ > [RFC 3489bis-02]: Some implementations like Vovida or MS-TURN uses value of 0x8020 for XOR-MAPPED-ADDRESS described in this draft only
+ 
+* [RFC 5389]: Session Traversal Utilities for NAT (STUN) coupled to a minimal client that can request a STUN server for its reflexive address. IPv6 is not handled.
+* [RFC 5766]: Traversal Using Relays around NAT (TURN)
+* [RFC 6062]: Traversal Using Relays around NAT (TURN) Extensions for TCP Allocations
+* [RFC 6156]: Traversal Using Relays around NAT (TURN) Extension for IPv6
+* [RFC 5245]: Interactive Connectivity Establishment (ICE)
+
+If you need a STUN/TURN server, I currently use [turnserver] to develop STUN/TURN features of this library
+* it's lightweight
+* can run as deamon with privileges drop
+* support all the RFCs above except RFC3489 (Stun Classic) and RFC5245 (ICE). Do not have tested everything yet 
+
 
 ## ATTENTION Support dropped
 
@@ -31,8 +45,13 @@ This project is based on [ffailla-jabber-net] VS2010 fork of the original [jabbe
 [XEP-0199]: http://xmpp.org/extensions/xep-0199.html
 [XEP-0166]: http://xmpp.org/extensions/xep-0166.html
 [XEP-0176]: http://xmpp.org/extensions/xep-0176.html
+[RFC 3489]: http://tools.ietf.org/html/rfc3489
+[RFC 3489bis-02]: http://tools.ietf.org/html/draft-ietf-behave-rfc3489bis-02
 [RFC 5389]: http://tools.ietf.org/html/rfc5389
 [RFC 5766]: http://tools.ietf.org/html/rfc5766
-[RFC 3489]: http://tools.ietf.org/html/rfc3489
-[jabber-net]: http://code.google.com/p/jabber-net/
+[RFC 6062]: http://tools.ietf.org/html/rfc6062
+[RFC 6156]: http://tools.ietf.org/html/rfc6156
+[RFC 5245]: http://tools.ietf.org/html/rfc5245
+[turnserver]: http://turnserver.sourceforge.net
+[jabber-net]: http://code.google.com/p/jabber-net
 [ffailla-jabber-net]: https://github.com/ffailla/jabber-net

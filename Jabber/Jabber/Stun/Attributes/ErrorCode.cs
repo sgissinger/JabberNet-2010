@@ -16,8 +16,10 @@ namespace Jabber.Stun.Attributes
 {
     /// <summary>
     /// The ERROR-CODE attribute is used in error response messages. It contains a numeric error code value
-    /// in the range of 300 to 699 plus a textual reason phrase encoded in UTF-8 [RFC3629], and is consistent
+    /// in the range of 300 to 699 plus a textual reason phrase encoded in UTF-8, and is consistent
     /// in its code assignments and semantics with SIP [RFC3261] and HTTP [RFC2616]
+    /// ErrorCodes referenced are STUN [RFC5389], TURN [RFC5766], TURN-TCP [RFC6062],
+    /// TURN-IPV6 [RFC6156], ICE [RFC5245] and STUN Classic [RFC3489]
     /// </summary>
     public class ErrorCode : StunAttribute
     {
@@ -44,7 +46,7 @@ namespace Jabber.Stun.Attributes
         /// </summary>
         public String Reason
         {
-            get { return StunAttribute.Encoder.GetString(StunUtilities.SubArray(this.Value, 4, this.ValueLength - 4)); }
+            get { return StunMessage.Encoder.GetString(StunUtilities.SubArray(this.Value, 4, this.ValueLength - 4)); }
         }
         /// <summary>
         /// Represents the entire error code, the class * 100 + the code
@@ -239,6 +241,43 @@ namespace Jabber.Stun.Attributes
         InsufficientCapacity,
         #endregion
 
+        #region TURN-TCP Extension
+        /// <summary>
+        /// The server receives a Connect request but it's already processing a Connect request or has
+        /// already successfully processed a Connect request for the allocation with the same
+        /// XOR-PEER-ADDRESS, and the resulting client and peer data connections are either pending or active
+        /// </summary>
+        [StunValue(446)]
+        ConnectionAlreadyExists,
+        /// <summary>
+        /// The TURN server was unable to connect to the peer
+        /// </summary>
+        [StunValue(447)]
+        ConnectionTimeoutOrFailure,
+        #endregion
+
+        #region TURN-IPV6 Extension
+        /// <summary>
+        /// The server does not support the address family requested by a client
+        /// </summary>
+        [StunValue(440)]
+        AddressFamilyNotSupported,
+        /// <summary>
+        /// The server receives a Refresh Request with a REQUESTED-ADDRESS-FAMILY attribute,
+        /// and the attribute's value doesn't match the address family of the allocation
+        /// </summary>
+        [StunValue(443)]
+        PeerAddresFamilyMismatch,
+        #endregion
+
+        #region ICE Extension
+        /// <summary>
+        /// The client asserted an ICE role (controlling or controlled) that is in conflict with the role of the server.
+        /// </summary>
+        [StunValue(487)]
+        RoleConflict,
+        #endregion
+
         #region SIP Base
         /// <summary>
         /// The method specified in the Request-Line is understood, but not allowed for the address identified by the Request-URI
@@ -246,14 +285,6 @@ namespace Jabber.Stun.Attributes
         /// </summary>
         [StunValue(405)]
         MethodNotAllowed,
-        #endregion
-
-        #region ICE
-        /// <summary>
-        /// The client asserted an ICE role (controlling or controlled) that is in conflict with the role of the server.
-        /// </summary>
-        [StunValue(487)]
-        RoleConflict,
         #endregion
 
         #region STUN Classic

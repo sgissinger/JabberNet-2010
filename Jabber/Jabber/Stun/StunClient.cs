@@ -77,6 +77,13 @@ namespace Jabber.Stun
         /// Contains the SslStream handling TLS over TCP communication with the STUN Server
         /// </summary>
         private SslStream SslStream { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public Boolean Connected
+        {
+            get { return this.Socket != null ? this.Socket.Connected : false; }
+        }
         #endregion
 
 

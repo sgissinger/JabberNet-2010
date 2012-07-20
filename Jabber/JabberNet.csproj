@@ -185,13 +185,16 @@
     <Compile Include="Jabber\Server\JabberService.Designer.cs">
       <DependentUpon>JabberService.cs</DependentUpon>
     </Compile>
+    <Compile Include="Jabber\Stun\AttributesByRFC\IceRFC.cs" />
+    <Compile Include="Jabber\Stun\AttributesByRFC\StunClassicRFC.cs" />
+    <Compile Include="Jabber\Stun\AttributesByRFC\TurnRFCs.cs" />
     <Compile Include="Jabber\Stun\Attributes\ErrorCode.cs" />
-    <Compile Include="Jabber\Stun\Attributes\FingerPrint.cs" />
-    <Compile Include="Jabber\Stun\Attributes\MappedAddress.cs" />
-    <Compile Include="Jabber\Stun\Attributes\UTF8Attribute.cs" />
+    <Compile Include="Jabber\Stun\Attributes\AddressAttributes.cs" />
+    <Compile Include="Jabber\Stun\Attributes\StringAttributes.cs" />
     <Compile Include="Jabber\Stun\Attributes\UnknownAttributes.cs" />
     <Compile Include="Jabber\Stun\StunAttribute.cs" />
     <Compile Include="Jabber\Stun\StunClient.cs" />
+    <Compile Include="Jabber\Stun\AttributesByRFC\StunRFC.cs" />
     <Compile Include="Jabber\Stun\StunMessage.cs" />
     <Compile Include="Jabber\Stun\StunUtilities.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">

@@ -11,30 +11,16 @@
 using System;
 using System.Globalization;
 using System.Reflection;
-using System.Text;
 using StringPrep;
 
 namespace Jabber.Stun
 {
     /// <summary>
-    /// Represents a message attribute according to STUN [RFC5389], TURN [RFC5766] and STUN Classic [RFC3489]
+    /// Represents a message attribute according to STUN [RFC5389], TURN [RFC5766],
+    /// TURN-TCP [RFC6062], TURN-IPV6 [RFC6156], ICE [RFC5245] and STUN Classic [RFC3489]
     /// </summary>
     public class StunAttribute
     {
-        #region CONSTANTS
-        protected const byte IPV4 = 0x01;
-        protected const byte IPV6 = 0x02;
-        public const byte CODE_POINT_TCP = 0X06;
-        public const byte CODE_POINT_UDP = 0x11;
-        #endregion
-
-        #region MEMBERS
-        /// <summary>
-        /// Default encoder used to UT8 encode strings attribute values
-        /// </summary>
-        public static Encoding Encoder = new UTF8Encoding();
-        #endregion
-
         #region PROPERTIES
         /// <summary>
         /// Contains the type of this attribute
@@ -83,7 +69,7 @@ namespace Jabber.Stun
         /// <param name="type">The type of this StunAttribute</param>
         /// <param name="value">The value of this StunAttribute</param>
         public StunAttribute(StunAttributeType type, String value)
-            : this(type, StunAttribute.Encoder.GetBytes(value))
+            : this(type, StunMessage.Encoder.GetBytes(value))
         { }
 
         /// <summary>
@@ -103,6 +89,12 @@ namespace Jabber.Stun
         /// <param name="value">The value of this StunAttribute</param>
         public StunAttribute(StunAttributeType type, byte[] typeBytes, byte[] value)
         {
+            if (typeBytes == null)
+                throw new ArgumentNullException("value", "Cannot be null");
+
+            if (value == null)
+                throw new ArgumentNullException("value", "Cannot be null");
+
             switch (type)
             {
                 case StunAttributeType.Software:
@@ -110,12 +102,12 @@ namespace Jabber.Stun
                 case StunAttributeType.Nonce:
                 case StunAttributeType.ErrorCode:
                     if (value.Length > 763)
-                        throw new ArgumentOutOfRangeException("value", "cannot be larger than 763 bytes for the given type as described in RFC 5389");
+                        throw new ArgumentOutOfRangeException("value", "Cannot be greater than 763 bytes for the given type as described in RFC 5389");
                     break;
 
                 case StunAttributeType.Username:
                     if (value.Length > 513)
-                        throw new ArgumentOutOfRangeException("value", "cannot be larger than 513 bytes for the given type as described in RFC 5389");
+                        throw new ArgumentOutOfRangeException("value", "Cannot be greater than 513 bytes for the given type as described in RFC 5389");
                     break;
             }
 
@@ -123,9 +115,9 @@ namespace Jabber.Stun
             {
                 case StunAttributeType.Realm:
                 case StunAttributeType.Username:
-                    String saslPrepValue = new SASLprep().Prepare(StunAttribute.Encoder.GetString(value));
+                    String saslPrepValue = new SASLprep().Prepare(StunMessage.Encoder.GetString(value));
 
-                    value = StunAttribute.Encoder.GetBytes(saslPrepValue);
+                    value = StunMessage.Encoder.GetBytes(saslPrepValue);
                     break;
             }
 
@@ -431,6 +423,52 @@ namespace Jabber.Stun
         /// </summary>
         [StunValue(0x0022)]
         ReservationToken,
+        #endregion
+
+        #region TURN-TCP Extension
+        /// <summary>
+        /// The CONNECTION-ID attribute uniquely identifies a peer data connection.
+        /// </summary>
+        [StunValue(0x002A)]
+        ConnectionId,
+        #endregion
+
+        #region TURN-IPV6 Extension
+        /// <summary>
+        /// The REQUESTED-ADDRESS-FAMILY attribute is used by clients to request
+        /// the allocation of a specific address type from a server.
+        /// </summary>
+        [StunValue(0X0017)]
+        RequestedAddressFamily,
+        #endregion
+
+        #region ICE Extension
+        /// <summary>
+        /// Priority will be used by ICE to determine the order of the
+        /// connectivity checks and the relative preference for candidates.
+        /// </summary>
+        [StunValue(0X0024)]
+        Priority,
+        /// <summary>
+        /// The controlling agent MAY include the USE-CANDIDATE attribute in the Binding request.
+        /// The controlled agent MUST NOT include it in its Binding request.
+        /// This attribute signals that the controlling agent wishes to cease checks
+        /// for this component, and use the candidate pair resulting from the check for this component
+        /// </summary>
+        [StunValue(0X0025)]
+        UseCandidate,
+        /// <summary>
+        /// The agent MUST include the ICE-CONTROLLED attribute in the request
+        /// if it is in the controlled role
+        /// </summary>
+        [StunValue(0X8029)]
+        IceControlled,
+        /// <summary>
+        /// The agent MUST include the ICE-CONTROLLING attribute in the request
+        /// if it is in the controlling role
+        /// </summary>
+        [StunValue(0X802A)]
+        IceControlling,
         #endregion
 
         #region STUN Classic

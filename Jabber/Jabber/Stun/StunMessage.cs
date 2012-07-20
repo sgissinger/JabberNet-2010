@@ -13,17 +13,36 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Reflection;
 using System.Security.Cryptography;
+using System.Text;
 using Jabber.Stun.Attributes;
+using Jabber.Stun.AttributesByRFC;
 using StringPrep;
 
 namespace Jabber.Stun
 {
     /// <summary>
-    /// Represents a message according to STUN [RFC5389], TURN [RFC5766] and STUN Classic [RFC3489]
+    /// Represents a message according to STUN [RFC5389], TURN [RFC5766],
+    /// TURN-TCP [RFC6062], TURN-IPV6 [RFC6156], ICE [RFC5245] and STUN Classic [RFC3489]
     /// </summary>
     public class StunMessage
     {
         #region CONSTANTS
+        /// <summary>
+        /// TODO: Documentation Constant
+        /// </summary>
+        public const byte ADDRESS_FAMILY_IPV4 = 0x01;
+        /// <summary>
+        /// TODO: Documentation Constant
+        /// </summary>
+        public const byte ADDRESS_FAMILY_IPV6 = 0x02;
+        /// <summary>
+        /// TODO: Documentation Constant
+        /// </summary>
+        public const byte CODE_POINT_TCP = 0X06;
+        /// <summary>
+        /// TODO: Documentation Constant
+        /// </summary>
+        public const byte CODE_POINT_UDP = 0x11;
         /// <summary>
         /// The magic cookie field MUST contain the fixed value 0x2112A442 in network byte order.
         /// In [RFC3489], this field was part of the transaction ID.
@@ -34,6 +53,10 @@ namespace Jabber.Stun
         #endregion
 
         #region MEMBERS
+        /// <summary>
+        /// Default encoder used to UT8 encode strings attribute values
+        /// </summary>
+        public static Encoding Encoder = new UTF8Encoding();
         /// <summary>
         /// Contains the list of every managed attributes of type other than StunAttributeType.Unmanaged
         /// </summary>
@@ -66,6 +89,15 @@ namespace Jabber.Stun
 
                 return attrs;
             }
+            set
+            {
+                this.attributesList.Clear();
+
+                foreach (StunAttribute attribute in value)
+                {
+                    this.SetAttribute(attribute);
+                }
+            }
         }
         /// <summary>
         /// Contains a copy of the list of every unmanaged attributes of type StunAttributeType.Unmanaged
@@ -79,6 +111,15 @@ namespace Jabber.Stun
                 this.unmanagedAttributesList.CopyTo(attrs, 0);
 
                 return attrs;
+            }
+            set
+            {
+                this.unmanagedAttributesList.Clear();
+
+                foreach (StunAttribute attribute in value)
+                {
+                    this.SetAttribute(attribute);
+                }
             }
         }
         /// <summary>
@@ -108,7 +149,7 @@ namespace Jabber.Stun
         /// </summary>
         public byte[] TransactionID { get; private set; }
 
-        #region MESSAGE ATTRIBUTES
+        #region ATTRIBUTES
         /// <summary>
         /// Contains a MAPPED-ADDRESS or XOR-MAPPED-ADDRESS attribute if this message contains one of these
         /// The XOR-MAPPED-ADDRESS is parsed prior to MAPPED-ADDRESS
@@ -121,7 +162,7 @@ namespace Jabber.Stun
 
                 if (attribute != null)
                 {
-                    return new XorMappedAddress(attribute, this.TransactionID);
+                    return new XorMappedAddress(StunAttributeType.XorMappedAddress, attribute, this.TransactionID);
                 }
                 else
                 {
@@ -129,138 +170,46 @@ namespace Jabber.Stun
 
                     if (attribute != null)
                     {
-                        return new XorMappedAddressAlt(attribute, this.TransactionID);
+                        return new XorMappedAddress(StunAttributeType.XorMappedAddressAlt, attribute, this.TransactionID);
                     }
                     else
                     {
                         attribute = this.GetAttribute(StunAttributeType.MappedAddress);
 
                         if (attribute != null)
-                            return new MappedAddress(attribute);
+                            return new MappedAddress(StunAttributeType.MappedAddress, attribute);
                     }
                 }
                 return null;
             }
         }
         /// <summary>
-        /// Contains an ERROR-CODE attribute if this message contains one
+        /// TODO: Documentation Property
         /// </summary>
-        public ErrorCode Error
+        public StunRFC Stun
         {
-            get
-            {
-                StunAttribute attribute = this.GetAttribute(StunAttributeType.ErrorCode);
-
-                if (attribute != null)
-                    return new ErrorCode(attribute);
-
-                return null;
-            }
+            get { return new StunRFC(this); }
         }
         /// <summary>
-        /// Contains an ALTERNATE-SERVER attribute if this message contains one, otherwise returns null
+        /// TODO: Documentation Property
         /// </summary>
-        public MappedAddress AlternateServer
+        public StunClassicRFC StunClassic
         {
-            get
-            {
-                StunAttribute attribute = this.GetAttribute(StunAttributeType.AlternateServer);
-
-                if (attribute != null)
-                    return new AlternateServer(attribute);
-
-                return null;
-            }
+            get { return new StunClassicRFC(this); }
         }
         /// <summary>
-        /// Contains an UNKNOWN-ATTRIBUTES attribute if this message contains one, otherwise returns null
+        /// TODO: Documentation Property
         /// </summary>
-        public UnknownAttributes UnknownAttributes
+        public TurnRFCs Turn
         {
-            get
-            {
-                StunAttribute attribute = this.GetAttribute(StunAttributeType.UnknownAttributes);
-
-                if (attribute != null)
-                    return new UnknownAttributes(attribute);
-
-                return null;
-            }
+            get { return new TurnRFCs(this); }
         }
         /// <summary>
-        /// Contains a USERNAME attribute if this message contains one, otherwise returns null
+        /// TODO: Documentation Property
         /// </summary>
-        public Username Username
+        public IceRFC Ice
         {
-            get
-            {
-                StunAttribute attribute = this.GetAttribute(StunAttributeType.Username);
-
-                if (attribute != null)
-                    return new Username(attribute);
-
-                return null;
-            }
-        }
-        /// <summary>
-        /// Contains a REALM attribute if this message contains one, otherwise returns null
-        /// </summary>
-        public Realm Realm
-        {
-            get
-            {
-                StunAttribute attribute = this.GetAttribute(StunAttributeType.Realm);
-
-                if (attribute != null)
-                    return new Realm(attribute);
-
-                return null;
-            }
-        }
-        /// <summary>
-        /// Contains a SOFTWARE attribute if this message contains one, otherwise returns null
-        /// </summary>
-        public Software Software
-        {
-            get
-            {
-                StunAttribute attribute = this.GetAttribute(StunAttributeType.Software);
-
-                if (attribute != null)
-                    return new Software(attribute);
-
-                return null;
-            }
-        }
-        /// <summary>
-        /// Contains a NONCE attribute if this message contains one, otherwise returns null
-        /// </summary>
-        public Nonce Nonce 
-        {
-            get
-            {
-                StunAttribute attribute = this.GetAttribute(StunAttributeType.Nonce);
-
-                if (attribute != null)
-                    return new Nonce(attribute);
-
-                return null;
-            }
-        }
-        /// <summary>
-        /// Contains a FINGERPRINT attribute if this message contains one, otherwise returns null
-        /// </summary>
-        public FingerPrint FingerPrint
-        {
-            get
-            {
-                StunAttribute attribute = this.GetAttribute(StunAttributeType.FingerPrint);
-
-                if (attribute != null)
-                    return new FingerPrint(attribute);
-
-                return null;
-            }
+            get { return new IceRFC(this); }
         }
         #endregion
         #endregion
@@ -343,26 +292,26 @@ namespace Jabber.Stun
 
             if (useLongTermCredentials)
             {
-                if (this.Username == null)
-                    throw new ArgumentException("a USERNAME attribute must be defined prior to long-term credentials MESSAGE-INTEGRITY creation", "this.Username");
+                if (this.Stun.Username == null)
+                    throw new ArgumentException("USERNAME attribute is mandatory for long-term credentials MESSAGE-INTEGRITY creation", "this.Username");
 
-                if (this.Realm == null)
-                    throw new ArgumentException("a REALM attribute must be defined prior to long-term credentials MESSAGE-INTEGRITY creation", "this.Realm");
+                if (this.Stun.Realm == null)
+                    throw new ArgumentException("REALM attribute is mandatory for long-term credentials MESSAGE-INTEGRITY creation", "this.Realm");
 
                 using (MD5CryptoServiceProvider md5 = new MD5CryptoServiceProvider())
                 {
                     String valueToHashMD5 = String.Format(CultureInfo.CurrentCulture,
                                                           "{0}:{1}:{2}",
-                                                          this.Username.ValueString,
-                                                          this.Realm.ValueString,
+                                                          this.Stun.Username.ValueString,
+                                                          this.Stun.Realm.ValueString,
                                                           password);
 
-                    hmacSha1Key = md5.ComputeHash(StunAttribute.Encoder.GetBytes(valueToHashMD5));
+                    hmacSha1Key = md5.ComputeHash(StunMessage.Encoder.GetBytes(valueToHashMD5));
                 }
             }
             else
             {
-                hmacSha1Key = StunAttribute.Encoder.GetBytes(password);
+                hmacSha1Key = StunMessage.Encoder.GetBytes(password);
             }
 
             StunAttribute messageIntegrity = new StunAttribute(StunAttributeType.MessageIntegrity,
@@ -391,8 +340,8 @@ namespace Jabber.Stun
                     thisCopy.SetAttribute(item.Value);
                 }
 
-                if (this.FingerPrint != null)
-                    thisCopy.SetAttribute(this.FingerPrint);
+                if (this.Stun.FingerPrint != null)
+                    thisCopy.SetAttribute(this.Stun.FingerPrint);
 
                 byte[] thisCopyBytes = thisCopy;
 
@@ -539,7 +488,7 @@ namespace Jabber.Stun
             }
             return 0xFFFF;
         }
-                
+
         /// <summary>
         /// Convert a StunMethodClass to an host-byte ordered unsigned short
         /// </summary>
@@ -706,6 +655,39 @@ namespace Jabber.Stun
         /// </summary>
         [StunValue(0x0009)]
         ChannelBind,
+        #endregion
+
+        #region TURN-TCP Extension
+        /// <summary>
+        /// To initiate a TCP connection to a peer, a client MUST send a Connect
+        /// request over the control connection for the desired allocation.  The
+        /// Connect request MUST include an XOR-PEER-ADDRESS attribute containing
+        /// the transport address of the peer to which a connection is desired.
+        /// If the connection is successfully established, the client will
+        /// receive a success response.  That response will contain a CONNECTION-ID attribute
+        /// </summary>
+        [StunValue(0x000A)]
+        Connect,
+        /// <summary>
+        /// The client MUST initiate a new TCP connection to the server that MUST
+        /// be made using a different local transport address.
+        /// Authentication of the client by the server MUST use the same method
+        /// and credentials as for the control connection.  Once established, the
+        /// client MUST send a ConnectionBind request over the new connection.
+        /// That request MUST include the CONNECTION-ID attribute, echoed from
+        /// the Connect Success response
+        /// </summary>
+        [StunValue(0x000B)]
+        ConnectionBind,
+        /// <summary>
+        /// After an Allocate request is successfully processed by the server,
+        /// the client will start receiving a ConnectionAttempt indication each
+        /// time a peer for which a permission has been installed attempts a new
+        /// connection to the relayed transport address.  This indication will
+        /// contain CONNECTION-ID and XOR-PEER-ADDRESS attributes
+        /// </summary>
+        [StunValue(0x000C)]
+        ConnectionAttempt,
         #endregion
 
         #region STUN Classic
