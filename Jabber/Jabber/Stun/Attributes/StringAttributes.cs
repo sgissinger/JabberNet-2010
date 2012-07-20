@@ -30,6 +30,15 @@ namespace Jabber.Stun.Attributes
 
         #region CONSTRUCTORS & FINALIZERS
         /// <summary>
+        /// Constructs a new UTF8Attribute
+        /// </summary>
+        /// <param name="type">The type of this UTF8Attribute</param>
+        /// <param name="value">The value of this UTF8Attribute</param>
+        public UTF8Attribute(StunAttributeType type, String value)
+            : base(type, StunMessage.Encoder.GetBytes(value))
+        { }
+
+        /// <summary>
         /// Constructs an UTF8Attribute based on an existing StunAttribute
         /// </summary>
         /// <param name="type">The StunAttributeType associated with the attribute parameter</param>

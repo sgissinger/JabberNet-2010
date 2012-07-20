@@ -197,6 +197,7 @@
     <Compile Include="Jabber\Stun\AttributesByRFC\StunRFC.cs" />
     <Compile Include="Jabber\Stun\StunMessage.cs" />
     <Compile Include="Jabber\Stun\StunUtilities.cs" />
+    <Compile Include="Jabber\Stun\TurnManager.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>

@@ -68,15 +68,6 @@ namespace Jabber.Stun
         /// </summary>
         /// <param name="type">The type of this StunAttribute</param>
         /// <param name="value">The value of this StunAttribute</param>
-        public StunAttribute(StunAttributeType type, String value)
-            : this(type, StunMessage.Encoder.GetBytes(value))
-        { }
-
-        /// <summary>
-        /// Constructs a new StunAttribute
-        /// </summary>
-        /// <param name="type">The type of this StunAttribute</param>
-        /// <param name="value">The value of this StunAttribute</param>
         public StunAttribute(StunAttributeType type, byte[] value)
             : this(type, StunAttribute.AttributeTypeToBytes(type), value)
         { }

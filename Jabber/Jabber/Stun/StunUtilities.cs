@@ -49,9 +49,9 @@ namespace Jabber.Stun
         /// <returns>
         /// A key-value pair where :
         ///  * the key is the local IPEndPoint from where the STUN request occurs
-        ///  * the value is the MappedAddress returned by the STUN server
+        ///  * the value is the MappedAddress IPEndPoint returned by the STUN server
         /// </returns>
-        public static KeyValuePair<IPEndPoint, MappedAddress> GetMappedAddressFrom(String address, ProtocolType type)
+        public static KeyValuePair<IPEndPoint, IPEndPoint> GetMappedAddressFrom(String address, ProtocolType type)
         {
             return StunUtilities.GetMappedAddressFrom(null, address, type);
         }
@@ -66,9 +66,9 @@ namespace Jabber.Stun
         /// <returns>
         /// A key-value pair where :
         ///  * the key is the local IPEndPoint from where the STUN request occurs
-        ///  * the value is the MappedAddress returned by the STUN server
+        ///  * the value is the MappedAddress IPEndPoint returned by the STUN server
         /// </returns>
-        public static KeyValuePair<IPEndPoint, MappedAddress> GetMappedAddressFrom(IPEndPoint stunningEP, String address, ProtocolType type)
+        public static KeyValuePair<IPEndPoint, IPEndPoint> GetMappedAddressFrom(IPEndPoint stunningEP, String address, ProtocolType type)
         {
             StunMessage msg = new StunMessage(StunMethodType.Binding, StunMethodClass.Request, StunUtilities.NewTransactionId);
 
@@ -84,7 +84,7 @@ namespace Jabber.Stun
 
             cli.Close();
 
-            return new KeyValuePair<IPEndPoint, MappedAddress>(stunningEP, mappedAddress);
+            return new KeyValuePair<IPEndPoint, IPEndPoint>(stunningEP, mappedAddress.EndPoint);
         }
 
         /// <summary>
@@ -102,9 +102,9 @@ namespace Jabber.Stun
         /// <returns>
         /// A key-value pair where :
         ///  * the key is the local IPEndPoint from where the STUN request occurs
-        ///  * the value is the MappedAddress returned by the STUN server
+        ///  * the value is the MappedAddress IPEndPoint returned by the STUN server
         /// </returns>
-        public static KeyValuePair<IPEndPoint, MappedAddress> GetMappedAddressFrom(String address, RemoteCertificateValidationCallback remoteCertificateValidationHandler, X509Certificate2 clientCertificate)
+        public static KeyValuePair<IPEndPoint, IPEndPoint> GetMappedAddressFrom(String address, RemoteCertificateValidationCallback remoteCertificateValidationHandler, X509Certificate2 clientCertificate)
         {
             return StunUtilities.GetMappedAddressFrom(null, address, remoteCertificateValidationHandler, clientCertificate);
         }
@@ -126,9 +126,9 @@ namespace Jabber.Stun
         /// <returns>
         /// A key-value pair where :
         ///  * the key is the local IPEndPoint from where the STUN request occurs
-        ///  * the value is the MappedAddress returned by the STUN server
+        ///  * the value is the MappedAddress IPEndPoint returned by the STUN server
         /// </returns>
-        public static KeyValuePair<IPEndPoint, MappedAddress> GetMappedAddressFrom(IPEndPoint stunningEP, String address, RemoteCertificateValidationCallback remoteCertificateValidationHandler, X509Certificate2 clientCertificate)
+        public static KeyValuePair<IPEndPoint, IPEndPoint> GetMappedAddressFrom(IPEndPoint stunningEP, String address, RemoteCertificateValidationCallback remoteCertificateValidationHandler, X509Certificate2 clientCertificate)
         {
             StunMessage msg = new StunMessage(StunMethodType.Binding, StunMethodClass.Request, StunUtilities.NewTransactionId);
 
@@ -144,7 +144,7 @@ namespace Jabber.Stun
 
             cli.Close();
 
-            return new KeyValuePair<IPEndPoint, MappedAddress>(stunningEP, mappedAddress);
+            return new KeyValuePair<IPEndPoint, IPEndPoint>(stunningEP, mappedAddress.EndPoint);
         }
         #endregion
 

@@ -66,19 +66,26 @@ namespace Jabber.Stun
         /// </summary>
         public IPEndPoint StunningEP { get; private set; }
         /// <summary>
-        /// Contains True if the current connected Socket must use TLS over TCP to communicate with the STUN Server
-        /// </summary>
-        public Boolean UseSsl { get; private set; }
-        /// <summary>
         /// Contains the TcpClient handling TLS over TCP connection with the STUN Server
         /// </summary>
         private TcpClient SslClient { get; set; }
+        /// <summary>
+        /// TODO: Documentation Property
+        /// </summary>
+        private X509Certificate2 SslCertificate { get; set; }
         /// <summary>
         /// Contains the SslStream handling TLS over TCP communication with the STUN Server
         /// </summary>
         private SslStream SslStream { get; set; }
         /// <summary>
-        /// 
+        /// Contains True if the current connected Socket must use TLS over TCP to communicate with the STUN Server
+        /// </summary>
+        public Boolean UseSsl
+        {
+            get { return this.SslCertificate != null; }
+        }
+        /// <summary>
+        /// TODO: Documentation Property
         /// </summary>
         public Boolean Connected
         {
@@ -110,14 +117,11 @@ namespace Jabber.Stun
         /// <param name="args">Unused</param>
         private static void Main(string[] args)
         {
-            KeyValuePair<IPEndPoint, MappedAddress> stunKeyValue = StunUtilities.GetMappedAddressFrom("66.228.45.110", ProtocolType.Udp);
+            KeyValuePair<IPEndPoint, IPEndPoint> stunKeyValue = StunUtilities.GetMappedAddressFrom("66.228.45.110", ProtocolType.Udp);
 
             StunMessage msg = new StunMessage(StunMethodType.Binding, StunMethodClass.Request, StunUtilities.NewTransactionId);
-            StunAttribute attr1 = new StunAttribute(StunAttributeType.Realm, "Hello World !");
-            StunAttribute attr2 = new StunAttribute(StunAttributeType.Username, "Bob");
-
-            msg.SetAttribute(attr1);
-            msg.SetAttribute(attr2);
+            msg.Stun.Realm = new UTF8Attribute(StunAttributeType.Realm, "Hello World !");
+            msg.Stun.Username = new UTF8Attribute(StunAttributeType.Username, "Bob");
 
             byte[] octets = msg;
             StunMessage msgCopy = octets;
@@ -158,7 +162,7 @@ namespace Jabber.Stun
         /// <param name="protocolType">The protocol type (UDP or TCP only) used to communicate with the STUN Server</param>
         public void Connect(String stunServerIp, Int32 stunServerPort, ProtocolType protocolType)
         {
-            this.Connect(new IPEndPoint(IPAddress.Parse(stunServerIp), stunServerPort), protocolType, false, null, null);
+            this.Connect(new IPEndPoint(IPAddress.Parse(stunServerIp), stunServerPort), protocolType, null, null);
         }
 
         /// <summary>
@@ -193,7 +197,7 @@ namespace Jabber.Stun
         /// </param>
         public void Connect(String stunServerIp, Int32 stunServerPort, RemoteCertificateValidationCallback remoteCertificateValidationHandler, X509Certificate2 clientCertificate)
         {
-            this.Connect(new IPEndPoint(IPAddress.Parse(stunServerIp), stunServerPort), ProtocolType.Tcp, true, remoteCertificateValidationHandler, clientCertificate);
+            this.Connect(new IPEndPoint(IPAddress.Parse(stunServerIp), stunServerPort), ProtocolType.Tcp, remoteCertificateValidationHandler, clientCertificate);
         }
 
         /// <summary>
@@ -210,11 +214,11 @@ namespace Jabber.Stun
         /// Find your certificate under "Personal", it must have a little key in its icon, right click on it, choose "All tasks > Export...".
         /// Check the "Export key" checkbox, finish the process and then you have a valid X509Certificate2 with its private key in it
         /// </param>
-        private void Connect(IPEndPoint stunServerEP, ProtocolType protocolType, Boolean useSsl, RemoteCertificateValidationCallback remoteCertificateValidationHandler, X509Certificate2 clientCertificate)
+        public void Connect(IPEndPoint stunServerEP, ProtocolType protocolType, RemoteCertificateValidationCallback remoteCertificateValidationHandler, X509Certificate2 clientCertificate)
         {
             this.ServerEP = stunServerEP;
             this.ProtocolType = protocolType;
-            this.UseSsl = useSsl;
+            this.SslCertificate = clientCertificate;
 
             if (this.ProtocolType != ProtocolType.Tcp && this.ProtocolType != ProtocolType.Udp)
                 throw new ArgumentException("Only UDP and TCP are acceptable values", "protocolType");
@@ -252,13 +256,15 @@ namespace Jabber.Stun
                 LocalCertificateSelectionCallback localCertificateSelectionHandler = null;
                 X509Certificate2Collection clientCertificates = new X509Certificate2Collection();
 
-                if (clientCertificate != null)
+                if (this.UseSsl)
                 {
                     localCertificateSelectionHandler = (sender, targetHost, localCertificates, remoteCertificate, acceptableIssuers) => localCertificates[0];
-                    clientCertificates.Add(clientCertificate);
+                    clientCertificates.Add(this.SslCertificate);
                 }
 
-                this.SslStream = new SslStream(this.SslClient.GetStream(), false,
+                NetworkStream tcpStream = this.SslClient.GetStream();
+
+                this.SslStream = new SslStream(tcpStream, false,
                                                remoteCertificateValidationHandler,
                                                localCertificateSelectionHandler);
 
@@ -283,23 +289,21 @@ namespace Jabber.Stun
         /// </summary>
         public void Close()
         {
+            if (this.Socket.Connected)
+                this.Socket.Shutdown(SocketShutdown.Both);
+
+            this.Socket.Close();
+
             if (this.UseSsl)
             {
                 this.SslStream.Close();
-                this.SslStream = null;
-
                 this.SslClient.Close();
-                this.SslClient = null;
-
-                this.UseSsl = false;
-            }
-            else
-            {
-                this.Socket.Shutdown(SocketShutdown.Both);
             }
 
-            this.Socket.Close();
             this.Socket = null;
+            this.SslStream = null;
+            this.SslClient = null;
+            this.SslCertificate = null;
         }
 
         /// <summary>
