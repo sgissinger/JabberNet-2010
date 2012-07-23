@@ -19,6 +19,8 @@ using Jabber.Stun.Attributes;
 
 namespace Jabber.Stun
 {
+    public delegate void MessageReceptionHandler(Object sender, StunMessage receivedMsg);
+
     /// <summary>
     /// Represents a STUN Client that can send request to a STUN Server
     /// and receive response from it (or not)
@@ -41,6 +43,13 @@ namespace Jabber.Stun
         /// Socket receive buffer
         /// </summary>
         private const Int32 BUFFER = 8192;
+        #endregion
+
+        #region EVENTS
+        /// <summary>
+        /// TODO: Documentation Event
+        /// </summary>
+        public event MessageReceptionHandler OnReceivedMessage;
         #endregion
 
         #region PROPERTIES
@@ -132,13 +141,13 @@ namespace Jabber.Stun
 
             // Sample TLS over TCP working with ejabberd but may not work with the sample server IP given here
             cli.Connect("66.228.45.110", (sender, certificate, chain, sslPolicyErrors) => true, null);
-            StunMessage op1 = cli.SendMessage(msgCopy);
+            StunMessage resp1 = cli.SendMessage(msgCopy);
             cli.Close();
 
             msgCopy.ClearAttributes();
 
             cli.Connect("132.177.123.13", ProtocolType.Udp);
-            StunMessage op2 = cli.SendMessage(msgCopy);
+            StunMessage resp2 = cli.SendMessage(msgCopy);
             cli.Close();
         }
         #endregion
@@ -273,10 +282,18 @@ namespace Jabber.Stun
                 ar.AsyncWaitHandle.WaitOne();
 
                 this.SslStream.EndAuthenticateAsClient(ar);
+
+                byte[] result = new byte[StunClient.BUFFER];
+
+                this.SslStream.BeginRead(result, 0, result.Length, new AsyncCallback(this.ReceiveCallback), result);
             }
             else
             {
                 this.Socket.Connect(this.ServerEP);
+
+                byte[] result = new byte[StunClient.BUFFER];
+
+                this.Socket.BeginReceive(result, 0, result.Length, SocketFlags.None, new AsyncCallback(this.ReceiveCallback), result);
             }
 
             if (this.StunningEP == null)
@@ -361,11 +378,62 @@ namespace Jabber.Stun
                     this.Socket.Receive(result, 0, StunClient.BUFFER, SocketFlags.None);
             }
 
-
-            if (StunUtilities.ByteArraysEquals(((StunMessage)result).TransactionID, ((StunMessage)msg).TransactionID))
+            if (new ByteArrayComparer().Equals(((StunMessage)result).TransactionID, ((StunMessage)msg).TransactionID))
                 return result;
             else
                 return null;
+        }
+
+        /// <summary>
+        /// Sends a StunMessage to the connected STUN Server.
+        /// </summary>
+        /// <param name="msg">The StunMessage to send to the connected STUN Server</param>
+        public void BeginSendMessage(byte[] msg)
+        {
+            byte[] result = new byte[StunClient.BUFFER];
+
+            if (this.UseSsl)
+                this.SslStream.BeginWrite(msg, 0, msg.Length, new AsyncCallback(this.SendCallback), null);
+            else
+                this.Socket.BeginSend(msg, 0, msg.Length, SocketFlags.None, new AsyncCallback(this.SendCallback), null);
+        }
+
+        private void SendCallback(IAsyncResult ar)
+        {
+            if (this.UseSsl)
+                this.SslStream.EndWrite(ar);
+            else
+                this.Socket.EndSend(ar);
+        }
+
+        private void ReceiveCallback(IAsyncResult ar)
+        {
+            byte[] state = (byte[])ar.AsyncState;
+
+            Int32 bytesReceived;
+
+            if (this.UseSsl)
+                bytesReceived = this.SslStream.EndRead(ar);
+            else
+                bytesReceived = this.Socket.EndReceive(ar);
+
+
+            if (bytesReceived > 0)
+            {
+                StunMessage msgReceived = state;
+
+                this.OnReceivedMessage(this, msgReceived);
+
+                byte[] result = new byte[StunClient.BUFFER];
+
+                if (this.Socket != null)
+                {
+                    if (this.UseSsl)
+                        this.SslStream.BeginRead(result, 0, result.Length, new AsyncCallback(this.ReceiveCallback), result);
+                    else
+                        this.Socket.BeginReceive(result, 0, result.Length, SocketFlags.None, new AsyncCallback(this.ReceiveCallback), result);
+                }
+            }
         }
         #endregion
     }

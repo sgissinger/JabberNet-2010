@@ -40,6 +40,21 @@ namespace Jabber.Stun
             }
         }
 
+        /// <summary>
+        /// TODO: Documentation Property
+        /// </summary>
+        public static byte[] NewChannel
+        {
+            get
+            {
+                UInt32 minValue = 0x4000;
+                Int32 offset = new Random().Next(0, 16383); // 16383 possibilities
+
+                UInt32 channel = StunUtilities.ReverseBytes((UInt16)(minValue + offset));
+
+                return BitConverter.GetBytes(channel);
+            }
+        }
 
         /// <summary>
         /// Helper method using UDP or TCP that returns needed informations to begin peer-to-peer Punch Hole operations
@@ -164,32 +179,6 @@ namespace Jabber.Stun
             Array.Copy(data, index, result, 0, length);
 
             return result;
-        }
-
-        /// <summary>
-        /// Tests that two byte arrays content are equals or not
-        /// </summary>
-        /// <param name="b1">The first array to compare</param>
-        /// <param name="b2">The second array to compare</param>
-        /// <returns>True if the two arrays content is the same otherwise false</returns>
-        public static Boolean ByteArraysEquals(byte[] b1, byte[] b2)
-        {
-            if (b1 == b2)
-                return true;
-
-            if (b1 == null || b2 == null)
-                return false;
-
-            if (b1.Length != b2.Length)
-                return false;
-
-            for (int i = 0; i < b1.Length; i++)
-            {
-                if (b1[i] != b2[i])
-                    return false;
-            }
-
-            return true;
         }
 
         /// <summary>
@@ -320,6 +309,38 @@ namespace Jabber.Stun
         public StunValueAttribute(UInt16 value)
         {
             this.Value = value;
+        }
+    }
+
+    public class ByteArrayComparer : IEqualityComparer<byte[]>
+    {
+        public Boolean Equals(byte[] left, byte[] right)
+        {
+            if (left == null || right == null)
+                return left == right;
+
+            if (left.Length != right.Length)
+                return false;
+
+            for (int i = 0; i < left.Length; i++)
+            {
+                if (left[i] != right[i])
+                    return false;
+            }
+            return true;
+        }
+        public Int32 GetHashCode(byte[] key)
+        {
+            if (key == null)
+                throw new ArgumentNullException("key");
+
+            int sum = 0;
+
+            foreach (byte cur in key)
+            {
+                sum += cur;
+            }
+            return sum;
         }
     }
 }
