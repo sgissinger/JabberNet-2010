@@ -19,7 +19,9 @@ using Jabber.Stun.Attributes;
 
 namespace Jabber.Stun
 {
-    public delegate void MessageReceptionHandler(Object sender, StunMessage receivedMsg);
+    public delegate void MessageReceptionHandler(Object sender, StunMessage receivedMsg, StunMessage sentMsg, Object transactionObject);
+
+    public delegate void IndicationReceptionHandler(Object sender, StunMessage receivedMsg);
 
     /// <summary>
     /// Represents a STUN Client that can send request to a STUN Server
@@ -42,14 +44,22 @@ namespace Jabber.Stun
         /// <summary>
         /// Socket receive buffer
         /// </summary>
-        private const Int32 BUFFER = 8192;
+        private const Int32 BUFFER_SIZE = 8192;
         #endregion
 
         #region EVENTS
         /// <summary>
         /// TODO: Documentation Event
         /// </summary>
-        public event MessageReceptionHandler OnReceivedMessage;
+        public event MessageReceptionHandler OnReceivedSuccessResponse;
+        /// <summary>
+        /// TODO: Documentation Event
+        /// </summary>
+        public event IndicationReceptionHandler OnReceivedIndication;
+        /// <summary>
+        /// TODO: Documentation Event
+        /// </summary>
+        public event MessageReceptionHandler OnReceivedError;
         #endregion
 
         #region PROPERTIES
@@ -100,6 +110,10 @@ namespace Jabber.Stun
         {
             get { return this.Socket != null ? this.Socket.Connected : false; }
         }
+        /// <summary>
+        /// TODO: Documentation Property
+        /// </summary>
+        private Dictionary<byte[], KeyValuePair<StunMessage, Object>> PendingTransactions { get; set; }
         #endregion
 
 
@@ -117,6 +131,8 @@ namespace Jabber.Stun
         /// <param name="stunningEP">The IPEndPoint to which the socket will be bound to</param>
         public StunClient(IPEndPoint stunningEP)
         {
+            this.PendingTransactions = new Dictionary<byte[], KeyValuePair<StunMessage, Object>>(new ByteArrayComparer());
+
             this.StunningEP = stunningEP;
         }
 
@@ -283,7 +299,7 @@ namespace Jabber.Stun
 
                 this.SslStream.EndAuthenticateAsClient(ar);
 
-                byte[] result = new byte[StunClient.BUFFER];
+                byte[] result = new byte[StunClient.BUFFER_SIZE];
 
                 this.SslStream.BeginRead(result, 0, result.Length, new AsyncCallback(this.ReceiveCallback), result);
             }
@@ -291,7 +307,7 @@ namespace Jabber.Stun
             {
                 this.Socket.Connect(this.ServerEP);
 
-                byte[] result = new byte[StunClient.BUFFER];
+                byte[] result = new byte[StunClient.BUFFER_SIZE];
 
                 this.Socket.BeginReceive(result, 0, result.Length, SocketFlags.None, new AsyncCallback(this.ReceiveCallback), result);
             }
@@ -339,63 +355,77 @@ namespace Jabber.Stun
 
         /// <summary>
         /// Sends a StunMessage to the connected STUN Server.
-        /// If the StunMessage is an indication it returns null because the STUN Server
-        /// should not respond to this class of message as described in [RFC5389]
         /// </summary>
-        /// <param name="msg">The StunMessage to send to the connected STUN Server</param>
-        /// <returns>The STUN Server response StunMessage or null if msg parameter is an indication StunMessage</returns>
-        public StunMessage SendMessage(StunMessage msg)
-        {
-            return this.SendMessage(msg.Bytes, msg.MethodClass != StunMethodClass.Indication);
-        }
-
-        /// <summary>
-        /// Sends a StunMessage to the connected STUN Server.
-        /// </summary>
-        /// <param name="msg">The StunMessage to send to the connected STUN Server</param>
-        /// <param name="waitForResponse">True if a response is expected from the STUN Server</param>
+        /// <param name="msgToSend">The StunMessage to send to the connected STUN Server</param>
         /// <returns>
         /// The STUN Server response StunMessage
         /// or null if waitForResponse parameter is false
         /// or null if the received transaction ID is not identical to the sent transaction ID
         /// </returns>
-        public StunMessage SendMessage(byte[] msg, Boolean waitForResponse)
+        public StunMessage SendMessage(StunMessage msgToSend)
         {
-            byte[] result = new byte[StunClient.BUFFER];
+            Boolean waitForResponse = msgToSend.MethodClass == StunMethodClass.Request;
+
+            byte[] msgReceived = new byte[StunClient.BUFFER_SIZE];
 
             if (this.UseSsl)
             {
-                this.SslStream.Write(msg, 0, msg.Length);
+                this.SslStream.Write(msgToSend, 0, msgToSend.Bytes.Length);
 
                 if (waitForResponse)
-                    this.SslStream.Read(result, 0, StunClient.BUFFER);
+                    this.SslStream.Read(msgReceived, 0, StunClient.BUFFER_SIZE);
             }
             else
             {
-                this.Socket.Send(msg, 0, msg.Length, SocketFlags.None);
+                this.Socket.Send(msgToSend, 0, msgToSend.Bytes.Length, SocketFlags.None);
 
                 if (waitForResponse)
-                    this.Socket.Receive(result, 0, StunClient.BUFFER, SocketFlags.None);
+                    this.Socket.Receive(msgReceived, 0, StunClient.BUFFER_SIZE, SocketFlags.None);
             }
 
-            if (new ByteArrayComparer().Equals(((StunMessage)result).TransactionID, ((StunMessage)msg).TransactionID))
-                return result;
-            else
-                return null;
+            if (waitForResponse &&
+                new ByteArrayComparer().Equals(((StunMessage)msgReceived).TransactionID, msgToSend.TransactionID))
+            {
+                return msgReceived;
+            }
+
+            return null;
         }
 
         /// <summary>
         /// Sends a StunMessage to the connected STUN Server.
         /// </summary>
-        /// <param name="msg">The StunMessage to send to the connected STUN Server</param>
-        public void BeginSendMessage(byte[] msg)
+        /// <param name="msgToSend">The StunMessage to send to the connected STUN Server</param>
+        public void BeginSendMessage(StunMessage msgToSend, Object transactionObject)
         {
-            byte[] result = new byte[StunClient.BUFFER];
+            if(msgToSend.MethodClass == StunMethodClass.Request)
+                this.PendingTransactions.Add(msgToSend.TransactionID, new KeyValuePair<StunMessage, Object>(msgToSend, transactionObject));
 
             if (this.UseSsl)
-                this.SslStream.BeginWrite(msg, 0, msg.Length, new AsyncCallback(this.SendCallback), null);
+                this.SslStream.BeginWrite(msgToSend, 0, msgToSend.Bytes.Length, new AsyncCallback(this.SendCallback), null);
             else
-                this.Socket.BeginSend(msg, 0, msg.Length, SocketFlags.None, new AsyncCallback(this.SendCallback), null);
+                this.Socket.BeginSend(msgToSend, 0, msgToSend.Bytes.Length, SocketFlags.None, new AsyncCallback(this.SendCallback), null);
+        }
+
+        /// <summary>
+        /// TODO: Documentation IsPendingTransaction
+        /// </summary>
+        /// <param name="transactionID"></param>
+        /// <param name="transactionObject"></param>
+        /// <returns></returns>
+        private Boolean IsPendingTransaction(byte[] transactionID, out KeyValuePair<StunMessage, Object> transactionObject)
+        {
+            if (!this.PendingTransactions.ContainsKey(transactionID))
+            {
+                transactionObject = new KeyValuePair<StunMessage, Object>();
+                return false;
+            }
+
+            transactionObject = this.PendingTransactions[transactionID];
+
+            this.PendingTransactions.Remove(transactionID);
+
+            return true;
         }
 
         private void SendCallback(IAsyncResult ar)
@@ -422,9 +452,30 @@ namespace Jabber.Stun
             {
                 StunMessage msgReceived = state;
 
-                this.OnReceivedMessage(this, msgReceived);
+                KeyValuePair<StunMessage, Object> transactionObject;
 
-                byte[] result = new byte[StunClient.BUFFER];
+                switch(msgReceived.MethodClass)
+                {
+                    case StunMethodClass.SuccessResponse:
+                        if (!this.IsPendingTransaction(msgReceived.TransactionID, out transactionObject))
+                            return;
+
+                        this.OnReceivedSuccessResponse(this, msgReceived, transactionObject.Key, transactionObject.Value);
+                        break;
+
+                    case StunMethodClass.Indication:
+                        this.OnReceivedIndication(this, msgReceived);
+                        break;
+
+                    case StunMethodClass.Error:
+                        if (!this.IsPendingTransaction(msgReceived.TransactionID, out transactionObject))
+                            return;
+
+                        this.OnReceivedError(this, msgReceived, transactionObject.Key, transactionObject.Value);
+                        break;
+                }
+
+                byte[] result = new byte[StunClient.BUFFER_SIZE];
 
                 if (this.Socket != null)
                 {

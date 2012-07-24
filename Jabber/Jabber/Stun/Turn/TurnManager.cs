@@ -32,25 +32,6 @@ namespace Jabber.Stun.Turn
     /// </summary>
     public class TurnManager
     {
-        #region MEMBERS
-        /// <summary>
-        /// TODO: Documentation Propery
-        /// </summary>
-        private StunClient StunClient { get; set; }
-        /// <summary>
-        /// TODO: Documentation Member
-        /// </summary>
-        private TurnManager TurnTcpManager { get; set; }
-        /// <summary>
-        /// TODO: Documentation Member
-        /// </summary>
-        private Timer RefreshTimer { get; set; }
-        /// <summary>
-        /// TODO: Documentation Member
-        /// </summary>
-        private Dictionary<byte[], KeyValuePair<StunMessage, Object>> PendingTransactions { get; set; }
-        #endregion
-
         #region EVENTS
         /// <summary>
         /// TODO: Documentation Event
@@ -71,11 +52,11 @@ namespace Jabber.Stun.Turn
         /// <summary>
         /// TODO: Documentation Event
         /// </summary>
-        public event MessageReceptionHandler OnConnectionAttemptReceived;
+        public event IndicationReceptionHandler OnConnectionAttemptReceived;
         /// <summary>
         /// TODO: Documentation Event
         /// </summary>
-        public event MessageReceptionHandler OnDataReceived;
+        public event IndicationReceptionHandler OnDataReceived;
         #endregion
 
         #region PROPERTIES
@@ -113,6 +94,18 @@ namespace Jabber.Stun.Turn
         {
             get { return this.StunClient.Connected; }
         }
+        /// <summary>
+        /// TODO: Documentation Propery
+        /// </summary>
+        private StunClient StunClient { get; set; }
+        /// <summary>
+        /// TODO: Documentation Property
+        /// </summary>
+        private TurnManager TurnTcpManager { get; set; }
+        /// <summary>
+        /// TODO: Documentation Property
+        /// </summary>
+        private Timer RefreshTimer { get; set; }
         #endregion
 
         #region CONSTRUCTORS & FINALIZERS
@@ -131,108 +124,114 @@ namespace Jabber.Stun.Turn
             this.RemoteCertificateValidationHandler = remoteCertificateValidationHandler;
             this.SslCertificate = clientCertificate;
 
-            this.PendingTransactions = new Dictionary<byte[], KeyValuePair<StunMessage, Object>>(new ByteArrayComparer());
             this.Allocations = new List<TurnAllocation>();
 
             this.RefreshTimer = new Timer();
             this.RefreshTimer.Interval = 120000; // 2min
             this.RefreshTimer.AutoReset = true;
-            this.RefreshTimer.Elapsed += new ElapsedEventHandler(refreshTimer_Elapsed);
+            this.RefreshTimer.Elapsed += new ElapsedEventHandler(RefreshTimer_Elapsed);
+            this.RefreshTimer.Start();
 
             this.StunClient = new StunClient();
-            this.StunClient.OnReceivedMessage += new MessageReceptionHandler(turnClient_OnReceivedMessage);
+            this.StunClient.OnReceivedError += new MessageReceptionHandler(StunClient_OnReceivedError);
+            this.StunClient.OnReceivedIndication += new IndicationReceptionHandler(StunClient_OnReceivedIndication);
+            this.StunClient.OnReceivedSuccessResponse += new MessageReceptionHandler(StunClient_OnReceivedSuccessResponse);
         }
 
         /// <summary>
-        /// TODO: Documentation turnClient_OnReceivedMessage
+        /// TODO: Documentation StunClient_OnReceivedSuccessResponse
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="receivedMsg"></param>
-        private void turnClient_OnReceivedMessage(object sender, StunMessage receivedMsg)
+        /// <param name="sentMsg"></param>
+        /// <param name="transactionObject"></param>
+        private void StunClient_OnReceivedSuccessResponse(object sender, StunMessage receivedMsg, StunMessage sentMsg, object transactionObject)
         {
-            KeyValuePair<StunMessage, Object> transactionObject;
-
-            switch (receivedMsg.MethodClass)
+            switch (receivedMsg.MethodType)
             {
-                case StunMethodClass.Error:
-                    if (!this.IsPendingTransaction(receivedMsg.TransactionID, out transactionObject))
-                        return;
-
-                    switch (receivedMsg.MethodType)
+                case StunMethodType.Allocate:
+                    TurnAllocation allocation = new TurnAllocation()
                     {
-                        case StunMethodType.Allocate:
-                            if (receivedMsg.Stun.ErrorCode.ErrorType == ErrorCodeType.Unauthorized)
-                            {
-                                this.AllocateRetry(receivedMsg, (transactionObject.Value as String[])[0], (transactionObject.Value as String[])[1]);
-                            }
-                            break;
-                    }
+                        Username = sentMsg.Stun.Username.ValueString,
+                        Password = transactionObject as String,
+                        Realm = sentMsg.Stun.Realm.ValueString,
+                        Nonce = sentMsg.Stun.Nonce.ValueString,
+                        RelayedMappedAddress = receivedMsg.Turn.XorRelayedAddress,
+                        MappedAddress = receivedMsg.Stun.XorMappedAddress,
+                        StartTime = DateTime.Now,
+                        LifeTime = StunUtilities.ReverseBytes(BitConverter.ToUInt32(receivedMsg.Turn.LifeTime.Value, 0))
+                    };
+                    this.Allocations.Add(allocation);
+
+                    this.OnAllocateSucceed(this, allocation, sentMsg, receivedMsg);
                     break;
 
-                case StunMethodClass.SuccessResponse:
-                    if (!this.IsPendingTransaction(receivedMsg.TransactionID, out transactionObject))
-                        return;
-
-                    switch (receivedMsg.MethodType)
+                case StunMethodType.CreatePermission:
+                    TurnPermission permission = new TurnPermission()
                     {
-                        case StunMethodType.Allocate:
-                            TurnAllocation allocation = new TurnAllocation()
-                            {
-                                Username = transactionObject.Key.Stun.Username.ValueString,
-                                Password = transactionObject.Value as String,
-                                Realm = transactionObject.Key.Stun.Realm.ValueString,
-                                Nonce = transactionObject.Key.Stun.Nonce.ValueString,
-                                RelayedMappedAddress = receivedMsg.Turn.XorRelayedAddress,
-                                MappedAddress = receivedMsg.Stun.XorMappedAddress,
-                                StartTime = DateTime.Now,
-                                LifeTime = StunUtilities.ReverseBytes(BitConverter.ToUInt32(receivedMsg.Turn.LifeTime.Value, 0))
-                            };
-                            this.Allocations.Add(allocation);
+                        PeerAddress = sentMsg.Turn.XorPeerAddress,
+                        StartTime = DateTime.Now,
+                        LifeTime = 300
+                    };
+                    (transactionObject as TurnAllocation).Permissions.Add(permission);
 
-                            this.OnAllocateSucceed(this, allocation, transactionObject.Key, receivedMsg);
-                            break;
-
-                        case StunMethodType.CreatePermission:
-                            TurnPermission permission = new TurnPermission()
-                            {
-                                PeerAddress = transactionObject.Key.Turn.XorPeerAddress,
-                                StartTime = DateTime.Now,
-                                LifeTime = 300
-                            };
-                            (transactionObject.Value as TurnAllocation).Permissions.Add(permission);
-
-                            this.OnCreatePermissionSucceed(this, transactionObject.Value as TurnAllocation, permission, transactionObject.Key, receivedMsg);
-                            break;
-
-                        case StunMethodType.ChannelBind:
-                            TurnChannel channel = new TurnChannel()
-                            {
-                                Channel = transactionObject.Key.Turn.ChannelNumber,
-                                PeerAddress = transactionObject.Key.Turn.XorPeerAddress,
-                                StartTime = DateTime.Now,
-                                LifeTime = 600
-                            };
-                            (transactionObject.Value as TurnAllocation).Channels.Add(channel);
-
-                            this.OnChannelBindSucceed(this, transactionObject.Value as TurnAllocation, channel, transactionObject.Key, receivedMsg);
-                            break;
-
-                        case StunMethodType.ConnectionBind:
-                            this.OnConnectionBindSucceed(this, (transactionObject.Value as Socket), receivedMsg);
-                            break;
-                    }
+                    this.OnCreatePermissionSucceed(this, transactionObject as TurnAllocation, permission, sentMsg, receivedMsg);
                     break;
 
-                case StunMethodClass.Indication:
-                    switch (receivedMsg.MethodType)
+                case StunMethodType.ChannelBind:
+                    TurnChannel channel = new TurnChannel()
                     {
-                        case StunMethodType.ConnectionAttempt:
-                            this.OnConnectionAttemptReceived(this, receivedMsg);
-                            break;
+                        Channel = sentMsg.Turn.ChannelNumber,
+                        PeerAddress = sentMsg.Turn.XorPeerAddress,
+                        StartTime = DateTime.Now,
+                        LifeTime = 600
+                    };
+                    (transactionObject as TurnAllocation).Channels.Add(channel);
 
-                        case StunMethodType.Data:
-                            this.OnDataReceived(this, receivedMsg);
-                            break;
+                    this.OnChannelBindSucceed(this, transactionObject as TurnAllocation, channel, sentMsg, receivedMsg);
+                    break;
+
+                case StunMethodType.ConnectionBind:
+                    this.OnConnectionBindSucceed(this, (transactionObject as Socket), receivedMsg);
+                    break;
+            }
+
+        }
+
+        /// <summary>
+        /// TODO: Documentation StunClient_OnReceivedIndication
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="receivedMsg"></param>
+        private void StunClient_OnReceivedIndication(object sender, StunMessage receivedMsg)
+        {
+            switch (receivedMsg.MethodType)
+            {
+                case StunMethodType.ConnectionAttempt:
+                    this.OnConnectionAttemptReceived(this, receivedMsg);
+                    break;
+
+                case StunMethodType.Data:
+                    this.OnDataReceived(this, receivedMsg);
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// TODO: Documentation StunClient_OnReceivedError
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="receivedMsg"></param>
+        /// <param name="sentMsg"></param>
+        /// <param name="transactionObject"></param>
+        private void StunClient_OnReceivedError(object sender, StunMessage receivedMsg, StunMessage sentMsg, object transactionObject)
+        {
+            switch (receivedMsg.MethodType)
+            {
+                case StunMethodType.Allocate:
+                    if (receivedMsg.Stun.ErrorCode.ErrorType == ErrorCodeType.Unauthorized)
+                    {
+                        this.AllocateRetry(receivedMsg, (transactionObject as String[])[0], (transactionObject as String[])[1]);
                     }
                     break;
             }
@@ -243,7 +242,7 @@ namespace Jabber.Stun.Turn
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private void refreshTimer_Elapsed(object sender, ElapsedEventArgs e)
+        private void RefreshTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
             foreach (TurnAllocation allocation in this.Allocations)
             {
@@ -282,27 +281,6 @@ namespace Jabber.Stun.Turn
         }
 
         /// <summary>
-        /// TODO: Documentation IsPendingTransaction
-        /// </summary>
-        /// <param name="transactionID"></param>
-        /// <param name="transactionObject"></param>
-        /// <returns></returns>
-        private Boolean IsPendingTransaction(byte[] transactionID, out KeyValuePair<StunMessage, Object> transactionObject)
-        {
-            if (!this.PendingTransactions.ContainsKey(transactionID))
-            {
-                transactionObject = new KeyValuePair<StunMessage, Object>();
-                return false;
-            }
-
-            transactionObject = this.PendingTransactions[transactionID];
-
-            this.PendingTransactions.Remove(transactionID);
-
-            return true;
-        }
-
-        /// <summary>
         /// TODO: Documentation Allocate
         /// </summary>
         /// <param name="username"></param>
@@ -311,9 +289,7 @@ namespace Jabber.Stun.Turn
         {
             StunMessage msg = new StunMessage(StunMethodType.Allocate, StunMethodClass.Request, StunUtilities.NewTransactionId);
 
-            this.PendingTransactions.Add(msg.TransactionID, new KeyValuePair<StunMessage, Object>(msg, new String[] { username, password }));
-
-            this.StunClient.BeginSendMessage(msg);
+            this.StunClient.BeginSendMessage(msg, new String[] { username, password });
         }
 
         /// <summary>
@@ -324,18 +300,16 @@ namespace Jabber.Stun.Turn
         /// <param name="password"></param>
         private void AllocateRetry(StunMessage receivedMsg, String username, String password)
         {
-            StunMessage msgAllocate = new StunMessage(StunMethodType.Allocate, StunMethodClass.Request, StunUtilities.NewTransactionId);
+            StunMessage msg = new StunMessage(StunMethodType.Allocate, StunMethodClass.Request, StunUtilities.NewTransactionId);
 
-            msgAllocate.Stun.Username = new UTF8Attribute(StunAttributeType.Username, username);
-            msgAllocate.Turn.RequestedTransport = new StunAttribute(StunAttributeType.RequestedTransport, BitConverter.GetBytes(StunMessage.CODE_POINT_TCP));
-            msgAllocate.Stun.Realm = receivedMsg.Stun.Realm;
-            msgAllocate.Stun.Nonce = receivedMsg.Stun.Nonce;
+            msg.Stun.Username = new UTF8Attribute(StunAttributeType.Username, username);
+            msg.Turn.RequestedTransport = new StunAttribute(StunAttributeType.RequestedTransport, BitConverter.GetBytes(StunMessage.CODE_POINT_TCP));
+            msg.Stun.Realm = receivedMsg.Stun.Realm;
+            msg.Stun.Nonce = receivedMsg.Stun.Nonce;
 
-            msgAllocate.AddMessageIntegrity(password, true);
+            msg.AddMessageIntegrity(password, true);
 
-            this.PendingTransactions.Add(msgAllocate.TransactionID, new KeyValuePair<StunMessage, Object>(msgAllocate, password));
-
-            this.StunClient.BeginSendMessage(msgAllocate);
+            this.StunClient.BeginSendMessage(msg, password);
         }
 
         /// <summary>
@@ -350,11 +324,11 @@ namespace Jabber.Stun.Turn
             msg.Stun.Username = new UTF8Attribute(StunAttributeType.Username, allocation.Username);
             msg.Stun.Realm = new UTF8Attribute(StunAttributeType.Realm, allocation.Realm);
             msg.Stun.Nonce = new UTF8Attribute(StunAttributeType.Nonce, allocation.Nonce);
-            msg.Turn.LifeTime = new StunAttribute(StunAttributeType.LifeTime, BitConverter.GetBytes(lifeTime));
+            msg.Turn.LifeTime = new StunAttribute(StunAttributeType.LifeTime, BitConverter.GetBytes(StunUtilities.ReverseBytes(lifeTime)));
 
             msg.AddMessageIntegrity(allocation.Password, true);
 
-            this.StunClient.BeginSendMessage(msg);
+            this.StunClient.BeginSendMessage(msg, null);
         }
 
         /// <summary>
@@ -373,9 +347,7 @@ namespace Jabber.Stun.Turn
 
             msg.AddMessageIntegrity(allocation.Password, true);
 
-            this.PendingTransactions.Add(msg.TransactionID, new KeyValuePair<StunMessage, Object>(msg, allocation));
-
-            this.StunClient.BeginSendMessage(msg);
+            this.StunClient.BeginSendMessage(msg, allocation);
         }
 
         /// <summary>
@@ -396,9 +368,7 @@ namespace Jabber.Stun.Turn
 
             msg.AddMessageIntegrity(allocation.Password, true);
 
-            this.PendingTransactions.Add(msg.TransactionID, new KeyValuePair<StunMessage, Object>(msg, allocation));
-
-            this.StunClient.BeginSendMessage(msg);
+            this.StunClient.BeginSendMessage(msg, allocation);
         }
 
         /// <summary>
@@ -419,7 +389,7 @@ namespace Jabber.Stun.Turn
 
             msg.AddMessageIntegrity(allocation.Password, true);
 
-            this.StunClient.BeginSendMessage(msg);
+            this.StunClient.BeginSendMessage(msg, null);
         }
 
         /// <summary>
@@ -443,9 +413,7 @@ namespace Jabber.Stun.Turn
 
                     msg.AddMessageIntegrity(allocation.Password, true);
 
-                    this.TurnTcpManager.PendingTransactions.Add(msg.TransactionID, new KeyValuePair<StunMessage, Object>(msg, this.TurnTcpManager.StunClient.Socket));
-
-                    this.TurnTcpManager.StunClient.BeginSendMessage(msg);
+                    this.TurnTcpManager.StunClient.BeginSendMessage(msg, this.TurnTcpManager.StunClient.Socket);
                 };
 
             this.TurnTcpManager.OnConnectionBindSucceed += (object sender, Socket connectedSocket, StunMessage receivedMsg) =>
