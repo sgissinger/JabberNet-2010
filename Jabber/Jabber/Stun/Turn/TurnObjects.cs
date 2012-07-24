@@ -20,14 +20,7 @@ namespace Jabber.Stun.Turn
     /// </summary>
     public class TurnAllocation
     {
-        /// <summary>
-        /// TODO: Documentation Properties
-        /// </summary>
-        public List<TurnPermission> Permissions { get; set; }
-        /// <summary>
-        /// TODO: Documentation Properties
-        /// </summary>
-        public List<TurnChannel> Channels { get; set; }
+        #region PROPERTIES
         /// <summary>
         /// TODO: Documentation Property
         /// </summary>
@@ -60,12 +53,24 @@ namespace Jabber.Stun.Turn
         /// TODO: Documentation Property
         /// </summary>
         public UInt32 LifeTime { get; set; }
+        /// <summary>
+        /// TODO: Documentation Property
+        /// </summary>
+        public Dictionary<XorMappedAddress, TurnPermission> Permissions { get; set; }
+        /// <summary>
+        /// TODO: Documentation Property
+        /// </summary>
+        public Dictionary<byte[], TurnChannel> Channels { get; set; }
+        #endregion
 
         #region CONSTRUCTORS & FINALIZERS
+        /// <summary>
+        /// TODO: Documentation Constructor
+        /// </summary>
         public TurnAllocation()
         {
-            this.Permissions = new List<TurnPermission>();
-            this.Channels = new List<TurnChannel>();
+            this.Permissions = new Dictionary<XorMappedAddress, TurnPermission>(new XorMappedAddressComparer());
+            this.Channels = new Dictionary<byte[], TurnChannel>(new ByteArrayComparer());
         }
         #endregion
     }

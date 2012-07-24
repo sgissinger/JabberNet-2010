@@ -85,13 +85,17 @@ namespace Jabber.Stun
         /// </summary>
         public IPEndPoint StunningEP { get; private set; }
         /// <summary>
-        /// Contains the TcpClient handling TLS over TCP connection with the STUN Server
+        /// TODO: Documentation Property
         /// </summary>
-        private TcpClient SslClient { get; set; }
+        public X509Certificate2 ClientCertificate { get; private set; }
         /// <summary>
         /// TODO: Documentation Property
         /// </summary>
-        private X509Certificate2 SslCertificate { get; set; }
+        public RemoteCertificateValidationCallback RemoteCertificateValidationHandler { get; private set; }
+        /// <summary>
+        /// Contains the TcpClient handling TLS over TCP connection with the STUN Server
+        /// </summary>
+        private TcpClient SslClient { get; set; }
         /// <summary>
         /// Contains the SslStream handling TLS over TCP communication with the STUN Server
         /// </summary>
@@ -101,7 +105,7 @@ namespace Jabber.Stun
         /// </summary>
         public Boolean UseSsl
         {
-            get { return this.SslCertificate != null; }
+            get { return this.ClientCertificate != null; }
         }
         /// <summary>
         /// TODO: Documentation Property
@@ -116,24 +120,58 @@ namespace Jabber.Stun
         private Dictionary<byte[], KeyValuePair<StunMessage, Object>> PendingTransactions { get; set; }
         #endregion
 
-
         #region CONSTRUCTORS & FINALIZERS
         /// <summary>
         /// Constructs a StunClient 
         /// </summary>
-        public StunClient()
-            : this(null)
+        /// <param name="stunServerEP">The IPEndPoint where the STUN Server can be reached</param>
+        /// <param name="protocolType">The protocol type (UDP or TCP only) used to communicate with the STUN Server</param>
+        /// <param name="clientCertificate">
+        /// Client certificate used for mutual authentication. This certificate must be in PKCS #12 format and must contains its private key
+        /// The simpler way to create a certificate of this type is to follow this makecert tutorial http://www.inventec.ch/chdh/notes/14.htm.
+        /// Once your certificate is created : launch "mmc", CTRL+M, select "Certificates", add, choose "Local machine".
+        /// Find your certificate under "Personal", it must have a little key in its icon, right click on it, choose "All tasks > Export...".
+        /// Check the "Export key" checkbox, finish the process and then you have a valid X509Certificate2 with its private key in it
+        /// </param>
+        /// <param name="remoteCertificateValidationHandler">The callback handler which validate STUN Server TLS certificate</param>
+        public StunClient(IPEndPoint stunServerEP, ProtocolType protocolType, X509Certificate2 clientCertificate, RemoteCertificateValidationCallback remoteCertificateValidationHandler)
+            : this(null, stunServerEP, protocolType, clientCertificate, remoteCertificateValidationHandler)
         { }
 
         /// <summary>
         /// Constructs a StunClient using an existing IPEndPoint
         /// </summary>
         /// <param name="stunningEP">The IPEndPoint to which the socket will be bound to</param>
-        public StunClient(IPEndPoint stunningEP)
+        /// <param name="stunServerEP">The IPEndPoint where the STUN Server can be reached</param>
+        /// <param name="protocolType">The protocol type (UDP or TCP only) used to communicate with the STUN Server</param>
+        /// <param name="clientCertificate">
+        /// Client certificate used for mutual authentication. This certificate must be in PKCS #12 format and must contains its private key
+        /// The simpler way to create a certificate of this type is to follow this makecert tutorial http://www.inventec.ch/chdh/notes/14.htm.
+        /// Once your certificate is created : launch "mmc", CTRL+M, select "Certificates", add, choose "Local machine".
+        /// Find your certificate under "Personal", it must have a little key in its icon, right click on it, choose "All tasks > Export...".
+        /// Check the "Export key" checkbox, finish the process and then you have a valid X509Certificate2 with its private key in it
+        /// </param>
+        /// <param name="remoteCertificateValidationHandler">The callback handler which validate STUN Server TLS certificate</param>
+        public StunClient(IPEndPoint stunningEP, IPEndPoint stunServerEP, ProtocolType protocolType, X509Certificate2 clientCertificate, RemoteCertificateValidationCallback remoteCertificateValidationHandler)
         {
             this.PendingTransactions = new Dictionary<byte[], KeyValuePair<StunMessage, Object>>(new ByteArrayComparer());
 
             this.StunningEP = stunningEP;
+
+            this.ServerEP = stunServerEP;
+            this.ProtocolType = protocolType;
+            this.ClientCertificate = clientCertificate;
+
+            if(this.UseSsl && remoteCertificateValidationHandler == null)
+                    throw new ArgumentException("You must provide a valid RemoteCertificateValidationCallback", "remoteCertificateValidationHandler");
+
+            this.RemoteCertificateValidationHandler = remoteCertificateValidationHandler;
+
+            if (this.ProtocolType != ProtocolType.Tcp && this.ProtocolType != ProtocolType.Udp)
+                throw new ArgumentException("Only UDP and TCP are acceptable values", "protocolType");
+
+            if (this.UseSsl && this.ProtocolType != ProtocolType.Tcp)
+                throw new ArgumentException("Only TCP can be used in with SSL", "protocolType");
         }
 
         /// <summary>
@@ -142,7 +180,9 @@ namespace Jabber.Stun
         /// <param name="args">Unused</param>
         private static void Main(string[] args)
         {
-            KeyValuePair<IPEndPoint, IPEndPoint> stunKeyValue = StunUtilities.GetMappedAddressFrom("66.228.45.110", ProtocolType.Udp);
+            KeyValuePair<IPEndPoint, IPEndPoint> stunKeyValue = StunUtilities.GetMappedAddressFrom(null,
+                                                                                                   new IPEndPoint(IPAddress.Parse("66.228.45.110"), StunClient.DEFAULT_STUN_PORT),
+                                                                                                   ProtocolType.Udp);
 
             StunMessage msg = new StunMessage(StunMethodType.Binding, StunMethodClass.Request, StunUtilities.NewTransactionId);
             msg.Stun.Realm = new UTF8Attribute(StunAttributeType.Realm, "Hello World !");
@@ -153,104 +193,34 @@ namespace Jabber.Stun
 
             // Reuse of an existing local IPEndPoint makes the three requests returning 
             // the same MappedAddress IPEndPoint if this client is behind a Cone NAT
-            StunClient cli = new StunClient(stunKeyValue.Key);
+            StunClient cli1 = new StunClient(stunKeyValue.Key,
+                                             new IPEndPoint(IPAddress.Parse("66.228.45.110"), StunClient.DEFAULT_STUNS_PORT),
+                                             ProtocolType.Tcp, null,
+                                             (sender, certificate, chain, sslPolicyErrors) => true);
 
             // Sample TLS over TCP working with ejabberd but may not work with the sample server IP given here
-            cli.Connect("66.228.45.110", (sender, certificate, chain, sslPolicyErrors) => true, null);
-            StunMessage resp1 = cli.SendMessage(msgCopy);
-            cli.Close();
+            cli1.Connect();
+            StunMessage resp1 = cli1.SendMessage(msgCopy);
+            cli1.Close();
 
             msgCopy.ClearAttributes();
 
-            cli.Connect("132.177.123.13", ProtocolType.Udp);
-            StunMessage resp2 = cli.SendMessage(msgCopy);
-            cli.Close();
+            StunClient cli2 = new StunClient(stunKeyValue.Key,
+                                             new IPEndPoint(IPAddress.Parse("132.177.123.13"), StunClient.DEFAULT_STUN_PORT),
+                                             ProtocolType.Udp, null, null);
+
+            cli2.Connect();
+            StunMessage resp2 = cli2.SendMessage(msgCopy);
+            cli2.Close();
         }
         #endregion
 
         #region METHODS
         /// <summary>
-        /// Opens a socket connection to a STUN Server using UDP or TCP on default STUN port (3478)
-        /// </summary>
-        /// <param name="stunServerIp">The IP where the STUN Server can be reached</param>
-        /// <param name="protocolType">The protocol type (UDP or TCP only) used to communicate with the STUN Server</param>
-        public void Connect(String stunServerIp, ProtocolType protocolType)
-        {
-            this.Connect(stunServerIp, StunClient.DEFAULT_STUN_PORT, protocolType);
-        }
-
-        /// <summary>
-        /// Opens a socket connection to a STUN Server using UDP or TCP on a given port
-        /// </summary>
-        /// <param name="stunServerIp">The IP where the STUN Server can be reached</param>
-        /// <param name="stunServerPort">The port number on which the STUN Server is listening</param>
-        /// <param name="protocolType">The protocol type (UDP or TCP only) used to communicate with the STUN Server</param>
-        public void Connect(String stunServerIp, Int32 stunServerPort, ProtocolType protocolType)
-        {
-            this.Connect(new IPEndPoint(IPAddress.Parse(stunServerIp), stunServerPort), protocolType, null, null);
-        }
-
-        /// <summary>
-        /// Opens a socket connection to a STUN Server using TLS over TCP on default STUNS port (5349)
-        /// </summary>
-        /// <param name="stunServerIp">The IP where the STUN Server can be reached</param>
-        /// <param name="remoteCertificateValidationHandler">The callback handler which validate STUN Server TLS certificate</param>
-        /// <param name="clientCertificate">
-        /// Client certificate used for mutual authentication. This certificate must be in PKCS #12 format and must contains its private key
-        /// The simpler way to create a certificate of this type is to follow this makecert tutorial http://www.inventec.ch/chdh/notes/14.htm.
-        /// Once your certificate is created : launch "mmc", CTRL+M, select "Certificates", add, choose "Local machine".
-        /// Find your certificate under "Personal", it must have a little key in its icon, right click on it, choose "All tasks > Export...".
-        /// Check the "Export key" checkbox, finish the process and then you have a valid X509Certificate2 with its private key in it
-        /// </param>
-        public void Connect(String stunServerIp, RemoteCertificateValidationCallback remoteCertificateValidationHandler, X509Certificate2 clientCertificate)
-        {
-            this.Connect(stunServerIp, StunClient.DEFAULT_STUNS_PORT, remoteCertificateValidationHandler, clientCertificate);
-        }
-
-        /// <summary>
-        /// Opens a socket connection to a STUN Server using TLS over TCP on a given port
-        /// </summary>
-        /// <param name="stunServerIp">The IP where the STUN Server can be reached</param>
-        /// <param name="stunServerPort">The port number on which the STUN Server is listening</param>
-        /// <param name="remoteCertificateValidationHandler">The callback handler which validate STUN Server TLS certificate</param>
-        /// <param name="clientCertificate">
-        /// Client certificate used for mutual authentication. This certificate must be in PKCS #12 format and must contains its private key
-        /// The simpler way to create a certificate of this type is to follow this makecert tutorial http://www.inventec.ch/chdh/notes/14.htm.
-        /// Once your certificate is created : launch "mmc", CTRL+M, select "Certificates", add, choose "Local machine".
-        /// Find your certificate under "Personal", it must have a little key in its icon, right click on it, choose "All tasks > Export...".
-        /// Check the "Export key" checkbox, finish the process and then you have a valid X509Certificate2 with its private key in it
-        /// </param>
-        public void Connect(String stunServerIp, Int32 stunServerPort, RemoteCertificateValidationCallback remoteCertificateValidationHandler, X509Certificate2 clientCertificate)
-        {
-            this.Connect(new IPEndPoint(IPAddress.Parse(stunServerIp), stunServerPort), ProtocolType.Tcp, remoteCertificateValidationHandler, clientCertificate);
-        }
-
-        /// <summary>
         /// Opens a socket connection to a STUN Server
         /// </summary>
-        /// <param name="stunServerEP">The IPEndPoint where the STUN Server can be reached</param>
-        /// <param name="protocolType">The protocol type (UDP or TCP only) used to communicate with the STUN Server</param>
-        /// <param name="useSsl">Indicates whether to use SSL or not</param>
-        /// <param name="remoteCertificateValidationHandler">The callback handler which validate STUN Server TLS certificate</param>
-        /// <param name="clientCertificate">
-        /// Client certificate used for mutual authentication. This certificate must be in PKCS #12 format and must contains its private key
-        /// The simpler way to create a certificate of this type is to follow this makecert tutorial http://www.inventec.ch/chdh/notes/14.htm.
-        /// Once your certificate is created : launch "mmc", CTRL+M, select "Certificates", add, choose "Local machine".
-        /// Find your certificate under "Personal", it must have a little key in its icon, right click on it, choose "All tasks > Export...".
-        /// Check the "Export key" checkbox, finish the process and then you have a valid X509Certificate2 with its private key in it
-        /// </param>
-        public void Connect(IPEndPoint stunServerEP, ProtocolType protocolType, RemoteCertificateValidationCallback remoteCertificateValidationHandler, X509Certificate2 clientCertificate)
+        public void Connect()
         {
-            this.ServerEP = stunServerEP;
-            this.ProtocolType = protocolType;
-            this.SslCertificate = clientCertificate;
-
-            if (this.ProtocolType != ProtocolType.Tcp && this.ProtocolType != ProtocolType.Udp)
-                throw new ArgumentException("Only UDP and TCP are acceptable values", "protocolType");
-
-            if (this.UseSsl && this.ProtocolType != ProtocolType.Tcp)
-                throw new ArgumentException("Only TCP can be used in conjunction with SSL", "useSsl");
-
             if (this.Socket != null)
                 throw new ArgumentException("StunClient socket is not null, you must close it before doing any new connection", "this.Socket");
 
@@ -271,26 +241,18 @@ namespace Jabber.Stun
 
             if (this.UseSsl)
             {
-                if (remoteCertificateValidationHandler == null)
-                    throw new ArgumentException("You must provide a valid RemoteCertificateValidationCallback", "remoteCertificateValidationHandler");
-
                 this.SslClient = new TcpClient();
                 this.SslClient.Client = this.Socket;
                 this.SslClient.Connect(this.ServerEP);
 
                 LocalCertificateSelectionCallback localCertificateSelectionHandler = null;
+                localCertificateSelectionHandler = (sender, targetHost, localCertificates, remoteCertificate, acceptableIssuers) => localCertificates[0];
+
                 X509Certificate2Collection clientCertificates = new X509Certificate2Collection();
+                clientCertificates.Add(this.ClientCertificate);
 
-                if (this.UseSsl)
-                {
-                    localCertificateSelectionHandler = (sender, targetHost, localCertificates, remoteCertificate, acceptableIssuers) => localCertificates[0];
-                    clientCertificates.Add(this.SslCertificate);
-                }
-
-                NetworkStream tcpStream = this.SslClient.GetStream();
-
-                this.SslStream = new SslStream(tcpStream, false,
-                                               remoteCertificateValidationHandler,
+                this.SslStream = new SslStream(this.SslClient.GetStream(), false,
+                                               this.RemoteCertificateValidationHandler,
                                                localCertificateSelectionHandler);
 
                 IAsyncResult ar = this.SslStream.BeginAuthenticateAsClient(this.ServerEP.Address.ToString(), clientCertificates, SslProtocols.Tls, true, null, null);
@@ -336,7 +298,7 @@ namespace Jabber.Stun
             this.Socket = null;
             this.SslStream = null;
             this.SslClient = null;
-            this.SslCertificate = null;
+            this.ClientCertificate = null;
         }
 
         /// <summary>
@@ -357,11 +319,7 @@ namespace Jabber.Stun
         /// Sends a StunMessage to the connected STUN Server.
         /// </summary>
         /// <param name="msgToSend">The StunMessage to send to the connected STUN Server</param>
-        /// <returns>
-        /// The STUN Server response StunMessage
-        /// or null if waitForResponse parameter is false
-        /// or null if the received transaction ID is not identical to the sent transaction ID
-        /// </returns>
+        /// <returns>The STUN Server response or null if msgToSend parameter is not a Request</returns>
         public StunMessage SendMessage(StunMessage msgToSend)
         {
             Boolean waitForResponse = msgToSend.MethodClass == StunMethodClass.Request;
@@ -396,6 +354,7 @@ namespace Jabber.Stun
         /// Sends a StunMessage to the connected STUN Server.
         /// </summary>
         /// <param name="msgToSend">The StunMessage to send to the connected STUN Server</param>
+        /// <param name="transactionObject"></param>
         public void BeginSendMessage(StunMessage msgToSend, Object transactionObject)
         {
             if(msgToSend.MethodClass == StunMethodClass.Request)
@@ -428,6 +387,10 @@ namespace Jabber.Stun
             return true;
         }
 
+        /// <summary>
+        /// TODO: Documentation SendCallback
+        /// </summary>
+        /// <param name="ar"></param>
         private void SendCallback(IAsyncResult ar)
         {
             if (this.UseSsl)
@@ -436,6 +399,10 @@ namespace Jabber.Stun
                 this.Socket.EndSend(ar);
         }
 
+        /// <summary>
+        /// TODO: Documentation ReceiveCallback
+        /// </summary>
+        /// <param name="ar"></param>
         private void ReceiveCallback(IAsyncResult ar)
         {
             byte[] state = (byte[])ar.AsyncState;
@@ -450,28 +417,28 @@ namespace Jabber.Stun
 
             if (bytesReceived > 0)
             {
-                StunMessage msgReceived = state;
+                StunMessage receivedMsg = state;
 
                 KeyValuePair<StunMessage, Object> transactionObject;
 
-                switch(msgReceived.MethodClass)
+                switch(receivedMsg.MethodClass)
                 {
                     case StunMethodClass.SuccessResponse:
-                        if (!this.IsPendingTransaction(msgReceived.TransactionID, out transactionObject))
+                        if (!this.IsPendingTransaction(receivedMsg.TransactionID, out transactionObject))
                             return;
 
-                        this.OnReceivedSuccessResponse(this, msgReceived, transactionObject.Key, transactionObject.Value);
+                        this.OnReceivedSuccessResponse(this, receivedMsg, transactionObject.Key, transactionObject.Value);
                         break;
 
                     case StunMethodClass.Indication:
-                        this.OnReceivedIndication(this, msgReceived);
+                        this.OnReceivedIndication(this, receivedMsg);
                         break;
 
                     case StunMethodClass.Error:
-                        if (!this.IsPendingTransaction(msgReceived.TransactionID, out transactionObject))
+                        if (!this.IsPendingTransaction(receivedMsg.TransactionID, out transactionObject))
                             return;
 
-                        this.OnReceivedError(this, msgReceived, transactionObject.Key, transactionObject.Value);
+                        this.OnReceivedError(this, receivedMsg, transactionObject.Key, transactionObject.Value);
                         break;
                 }
 
