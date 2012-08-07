@@ -1,4 +1,14 @@
-﻿using System;
+﻿/* --------------------------------------------------------------------------
+ * Copyrights
+ *
+ * Portions created by or assigned to Sébastien Gissinger
+ *
+ * License
+ *
+ * Jabber-Net is licensed under the LGPL.
+ * See LICENSE.txt for details.
+ * --------------------------------------------------------------------------*/
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.Design;
@@ -232,7 +242,7 @@ namespace Jabber.Client
                 }
                 else
                 {
-
+                    throw new NotSupportedException();
                 }
             }
         }
@@ -264,7 +274,7 @@ namespace Jabber.Client
                 }
                 else
                 {
-
+                    throw new NotSupportedException();
                 }
 
                 iq.Handled = true;

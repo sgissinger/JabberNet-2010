@@ -9,11 +9,11 @@
  * See LICENSE.txt for details.
  * --------------------------------------------------------------------------*/
 using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Windows.Forms;
-using System.Collections.Generic;
 
 namespace Jabber.Stun
 {
@@ -164,8 +164,11 @@ namespace Jabber.Stun
                 {
                     nbTries++;
 
-                    client = this.HostEP != null ? new TcpClient(this.HostEP) :
-                                                   new TcpClient();
+                    client = new TcpClient();
+                    client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, 1);
+
+                    if (this.HostEP != null)
+                        client.Client.Bind(this.HostEP);
 
                     IAsyncResult result = client.Client.BeginConnect(peerEP.Address, peerEP.Port, null, null);
 
