@@ -44,8 +44,10 @@ namespace Jabber.Client
 
         private JingleManager jingleManager = null;
         private HolePuncher holePuncher = null;
+
         private Boolean p2pConnectionSucceed = false;
         private Dictionary<String, TurnSession> turnSessions = new Dictionary<String, TurnSession>();
+        private Dictionary<String, JingleIceCandidate[]> localCandidates = new Dictionary<String, JingleIceCandidate[]>();
         #endregion
 
         #region EVENTS
@@ -146,22 +148,29 @@ namespace Jabber.Client
 
             JingleIce jingleIce = jingleContent.GetElement<JingleIce>(0);
 
-            foreach (JingleIceCandidate candidate in jingleIce.GetCandidates())
+            foreach (JingleIceCandidate remoteCandidate in jingleIce.GetCandidates())
             {
-                switch (candidate.Type)
+                switch (remoteCandidate.Type)
                 {
                     case IceCandidateType.host:
                     case IceCandidateType.prflx:
                     case IceCandidateType.srflx:
-                        this.holePuncher.AddEP(candidate.Priority, candidate.EndPoint);
+                        foreach (JingleIceCandidate localCandidate in this.localCandidates[sid])
+                        {
+                            if (localCandidate.Type == remoteCandidate.Type)
+                            {
+                                this.holePuncher.AddEP(remoteCandidate.Priority, remoteCandidate.EndPoint);
+                                break;
+                            }
+                        }
                         break;
 
                     case IceCandidateType.relay:
                         if (this.TurnSupported &&
                             jingleSession.Remote.Action == ActionType.session_accept)
                         {
-                                this.turnSessions[sid].TurnManager.CreatePermission(new XorMappedAddress(candidate.RelatedEndPoint),
-                                                                                    this.turnSessions[sid].TurnAllocation);
+                            this.turnSessions[sid].TurnManager.CreatePermission(new XorMappedAddress(remoteCandidate.RelatedEndPoint),
+                                                                                this.turnSessions[sid].TurnAllocation);
                         }
                         break;
                 }
@@ -236,9 +245,7 @@ namespace Jabber.Client
 
                 if (this.TurnSupported)
                 {
-                    var t = this.CreateTurnSession(this.StartingSessionSid);
-
-                    t.Allocate(this.TurnUsername, this.TurnPassword);
+                    this.CreateTurnSession(this.StartingSessionSid);
                 }
                 else
                 {
@@ -268,9 +275,7 @@ namespace Jabber.Client
 
                 if (this.TurnSupported)
                 {
-                    var t = this.CreateTurnSession(this.StartingSessionSid);
-
-                    t.Allocate(this.TurnUsername, this.TurnPassword);
+                    this.CreateTurnSession(this.StartingSessionSid);
                 }
                 else
                 {
@@ -360,7 +365,7 @@ namespace Jabber.Client
         /// TODO: Documentation CreateTurnSession
         /// </summary>
         /// <param name="sid"></param>
-        private TurnManager CreateTurnSession(String sid)
+        private void CreateTurnSession(String sid)
         {
             TurnManager turnManager = new TurnManager(this.StunServerEP, ProtocolType.Tcp, null, null);
 
@@ -370,10 +375,9 @@ namespace Jabber.Client
             turnManager.OnConnectionBindSucceed += new ConnectionBindSuccessHandler(this.turnManager_OnConnectionBindSucceed);
 
             turnManager.Connect();
+            turnManager.Allocate(this.TurnUsername, this.TurnPassword);
 
             this.turnSessions.Add(sid, new TurnSession() { TurnManager = turnManager });
-
-            return turnManager;
         }
 
         /// <summary>
@@ -393,6 +397,7 @@ namespace Jabber.Client
                 this.turnSessions[sid].TurnAllocation = null;
 
                 this.turnSessions.Remove(sid);
+                this.localCandidates.Remove(sid);
             }
         }
 
@@ -408,7 +413,6 @@ namespace Jabber.Client
             if (this.StartingSessionRecipient != null)
             {
                 this.turnSessions[this.StartingSessionSid].TurnAllocation = allocation;
-                this.turnSessions[this.StartingSessionSid].TurnAllocation.StartAutoRefresh((sender as TurnManager));
 
                 XmlDocument doc = new XmlDocument();
 
@@ -421,6 +425,8 @@ namespace Jabber.Client
 
                 if (this.OnJingleIceCandidates != null)
                     this.OnJingleIceCandidates(this, jingleIce, (sender as TurnManager).HostEP, allocation);
+
+                this.localCandidates.Add(this.StartingSessionSid, jingleIce.GetCandidates());
 
                 JingleIQ jingleIq = null;
 
@@ -435,6 +441,8 @@ namespace Jabber.Client
                                                              this.StartingSessionAction,
                                                              this.StartingSessionSid, contentName,
                                                              jingleDescription, jingleIce);
+
+                //this.jingleManager.FindSession(this.StartingSessionSid).Local = jingleIq.Instruction;
 
                 this.Stream.Write(jingleIq);
             }

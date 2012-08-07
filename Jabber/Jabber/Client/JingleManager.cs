@@ -447,5 +447,6 @@ namespace Jabber.Client
     {
         public String SID { get; set; }
         public Jingle Remote { get; set; }
+        //public Jingle Local { get; set; }
     }
 }

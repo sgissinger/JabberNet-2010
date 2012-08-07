@@ -476,7 +476,8 @@ namespace Jabber.Stun
                 }
                 else
                 {
-                    this.Disconnect();
+                    if (!this.isDisconnecting)
+                        this.Disconnect();
                 }
             }
             catch (Exception ex)
