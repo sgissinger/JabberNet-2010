@@ -10,16 +10,23 @@
  * --------------------------------------------------------------------------*/
 using System;
 using System.Collections.Generic;
-using System.Text;
+using System.Timers;
 using Jabber.Stun.Attributes;
 
-namespace Jabber.Stun.Turn
+namespace Jabber.Stun
 {
     /// <summary>
     /// TODO: Documentation Class
     /// </summary>
     public class TurnAllocation
     {
+        #region MEMBERS
+        /// <summary>
+        /// TODO: Documentation Members
+        /// </summary>
+        private Timer refreshTimer = null;
+        #endregion
+
         #region PROPERTIES
         /// <summary>
         /// TODO: Documentation Property
@@ -71,6 +78,39 @@ namespace Jabber.Stun.Turn
         {
             this.Permissions = new Dictionary<XorMappedAddress, TurnPermission>(new XorMappedAddressComparer());
             this.Channels = new Dictionary<byte[], TurnChannel>(new ByteArrayComparer());
+        }
+
+        /// <summary>
+        /// TODO: Documentation StartAutoRefresh
+        /// </summary>
+        public void StartAutoRefresh(TurnManager turnManager)
+        {
+            this.refreshTimer = new Timer();
+            this.refreshTimer.AutoReset = true;
+
+            this.refreshTimer.Interval = (this.LifeTime * 1000) - 60000; // lifetime - 1min
+            this.refreshTimer.Elapsed += new ElapsedEventHandler((sender, e) => { this.AutoRefresh(turnManager); });
+            this.refreshTimer.Start();
+        }
+
+        /// <summary>
+        /// TODO: Documentation StopAutoRefresh
+        /// </summary>
+        public void StopAutoRefresh()
+        {
+            if (this.refreshTimer != null)
+                this.refreshTimer.Stop();
+        }
+
+        /// <summary>
+        /// TODO: Documentation AutoRefresh
+        /// </summary>
+        /// <param name="turnManager"></param>
+        private void AutoRefresh(TurnManager turnManager)
+        {
+            turnManager.RefreshAllocation(this, this.LifeTime);
+
+            this.refreshTimer.Interval = (this.LifeTime * 1000) - 60000; // lifetime - 1min
         }
         #endregion
     }

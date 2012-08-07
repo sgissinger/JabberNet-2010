@@ -29,24 +29,19 @@ namespace Jabber.Stun.Attributes
         {
             get
             {
-                byte addressFamilyByte = this.Value[1];
-
-                if (addressFamilyByte == StunMessage.ADDRESS_FAMILY_IPV4)
+                if (this.Value[1] == StunMessage.ADDRESS_FAMILY_IPV4)
                     return AddressFamily.InterNetwork;
-                else if (addressFamilyByte == StunMessage.ADDRESS_FAMILY_IPV6)
+                else if (this.Value[1] == StunMessage.ADDRESS_FAMILY_IPV6)
                     return AddressFamily.InterNetworkV6;
 
                 return AddressFamily.Unknown;
             }
-        }
-        /// <summary>
-        /// Contains the IPEndPoint as the result of Address and Port merging
-        /// </summary>
-        public IPEndPoint EndPoint
-        {
-            get
+            set
             {
-                return new IPEndPoint(this.Address, this.Port);
+                if(value == AddressFamily.InterNetwork)
+                    this.Value[1] = StunMessage.ADDRESS_FAMILY_IPV4;
+                else if (value == AddressFamily.InterNetworkV6)
+                    this.Value[1] = StunMessage.ADDRESS_FAMILY_IPV6;
             }
         }
         /// <summary>
@@ -60,6 +55,10 @@ namespace Jabber.Stun.Attributes
 
                 return new IPAddress(addressBytes);
             }
+            set
+            {
+                value.GetAddressBytes().CopyTo(this.Value, 4);
+            }
         }
         /// <summary>
         /// Contains the Port value associated to this MappedAddres
@@ -72,10 +71,45 @@ namespace Jabber.Stun.Attributes
 
                 return StunUtilities.ReverseBytes(BitConverter.ToUInt16(portBytes, 0));
             }
+            set
+            {
+                byte[] portBytes = BitConverter.GetBytes((UInt16)value);
+
+                Array.Reverse(portBytes);
+
+                portBytes.CopyTo(this.Value, 2);
+            }
+        }
+        /// <summary>
+        /// Contains the IPEndPoint as the result of Address and Port merging
+        /// </summary>
+        public IPEndPoint EndPoint
+        {
+            get
+            {
+                return new IPEndPoint(this.Address, this.Port);
+            }
         }
         #endregion
 
         #region CONSTRUCTORS & FINALIZERS
+        /// <summary>
+        /// Constructs a MappedAddress based on an IPEndPoint
+        /// </summary>
+        /// <param name="endPoint"></param>
+        public MappedAddress(IPEndPoint endPoint)
+            : base(StunAttributeType.MappedAddress)
+        {
+            if (endPoint.AddressFamily == AddressFamily.InterNetwork)
+                this.Value = new byte[8];
+            else if (endPoint.AddressFamily == AddressFamily.InterNetworkV6)
+                this.Value = new byte[20];
+
+            this.AddressFamily = endPoint.AddressFamily;
+            this.Address = endPoint.Address;
+            this.Port = endPoint.Port;
+        }
+
         /// <summary>
         /// Constructs a MappedAddress based on an existing StunAttribute
         /// </summary>
@@ -83,6 +117,14 @@ namespace Jabber.Stun.Attributes
         /// <param name="attribute">The StunAttribute base for this MappedAddress</param>
         public MappedAddress(StunAttributeType type, StunAttribute attribute)
             : base(type, attribute.Value)
+        { }
+
+        /// <summary>
+        /// Constructs an empty MappedAddress
+        /// </summary>
+        /// <param name="type">The StunAttributeType of this MappedAddress</param>
+        protected MappedAddress(StunAttributeType type)
+            : base(type)
         { }
         #endregion
 
@@ -141,6 +183,29 @@ namespace Jabber.Stun.Attributes
                     throw new NotImplementedException();
                 }
             }
+            set
+            {
+                if (this.AddressFamily == AddressFamily.InterNetwork)
+                {
+                    // Address in network-byte order
+                    UInt32 address = BitConverter.ToUInt32(value.GetAddressBytes(), 0);
+
+                    // MAGIC-COOKIE in host-byte order
+                    byte[] magicCookieBytes = BitConverter.GetBytes(StunMessage.MAGIC_COOKIE);
+
+                    // MAGIC-COOKIE in network-byte order
+                    UInt32 xoringElement = StunUtilities.ReverseBytes(BitConverter.ToUInt32(magicCookieBytes, 0));
+
+                    byte[] addressBytes = BitConverter.GetBytes(((UInt32)(address ^ xoringElement)));
+
+                    // XORing the two network-byte order values gives the right value
+                    addressBytes.CopyTo(this.Value, 4);
+                }
+                else
+                {
+                    throw new NotImplementedException();
+                }
+            }
         }
         /// <summary>
         /// Contains the Port value associated to this XorMappedAddres
@@ -163,10 +228,44 @@ namespace Jabber.Stun.Attributes
                 // XORing the two host-byte order values gives the right value
                 return xoredPort ^ xoringElement;
             }
+            set
+            {
+                // Port in host-byte order
+                UInt16 port = (UInt16)value;
+
+                // MAGIC-COOKIE in host-byte order
+                byte[] magicCookieBigBytes = StunUtilities.SubArray(BitConverter.GetBytes(StunMessage.MAGIC_COOKIE), 2, 2);
+
+                UInt16 xoringElement = BitConverter.ToUInt16(magicCookieBigBytes, 0);
+                
+                // XORing the two host-byte order values gives the right value
+                byte[] portBytes = BitConverter.GetBytes(((UInt16)(port ^ xoringElement)));
+
+                Array.Reverse(portBytes);
+
+                portBytes.CopyTo(this.Value, 2);
+            }
         }
         #endregion
 
         #region CONSTRUCTORS & FINALIZERS
+        /// <summary>
+        /// Constructs a XorMappedAddress based on an IPEndPoint
+        /// </summary>
+        /// <param name="endPoint"></param>
+        public XorMappedAddress(IPEndPoint endPoint)
+            : base(StunAttributeType.XorMappedAddress)
+        {
+            if (endPoint.AddressFamily == AddressFamily.InterNetwork)
+                this.Value = new byte[8];
+            else if (endPoint.AddressFamily == AddressFamily.InterNetworkV6)
+                throw new NotImplementedException();
+
+            this.AddressFamily = endPoint.AddressFamily;
+            this.Address = endPoint.Address;
+            this.Port = endPoint.Port;
+        }
+
         /// <summary>
         /// Constructs a XorMappedAddress based on an existing StunAttribute
         /// </summary>

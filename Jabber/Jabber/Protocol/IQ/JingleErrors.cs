@@ -10,6 +10,7 @@
  * --------------------------------------------------------------------------*/
 using System;
 using System.Xml;
+using System.Security.Cryptography;
 
 namespace Jabber.Protocol.IQ
 {
@@ -48,25 +49,6 @@ namespace Jabber.Protocol.IQ
         public static String GenerateIceCandidateId
         {
             get { return Guid.NewGuid().ToString("N").Substring(0, 10); }
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        public static UInt32 GenerateIceCandidatePriority
-        {
-            get
-            {
-                Random random = new Random();
-                String r = random.Next(1, 3).ToString();
-
-                Int32 i;
-
-                for (i = 1; i < 10; i++)
-                    r += random.Next(0, 9).ToString();
-
-                return UInt32.Parse(r);
-            }
         }
         #endregion
     }

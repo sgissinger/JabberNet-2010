@@ -144,6 +144,12 @@
     <Compile Include="Jabber\Client\JabberClient.Designer.cs">
       <DependentUpon>JabberClient.cs</DependentUpon>
     </Compile>
+    <Compile Include="Jabber\Client\JingleIceManager.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="Jabber\Client\JingleIceManager.Designer.cs">
+      <DependentUpon>JingleIceManager.cs</DependentUpon>
+    </Compile>
     <Compile Include="Jabber\Client\JingleManager.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -192,13 +198,14 @@
     <Compile Include="Jabber\Stun\Attributes\AddressAttributes.cs" />
     <Compile Include="Jabber\Stun\Attributes\StringAttributes.cs" />
     <Compile Include="Jabber\Stun\Attributes\UnknownAttributes.cs" />
+    <Compile Include="Jabber\Stun\HolePuncher.cs" />
     <Compile Include="Jabber\Stun\StunAttribute.cs" />
     <Compile Include="Jabber\Stun\StunClient.cs" />
     <Compile Include="Jabber\Stun\AttributesByRFC\StunRFC.cs" />
     <Compile Include="Jabber\Stun\StunMessage.cs" />
     <Compile Include="Jabber\Stun\StunUtilities.cs" />
-    <Compile Include="Jabber\Stun\Turn\TurnManager.cs" />
-    <Compile Include="Jabber\Stun\Turn\TurnObjects.cs" />
+    <Compile Include="Jabber\Stun\TurnManager.cs" />
+    <Compile Include="Jabber\Stun\TurnObjects.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -613,6 +620,9 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Bedrock\Util\IdleTime.bmp" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Jabber\Client\JingleIceManager.bmp" />
   </ItemGroup>
   <Import Condition="'$(BuildMono)'==''" Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>

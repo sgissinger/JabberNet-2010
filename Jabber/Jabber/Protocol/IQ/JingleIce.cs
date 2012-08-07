@@ -82,12 +82,13 @@ namespace Jabber.Protocol.IQ
         /// <returns></returns>
         public JingleIceCandidate GetCandidate(Int32 index)
         {
-            return GetCandidates()[index];
+            return this.GetCandidates()[index];
         }
 
         /// <summary>
         /// Add a new candidate to the list
         /// </summary>
+        /// <param name="localPriority"></param>
         /// <param name="component"></param>
         /// <param name="foundation"></param>
         /// <param name="generation"></param>
@@ -95,18 +96,18 @@ namespace Jabber.Protocol.IQ
         /// <param name="ip"></param>
         /// <param name="network"></param>
         /// <param name="port"></param>
-        /// <param name="priority"></param>
         /// <param name="protocol"></param>
         /// <param name="type"></param>
         /// <returns></returns>
-        public JingleIceCandidate AddCandidate(Byte component, Byte foundation, Byte generation, String id, Byte network, IPAddress ip, UInt16 port, UInt32 priority, IceProtocolType protocol, IceCandidateType type)
+        public JingleIceCandidate AddCandidate(UInt16 localPriority, Byte component, Byte foundation, Byte generation, String id, Byte network, IPAddress ip, UInt16 port, IceProtocolType protocol, IceCandidateType type)
         {
-            return AddCandidate(component, foundation, generation, id, network, ip, port, priority, protocol, type, null, 0);
+            return AddCandidate(localPriority, component, foundation, generation, id, network, ip, port, protocol, type, null, 0);
         }
 
         /// <summary>
         /// Add a new candidate to the list
         /// </summary>
+        /// <param name="localPriority"></param>
         /// <param name="component"></param>
         /// <param name="foundation"></param>
         /// <param name="generation"></param>
@@ -114,13 +115,12 @@ namespace Jabber.Protocol.IQ
         /// <param name="ip"></param>
         /// <param name="network"></param>
         /// <param name="port"></param>
-        /// <param name="priority"></param>
         /// <param name="protocol"></param>
         /// <param name="type"></param>
         /// <param name="relatedAddress"></param>
         /// <param name="relatedPort"></param>
         /// <returns></returns>
-        public JingleIceCandidate AddCandidate(Byte component, Byte foundation, Byte generation, String id, Byte network, IPAddress ip, UInt16 port, UInt32 priority, IceProtocolType protocol, IceCandidateType type, IPAddress relatedAddress, UInt16 relatedPort)
+        public JingleIceCandidate AddCandidate(UInt16 localPriority, Byte component, Byte foundation, Byte generation, String id, Byte network, IPAddress ip, UInt16 port, IceProtocolType protocol, IceCandidateType type, IPAddress relatedAddress, UInt16 relatedPort)
         {
             Debug.Assert(component > 0);
             Debug.Assert(foundation > 0);
@@ -128,7 +128,6 @@ namespace Jabber.Protocol.IQ
             Debug.Assert(!String.IsNullOrEmpty(ip.ToString()));
             Debug.Assert(network > 0);
             Debug.Assert(port > 1024);
-            Debug.Assert(priority.ToString().Length == 10);
             Debug.Assert(protocol != IceProtocolType.UNSPECIFIED);
             Debug.Assert(type != IceCandidateType.UNSPECIFIED);
 
@@ -140,8 +139,13 @@ namespace Jabber.Protocol.IQ
             cndt.IP = ip;
             cndt.Network = network;
             cndt.Port = port;
-            cndt.Priority = priority;
             cndt.Protocol = protocol;
+
+            Double priority = Math.Pow(2, 24) * (Int32)type +
+                              Math.Pow(2, 8) * localPriority +
+                              Math.Pow(2, 0) * (256 - component);
+
+            cndt.Priority = (UInt32)priority;
 
             if (relatedAddress != null)
                 cndt.RelatedAddress = relatedAddress;
@@ -152,28 +156,6 @@ namespace Jabber.Protocol.IQ
             cndt.Type = type;
 
             return cndt;
-        }
-
-        /// <summary>
-        /// TODO: Documentation CandidatesEP
-        /// </summary>
-        /// <param name="jingle"></param>
-        /// <returns></returns>
-        public static IEnumerable<IPEndPoint> CandidatesEP(Jingle jingle)
-        {
-            List<IPEndPoint> result = new List<IPEndPoint>();
-
-            JingleContent jingleContent = jingle.GetContent(0);
-            JingleIce ice = jingleContent.GetElement<JingleIce>(0);
-
-            if (ice != null)
-            {
-                foreach (JingleIceCandidate iceCandidate in ice.GetCandidates())
-                {
-                    result.Add(new IPEndPoint(iceCandidate.IP, (Int32)iceCandidate.Port));
-                }
-            }
-            return result;
         }
     }
 
@@ -199,6 +181,22 @@ namespace Jabber.Protocol.IQ
         public JingleIceCandidate(string prefix, XmlQualifiedName qname, XmlDocument doc) :
             base(prefix, qname, doc)
         { }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public IPEndPoint EndPoint
+        {
+            get { return new IPEndPoint(this.IP, this.Port); }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public IPEndPoint RelatedEndPoint
+        {
+            get { return new IPEndPoint(this.RelatedAddress, this.RelatedPort); }
+        }
 
         /// <summary>
         /// A Component ID as defined in ICE-CORE
@@ -317,6 +315,8 @@ namespace Jabber.Protocol.IQ
 
     /// <summary>
     /// A Candidate Type as defined in ICE-CORE
+    /// Values equals priority type preferences values defined in ICE-CORE
+    /// http://tools.ietf.org/html/rfc5245#section-4.1.2.2
     /// </summary>
     public enum IceCandidateType
     {
@@ -327,19 +327,19 @@ namespace Jabber.Protocol.IQ
         /// <summary>
         /// Host candidates
         /// </summary>
-        host,
+        host = 126,
         /// <summary>
         /// Peer reflexive 
         /// </summary>
-        prflx,
+        prflx = 110,
         /// <summary>
         /// Relayed candidates
         /// </summary>
-        relay,
+        relay = 0,
         /// <summary>
         /// Server reflexive candidates
         /// </summary>
-        srflx
+        srflx = 100
     }
 
     /// <summary>
@@ -386,6 +386,14 @@ namespace Jabber.Protocol.IQ
         { }
 
         /// <summary>
+        /// 
+        /// </summary>
+        public IPEndPoint EndPoint
+        {
+            get { return new IPEndPoint(this.IP, this.Port); }
+        }
+
+        /// <summary>
         /// A Component ID as defined in ICE-CORE
         /// </summary>
         public Byte Component
@@ -398,10 +406,10 @@ namespace Jabber.Protocol.IQ
         /// The Internet Protocol (IP) address for the remote-candidate transport mechanism;
         /// this can be either an IPv4 address or an IPv6 address
         /// </summary>
-        public String IP
+        public IPAddress IP
         {
-            get { return GetAttr("ip"); }
-            set { SetAttr("ip", value); }
+            get { return IPAddress.Parse(GetAttr("ip")); }
+            set { SetAttr("ip", value.ToString()); }
         }
 
         /// <summary>

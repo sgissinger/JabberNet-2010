@@ -52,7 +52,7 @@ namespace Jabber.Stun
         /// <summary>
         /// Contains the byte array representation of this attribute's value
         /// </summary>
-        public byte[] Value { get; private set; }
+        public byte[] Value { get; protected set; }
         /// <summary>
         /// Contains the length of this attribute's value
         /// </summary>
@@ -63,6 +63,12 @@ namespace Jabber.Stun
         #endregion
 
         #region CONSTRUCTOR & FINALIZERS
+        /// <summary>
+        /// Constructs an empty StunAttribute
+        /// </summary>
+        public StunAttribute(StunAttributeType type)
+        { }
+
         /// <summary>
         /// Constructs a new StunAttribute
         /// </summary>

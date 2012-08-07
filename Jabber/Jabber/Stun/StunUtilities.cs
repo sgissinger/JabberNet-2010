@@ -13,9 +13,9 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using Jabber.Stun.Attributes;
-using System.Security.Cryptography;
 
 namespace Jabber.Stun
 {
@@ -48,10 +48,15 @@ namespace Jabber.Stun
         {
             get
             {
-                UInt32 minValue = 0x4000;
-                Int32 offset = new Random().Next(0, 16383); // 16383 possibilities
+                byte[] seedBytes = new byte[4];
 
-                UInt32 channel = StunUtilities.ReverseBytes((UInt16)(minValue + offset));
+                RandomNumberGenerator.Create().GetBytes(seedBytes);
+
+                Int32 seed = BitConverter.ToInt32(seedBytes, 0);
+
+                Int32 offset = new Random(seed).Next(0, 16383); // 16383 possibilities
+
+                UInt32 channel = StunUtilities.ReverseBytes((UInt16)(0x4000 + offset));
 
                 return BitConverter.GetBytes(channel);
             }
@@ -61,7 +66,7 @@ namespace Jabber.Stun
         /// Helper method using UDP or TCP that returns needed informations to begin peer-to-peer Punch Hole operations
         /// using an existing IPEndPoint
         /// </summary>
-        /// <param name="stunningEP">The IPEndPoint to which the socket will be bound to</param>
+        /// <param name="hostEP">The IPEndPoint to which the socket will be bound to</param>
         /// <param name="serverEP">The IP Address of the STUN server</param>
         /// <param name="type">The connection type used to do the STUN Binding Request</param>
         /// <returns>
@@ -69,30 +74,30 @@ namespace Jabber.Stun
         ///  * the key is the local IPEndPoint from where the STUN request occurs
         ///  * the value is the MappedAddress IPEndPoint returned by the STUN server
         /// </returns>
-        public static KeyValuePair<IPEndPoint, IPEndPoint> GetMappedAddressFrom(IPEndPoint stunningEP, IPEndPoint serverEP, ProtocolType type)
+        public static KeyValuePair<IPEndPoint, IPEndPoint> GetMappedAddressFrom(IPEndPoint hostEP, IPEndPoint serverEP, ProtocolType type)
         {
             StunMessage msg = new StunMessage(StunMethodType.Binding, StunMethodClass.Request, StunUtilities.NewTransactionId);
 
-            StunClient cli = new StunClient(stunningEP, serverEP, type, null, null);
+            StunClient cli = new StunClient(hostEP, serverEP, type, null, null);
             cli.Connect();
 
             StunMessage resp = cli.SendMessage(msg);
 
-            if (stunningEP == null)
-                stunningEP = cli.StunningEP;
+            if (hostEP == null)
+                hostEP = cli.HostEP;
 
             MappedAddress mappedAddress = resp.MappedAddress;
 
-            cli.Close();
+            cli.Disconnect();
 
-            return new KeyValuePair<IPEndPoint, IPEndPoint>(stunningEP, mappedAddress.EndPoint);
+            return new KeyValuePair<IPEndPoint, IPEndPoint>(hostEP, mappedAddress.EndPoint);
         }
 
         /// <summary>
         /// Helper method using TLS over TCP that returns needed informations to begin peer-to-peer Punch Hole operations
         /// using an existing IPEndPoint
         /// </summary>
-        /// <param name="stunningEP">The IPEndPoint to which the socket will be bound to</param>
+        /// <param name="hostEP">The IPEndPoint to which the socket will be bound to</param>
         /// <param name="serverEP">The IP Address of the STUN server</param>
         /// <param name="remoteCertificateValidationHandler">The callback handler which validate STUN Server TLS certificate</param>
         /// <param name="clientCertificate">
@@ -107,23 +112,23 @@ namespace Jabber.Stun
         ///  * the key is the local IPEndPoint from where the STUN request occurs
         ///  * the value is the MappedAddress IPEndPoint returned by the STUN server
         /// </returns>
-        public static KeyValuePair<IPEndPoint, IPEndPoint> GetMappedAddressFrom(IPEndPoint stunningEP, IPEndPoint serverEP, RemoteCertificateValidationCallback remoteCertificateValidationHandler, X509Certificate2 clientCertificate)
+        public static KeyValuePair<IPEndPoint, IPEndPoint> GetMappedAddressFrom(IPEndPoint hostEP, IPEndPoint serverEP, RemoteCertificateValidationCallback remoteCertificateValidationHandler, X509Certificate2 clientCertificate)
         {
             StunMessage msg = new StunMessage(StunMethodType.Binding, StunMethodClass.Request, StunUtilities.NewTransactionId);
 
-            StunClient cli = new StunClient(stunningEP, serverEP, ProtocolType.Tcp, clientCertificate, remoteCertificateValidationHandler);
+            StunClient cli = new StunClient(hostEP, serverEP, ProtocolType.Tcp, clientCertificate, remoteCertificateValidationHandler);
             cli.Connect();
 
             StunMessage resp = cli.SendMessage(msg);
 
-            if (stunningEP == null)
-                stunningEP = cli.StunningEP;
+            if (hostEP == null)
+                hostEP = cli.HostEP;
 
             MappedAddress mappedAddress = resp.MappedAddress;
 
-            cli.Close();
+            cli.Disconnect();
 
-            return new KeyValuePair<IPEndPoint, IPEndPoint>(stunningEP, mappedAddress.EndPoint);
+            return new KeyValuePair<IPEndPoint, IPEndPoint>(hostEP, mappedAddress.EndPoint);
         }
         #endregion
 
@@ -273,6 +278,58 @@ namespace Jabber.Stun
         public StunValueAttribute(UInt16 value)
         {
             this.Value = value;
+        }
+    }
+
+    public class TurnSession
+    {
+        public TurnManager TurnManager { get; set; }
+        public TurnAllocation TurnAllocation { get; set; }
+    }
+
+
+    /// <summary>
+    /// TODO: Documentation Class
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    public class DescendingComparer<T> : IComparer<T>
+        where T : IComparable<T>
+    {
+        public int Compare(T x, T y)
+        {
+            return y.CompareTo(x);
+        }
+    }
+
+    /// <summary>
+    /// TODO: Documentation Class
+    /// </summary>
+    public class IPEndPointComparer : IEqualityComparer<IPEndPoint>
+    {
+        public Boolean Equals(IPEndPoint left, IPEndPoint right)
+        {
+            if (left == null || right == null)
+                return left == right;
+
+            if (left.AddressFamily != right.AddressFamily)
+                return false;
+
+            if (left.Port != right.Port)
+                return false;
+
+            if (left.Address.ToString() != right.Address.ToString())
+                return false;
+
+            return true;
+        }
+        public Int32 GetHashCode(IPEndPoint key)
+        {
+            if (key == null)
+                throw new ArgumentNullException("key");
+
+            return key.AddressFamily.GetHashCode() ^
+                   key.Port.GetHashCode() ^
+                   key.Address.ToString().GetHashCode();
         }
     }
 

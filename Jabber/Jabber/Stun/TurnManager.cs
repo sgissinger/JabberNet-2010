@@ -14,10 +14,9 @@ using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
-using System.Timers;
 using Jabber.Stun.Attributes;
 
-namespace Jabber.Stun.Turn
+namespace Jabber.Stun
 {
     public delegate void AllocateSuccessHandler(Object sender, TurnAllocation allocation, StunMessage sentMsg, StunMessage receivedMsg);
 
@@ -78,7 +77,10 @@ namespace Jabber.Stun.Turn
         /// <summary>
         /// TODO: Documentation Propery
         /// </summary>
-        private Boolean AutoRefresh { get; set; }
+        public IPEndPoint HostEP
+        {
+            get { return this.StunClient.HostEP; }
+        }
         /// <summary>
         /// TODO: Documentation Propery
         /// </summary>
@@ -87,10 +89,6 @@ namespace Jabber.Stun.Turn
         /// TODO: Documentation Property
         /// </summary>
         private TurnManager TurnTcpManager { get; set; }
-        /// <summary>
-        /// TODO: Documentation Property
-        /// </summary>
-        private Timer RefreshTimer { get; set; }
         #endregion
 
         #region CONSTRUCTORS & FINALIZERS
@@ -104,12 +102,6 @@ namespace Jabber.Stun.Turn
         public TurnManager(IPEndPoint turnServerEP, ProtocolType protocolType, X509Certificate2 clientCertificate, RemoteCertificateValidationCallback remoteCertificateValidationHandler)
         {
             this.Allocations = new Dictionary<XorMappedAddress, TurnAllocation>(new XorMappedAddressComparer());
-
-            this.RefreshTimer = new Timer();
-            this.RefreshTimer.Interval = 120000; // 2min
-            this.RefreshTimer.AutoReset = true;
-            this.RefreshTimer.Elapsed += new ElapsedEventHandler(RefreshTimer_Elapsed);
-            this.RefreshTimer.Start();
 
             this.StunClient = new StunClient(turnServerEP, protocolType,
                                              clientCertificate, remoteCertificateValidationHandler);
@@ -149,7 +141,8 @@ namespace Jabber.Stun.Turn
                     {
                         this.Allocations.Add(receivedMsg.Turn.XorRelayedAddress, allocation);
 
-                        this.OnAllocateSucceed(this, allocation, sentMsg, receivedMsg);
+                        if (this.OnAllocateSucceed != null)
+                            this.OnAllocateSucceed(this, allocation, sentMsg, receivedMsg);
                     }
                     break;
 
@@ -168,7 +161,8 @@ namespace Jabber.Stun.Turn
                     {
                         permAllocation.Permissions.Add(sentMsg.Turn.XorPeerAddress, permission);
 
-                        this.OnCreatePermissionSucceed(this, transactionObject as TurnAllocation, permission, sentMsg, receivedMsg);
+                        if (this.OnCreatePermissionSucceed != null)
+                            this.OnCreatePermissionSucceed(this, permAllocation, permission, sentMsg, receivedMsg);
                     }
 
                     break;
@@ -189,15 +183,16 @@ namespace Jabber.Stun.Turn
                     {
                         channelAllocation.Channels.Add(sentMsg.Turn.ChannelNumber, channel);
 
-                        this.OnChannelBindSucceed(this, transactionObject as TurnAllocation, channel, sentMsg, receivedMsg);
+                        if (this.OnChannelBindSucceed != null)
+                            this.OnChannelBindSucceed(this, transactionObject as TurnAllocation, channel, sentMsg, receivedMsg);
                     }
                     break;
 
                 case StunMethodType.ConnectionBind:
-                    this.OnConnectionBindSucceed(this, (transactionObject as Socket), receivedMsg);
+                    if (this.OnConnectionBindSucceed != null)
+                        this.OnConnectionBindSucceed(this, transactionObject as Socket, receivedMsg);
                     break;
             }
-
         }
 
         /// <summary>
@@ -210,11 +205,13 @@ namespace Jabber.Stun.Turn
             switch (receivedMsg.MethodType)
             {
                 case StunMethodType.ConnectionAttempt:
-                    this.OnConnectionAttemptReceived(this, receivedMsg);
+                    if (this.OnConnectionAttemptReceived != null)
+                        this.OnConnectionAttemptReceived(this, receivedMsg);
                     break;
 
                 case StunMethodType.Data:
-                    this.OnDataReceived(this, receivedMsg);
+                    if (this.OnDataReceived != null)
+                        this.OnDataReceived(this, receivedMsg);
                     break;
             }
         }
@@ -238,28 +235,10 @@ namespace Jabber.Stun.Turn
                         if (credentials != null)
                             this.AllocateRetry(receivedMsg, credentials[0], credentials[1]);
                         else
-                            this.OnAllocateFailed(this, receivedMsg, sentMsg, transactionObject);
+                            if (this.OnAllocateFailed != null)
+                                this.OnAllocateFailed(this, receivedMsg, sentMsg, transactionObject);
                     }
                     break;
-            }
-        }
-
-        /// <summary>
-        /// TODO: Documentation refreshTimer_Elapsed
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void RefreshTimer_Elapsed(object sender, ElapsedEventArgs e)
-        {
-            foreach (var allocation in this.Allocations)
-            {
-                this.RefreshAllocation(allocation.Value, allocation.Value.LifeTime);
-
-                foreach (var permission in allocation.Value.Permissions)
-                    this.CreatePermission(permission.Value.PeerAddress, allocation.Value);
-
-                foreach (var channel in allocation.Value.Channels)
-                    this.BindChannel(channel.Value.Channel, channel.Value.PeerAddress, allocation.Value);
             }
         }
         #endregion
@@ -274,16 +253,16 @@ namespace Jabber.Stun.Turn
         }
 
         /// <summary>
-        /// TODO: Documentation Close
+        /// TODO: Documentation Disconnect
         /// </summary>
-        public void Close()
+        public void Disconnect()
         {
             foreach (var allocation in this.Allocations)
             {
                 this.RefreshAllocation(allocation.Value, (UInt32)0);
             }
 
-            this.StunClient.Reset();
+            this.StunClient.Disconnect();
             this.StunClient = null;
         }
 
@@ -309,8 +288,8 @@ namespace Jabber.Stun.Turn
         {
             StunMessage msg = new StunMessage(StunMethodType.Allocate, StunMethodClass.Request, StunUtilities.NewTransactionId);
 
-            msg.Stun.Username = new UTF8Attribute(StunAttributeType.Username, username);
             msg.Turn.RequestedTransport = new StunAttribute(StunAttributeType.RequestedTransport, BitConverter.GetBytes(StunMessage.CODE_POINT_TCP));
+            msg.Stun.Username = new UTF8Attribute(StunAttributeType.Username, username);
             msg.Stun.Realm = receivedMsg.Stun.Realm;
             msg.Stun.Nonce = receivedMsg.Stun.Nonce;
 
@@ -429,7 +408,10 @@ namespace Jabber.Stun.Turn
             this.TurnTcpManager.OnConnectionBindSucceed += (object sender, Socket connectedSocket, StunMessage receivedMsg) =>
                 {
                     this.TurnTcpManager.Allocations.Clear();
-                    this.OnConnectionBindSucceed(sender, connectedSocket, receivedMsg);
+                    this.TurnTcpManager.StunClient.Cancel = true;
+
+                    if (this.OnConnectionBindSucceed != null)
+                        this.OnConnectionBindSucceed(sender, connectedSocket, receivedMsg);
                 };
 
             this.TurnTcpManager.Connect();

@@ -62,7 +62,15 @@ namespace Jabber.Stun
         public event MessageReceptionHandler OnReceivedError;
         #endregion
 
+        #region MEMBERS
+        private Boolean isDisconnecting = false;
+        #endregion
+
         #region PROPERTIES
+        /// <summary>
+        /// Contains true if data reception should be cancelled like with TURN-TCP connection bindings
+        /// </summary>
+        public Boolean Cancel { get; set; }
         /// <summary>
         /// Contains the socket instance used to communicate with the STUN Server
         /// </summary>
@@ -83,7 +91,7 @@ namespace Jabber.Stun
         /// Contains the IPEndPoint of the LocalEndPoint used by this client
         /// Unless Reset() method is fired every new connection to a STUN Server will be bound to this IPEndPoint
         /// </summary>
-        public IPEndPoint StunningEP { get; private set; }
+        public IPEndPoint HostEP { get; private set; }
         /// <summary>
         /// TODO: Documentation Property
         /// </summary>
@@ -141,7 +149,7 @@ namespace Jabber.Stun
         /// <summary>
         /// Constructs a StunClient using an existing IPEndPoint
         /// </summary>
-        /// <param name="stunningEP">The IPEndPoint to which the socket will be bound to</param>
+        /// <param name="hostEP">The IPEndPoint to which the socket will be bound to</param>
         /// <param name="stunServerEP">The IPEndPoint where the STUN Server can be reached</param>
         /// <param name="protocolType">The protocol type (UDP or TCP only) used to communicate with the STUN Server</param>
         /// <param name="clientCertificate">
@@ -152,12 +160,11 @@ namespace Jabber.Stun
         /// Check the "Export key" checkbox, finish the process and then you have a valid X509Certificate2 with its private key in it
         /// </param>
         /// <param name="remoteCertificateValidationHandler">The callback handler which validate STUN Server TLS certificate</param>
-        public StunClient(IPEndPoint stunningEP, IPEndPoint stunServerEP, ProtocolType protocolType, X509Certificate2 clientCertificate, RemoteCertificateValidationCallback remoteCertificateValidationHandler)
+        public StunClient(IPEndPoint hostEP, IPEndPoint stunServerEP, ProtocolType protocolType, X509Certificate2 clientCertificate, RemoteCertificateValidationCallback remoteCertificateValidationHandler)
         {
             this.PendingTransactions = new Dictionary<byte[], KeyValuePair<StunMessage, Object>>(new ByteArrayComparer());
 
-            this.StunningEP = stunningEP;
-
+            this.HostEP = hostEP;
             this.ServerEP = stunServerEP;
             this.ProtocolType = protocolType;
             this.ClientCertificate = clientCertificate;
@@ -201,7 +208,7 @@ namespace Jabber.Stun
             // Sample TLS over TCP working with ejabberd but may not work with the sample server IP given here
             cli1.Connect();
             StunMessage resp1 = cli1.SendMessage(msgCopy);
-            cli1.Close();
+            cli1.Disconnect();
 
             msgCopy.ClearAttributes();
 
@@ -211,7 +218,7 @@ namespace Jabber.Stun
 
             cli2.Connect();
             StunMessage resp2 = cli2.SendMessage(msgCopy);
-            cli2.Close();
+            cli2.Disconnect();
         }
         #endregion
 
@@ -235,8 +242,8 @@ namespace Jabber.Stun
             this.Socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, 1);
 
 
-            if (this.StunningEP != null)
-                this.Socket.Bind(this.StunningEP);
+            if (this.HostEP != null)
+                this.Socket.Bind(this.HostEP);
 
 
             if (this.UseSsl)
@@ -274,45 +281,47 @@ namespace Jabber.Stun
                 this.Socket.BeginReceive(result, 0, result.Length, SocketFlags.None, new AsyncCallback(this.ReceiveCallback), result);
             }
 
-            if (this.StunningEP == null)
-                this.StunningEP = (IPEndPoint)this.Socket.LocalEndPoint;
+            if (this.HostEP == null)
+                this.HostEP = (IPEndPoint)this.Socket.LocalEndPoint;
         }
 
         /// <summary>
-        /// Closes the socket but do not reset the StunningEP to make the client able
-        /// to send requests to a STUN Server using the same StunningEP
+        /// Closes the socket and free resources
         /// </summary>
-        public void Close()
+        public void Disconnect()
         {
-            if (this.Socket.Connected)
-                this.Socket.Shutdown(SocketShutdown.Both);
+            this.isDisconnecting = true;
 
-            this.Socket.Close();
-
-            if (this.UseSsl)
+            try
             {
-                this.SslStream.Close();
-                this.SslClient.Close();
+                if (this.Socket != null)
+                {
+                    if (this.Socket.Connected)
+                        this.Socket.Shutdown(SocketShutdown.Both);
+
+                    this.Socket.Close();
+                }
+
+                if (this.UseSsl)
+                {
+                    this.SslStream.Close();
+                    this.SslClient.Close();
+                }
             }
+            catch (Exception e)
+            { }
+            finally
+            {
+                this.Socket = null;
+                this.SslStream = null;
+                this.SslClient = null;
+                this.ClientCertificate = null;
 
-            this.Socket = null;
-            this.SslStream = null;
-            this.SslClient = null;
-            this.ClientCertificate = null;
-        }
-
-        /// <summary>
-        /// Resets everything and make this client able to connect to a STUN Server using a new StunningEP
-        /// </summary>
-        public void Reset()
-        {
-            if (this.Socket != null)
-                this.Close();
-
-            this.ServerEP = null;
-            this.ProtocolType = ProtocolType.Unknown;
-            this.SocketType = SocketType.Unknown;
-            this.StunningEP = null;
+                this.ServerEP = null;
+                this.ProtocolType = ProtocolType.Unknown;
+                this.SocketType = SocketType.Unknown;
+                this.HostEP = null;
+            }
         }
 
         /// <summary>
@@ -393,10 +402,18 @@ namespace Jabber.Stun
         /// <param name="ar"></param>
         private void SendCallback(IAsyncResult ar)
         {
-            if (this.UseSsl)
-                this.SslStream.EndWrite(ar);
-            else
-                this.Socket.EndSend(ar);
+            try
+            {
+                if (this.UseSsl)
+                    this.SslStream.EndWrite(ar);
+                else
+                    this.Socket.EndSend(ar);
+            }
+            catch (Exception ex)
+            {
+                if (!this.isDisconnecting)
+                    this.Disconnect();
+            }
         }
 
         /// <summary>
@@ -407,50 +424,65 @@ namespace Jabber.Stun
         {
             byte[] state = (byte[])ar.AsyncState;
 
-            Int32 bytesReceived;
-
-            if (this.UseSsl)
-                bytesReceived = this.SslStream.EndRead(ar);
-            else
-                bytesReceived = this.Socket.EndReceive(ar);
-
-
-            if (bytesReceived > 0)
+            try
             {
-                StunMessage receivedMsg = state;
+                Int32 bytesReceived;
 
-                KeyValuePair<StunMessage, Object> transactionObject;
+                if (this.UseSsl)
+                    bytesReceived = this.SslStream.EndRead(ar);
+                else
+                    bytesReceived = this.Socket.EndReceive(ar);
 
-                switch(receivedMsg.MethodClass)
+
+                if (bytesReceived > 0)
                 {
-                    case StunMethodClass.SuccessResponse:
-                        if (!this.IsPendingTransaction(receivedMsg.TransactionID, out transactionObject))
-                            return;
+                    StunMessage receivedMsg = state;
 
-                        this.OnReceivedSuccessResponse(this, receivedMsg, transactionObject.Key, transactionObject.Value);
-                        break;
+                    KeyValuePair<StunMessage, Object> transactionObject = new KeyValuePair<StunMessage, Object>();
 
-                    case StunMethodClass.Indication:
-                        this.OnReceivedIndication(this, receivedMsg);
-                        break;
+                    switch (receivedMsg.MethodClass)
+                    {
+                        case StunMethodClass.SuccessResponse:
+                            if (!this.IsPendingTransaction(receivedMsg.TransactionID, out transactionObject))
+                                return;
 
-                    case StunMethodClass.Error:
-                        if (!this.IsPendingTransaction(receivedMsg.TransactionID, out transactionObject))
-                            return;
+                            if (this.OnReceivedSuccessResponse != null)
+                                this.OnReceivedSuccessResponse(this, receivedMsg, transactionObject.Key, transactionObject.Value);
+                            break;
 
-                        this.OnReceivedError(this, receivedMsg, transactionObject.Key, transactionObject.Value);
-                        break;
+                        case StunMethodClass.Indication:
+                            if (this.OnReceivedIndication != null)
+                                this.OnReceivedIndication(this, receivedMsg);
+                            break;
+
+                        case StunMethodClass.Error:
+                            if (!this.IsPendingTransaction(receivedMsg.TransactionID, out transactionObject))
+                                return;
+
+                            if (this.OnReceivedError != null)
+                                this.OnReceivedError(this, receivedMsg, transactionObject.Key, transactionObject.Value);
+                            break;
+                    }
+
+                    byte[] result = new byte[StunClient.BUFFER_SIZE];
+
+                    if (this.Socket != null && !this.Cancel)
+                    {
+                        if (this.UseSsl)
+                            this.SslStream.BeginRead(result, 0, result.Length, new AsyncCallback(this.ReceiveCallback), result);
+                        else
+                            this.Socket.BeginReceive(result, 0, result.Length, SocketFlags.None, new AsyncCallback(this.ReceiveCallback), result);
+                    }
                 }
-
-                byte[] result = new byte[StunClient.BUFFER_SIZE];
-
-                if (this.Socket != null)
+                else
                 {
-                    if (this.UseSsl)
-                        this.SslStream.BeginRead(result, 0, result.Length, new AsyncCallback(this.ReceiveCallback), result);
-                    else
-                        this.Socket.BeginReceive(result, 0, result.Length, SocketFlags.None, new AsyncCallback(this.ReceiveCallback), result);
+                    this.Disconnect();
                 }
+            }
+            catch (Exception ex)
+            {
+                if (!this.isDisconnecting)
+                    this.Disconnect();
             }
         }
         #endregion
