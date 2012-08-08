@@ -3,10 +3,6 @@ namespace Muzzle.Controls
 {
     public partial class RosterTree
     {
-        /// <summary>
-        /// Required designer variable.
-        /// </summary>
-        private System.ComponentModel.Container components = null;
 
         /// <summary>
         /// Clean up any resources being used.
@@ -71,5 +67,6 @@ namespace Muzzle.Controls
 
         private System.Windows.Forms.ImageList il;
         private System.Windows.Forms.ToolTip tt;
+        private System.ComponentModel.IContainer components;
     }
 }

@@ -42,8 +42,6 @@ namespace Muzzle.Controls
         private const int EXPANDED   = 6;
         private const int COLLAPSED  = 7;
 
-        private const string UNFILED = "Unfiled";
-
         private Jabber.Client.RosterManager   m_roster = null;
         private Jabber.Client.PresenceManager m_pres = null;
         private Jabber.Client.JabberClient m_client = null;
@@ -177,6 +175,13 @@ namespace Muzzle.Controls
             if (e.Item is ItemNode)
                 this.DoDragDrop(e.Item, DragDropEffects.Move);
         }
+
+        /// <summary>
+        /// The name of the default group
+        /// </summary>
+        [Category("Managers")]
+        [DefaultValue("Unfiled")]
+        public String Unfiled { get; set; }
 
         /// <summary>
         /// The RosterManager for this view
@@ -367,6 +372,18 @@ namespace Muzzle.Controls
             }
         }
 
+        protected override void OnMouseClick(MouseEventArgs e)
+        {
+            base.OnMouseClick(e);
+
+            if (e.Button == MouseButtons.Right)
+            {
+                TreeNode node = this.GetNodeAt(e.Location);
+
+                this.SelectedNode = node;
+            }
+        }
+
         private GroupNode AddGroupNode(Group g)
         {
             GroupNode gn = (GroupNode)m_groups[g.GroupName];
@@ -419,14 +436,14 @@ namespace Muzzle.Controls
             Group[] groups = ri.GetGroups();
             for (int i=groups.Length-1; i>=0; i--)
             {
-                if (groups[i].GroupName == "")
-                    groups[i].GroupName = UNFILED;
+                if (String.IsNullOrEmpty(groups[i].GroupName))
+                    groups[i].GroupName = this.Unfiled;
             }
 
             if (groups.Length == 0)
             {
                 groups = new Group[] { new Group(ri.OwnerDocument) };
-                groups[0].GroupName = UNFILED;
+                groups[0].GroupName = this.Unfiled;
             }
 
             foreach (Group g in groups)

@@ -153,7 +153,7 @@ namespace Jabber.Stun
         /// <param name="failureCallback"></param>
         private void TcpPunchThreadStart(HolePunchSuccessHandler successCallback, HolePunchFailureHandler failureCallback)
         {
-            TcpClient client;
+            TcpClient client = null;
 
             foreach (IPEndPoint peerEP in this.PeersEP)
             {
@@ -174,30 +174,8 @@ namespace Jabber.Stun
 
                     result.AsyncWaitHandle.WaitOne(2000, true);
 
-                    if (nbTries == 3)
+                    if (nbTries == 3 || client.Client.Connected)
                     {
-                        if (failureCallback != null)
-                        {
-                            if (this.Invoker == null)
-                                failureCallback(this, this.Data);
-                            else
-                                this.Invoker.Invoke(new MethodInvoker(() => { failureCallback(this, this.Data); }));
-                        }
-
-                        client.Client.Close();
-                        break;
-                    }
-
-                    if (client.Client.Connected)
-                    {
-                        if (successCallback != null)
-                        {
-                            if (this.Invoker == null)
-                                successCallback(this, client.Client, this.Data);
-                            else
-                                this.Invoker.Invoke(new MethodInvoker(() => { successCallback(this, client.Client, this.Data); }));
-                        }
-
                         quit = true;
                         break;
                     }
@@ -209,6 +187,32 @@ namespace Jabber.Stun
                     break;
             }
 
+
+            if (client != null)
+            {
+                if (client.Client.Connected)
+                {
+                    if (successCallback != null)
+                    {
+                        if (this.Invoker == null)
+                            successCallback(this, client.Client, this.Data);
+                        else
+                            this.Invoker.Invoke(new MethodInvoker(() => { successCallback(this, client.Client, this.Data); }));
+                    }
+                }
+                else
+                {
+                    client.Client.Close();
+
+                    if (failureCallback != null)
+                    {
+                        if (this.Invoker == null)
+                            failureCallback(this, this.Data);
+                        else
+                            this.Invoker.Invoke(new MethodInvoker(() => { failureCallback(this, this.Data); }));
+                    }
+                }
+            }
             this.ClearEPs();
         }
         #endregion

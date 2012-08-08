@@ -24,9 +24,9 @@ using Jabber.Stun.Attributes;
 
 namespace Jabber.Client
 {
-    public delegate void JingleDescriptionHandler(object sender, XmlDocument ownerDoc, out Element jingleDescription, out String contentName);
+    public delegate void JingleDescriptionGatheringHandler(object sender, XmlDocument ownerDoc, out Element jingleDescription, out String contentName);
 
-    public delegate void JingleIceCandidatesHandler(object sender, JingleIce jingleIce, IPEndPoint hostEP, TurnAllocation allocation);
+    public delegate void JingleIceCandidatesGatheringHandler(object sender, JingleIce jingleIce, IPEndPoint hostEP, TurnAllocation allocation);
 
     public delegate void TurnStartHandler(object sender, IPEndPoint peerEP, String sid);
 
@@ -34,36 +34,36 @@ namespace Jabber.Client
 
     public delegate void TurnConnectionBindSucceedHandler(object sender, Socket connectedSocket, String sid, JID recipient);
 
+    public delegate void ConnectionTryTerminateHandler(object sender, String sid);
+
     /// <summary>
     /// TODO: Documentation Class
     /// </summary>
     public partial class JingleIceManager : StreamComponent
     {
         #region MEMBERS
-        private static Object processLocker = new Object();
-
         private JingleManager jingleManager = null;
         private HolePuncher holePuncher = null;
 
-        private Boolean p2pConnectionSucceed = false;
         private Dictionary<String, TurnSession> turnSessions = new Dictionary<String, TurnSession>();
         private Dictionary<String, JingleIceCandidate[]> localCandidates = new Dictionary<String, JingleIceCandidate[]>();
         #endregion
 
         #region EVENTS
-        public event EventHandler OnBeforeInitiateSessionAllocate;
-        public event EventHandler OnBeforeAcceptSessionAllocate;
+        public event EventHandler OnBeforeInitiatorAllocate;
+        public event EventHandler OnBeforeResponderAllocate;
         public event HolePunchSucceedHandler OnHolePunchSucceed;
         public event TurnStartHandler OnTurnStart;
         public event TurnConnectionBindSucceedHandler OnTurnConnectionBindSucceed;
-        public event JingleDescriptionHandler OnJingleDescription;
-        public event JingleIceCandidatesHandler OnJingleIceCandidates;
+        public event JingleDescriptionGatheringHandler OnJingleDescription;
+        public event JingleIceCandidatesGatheringHandler OnJingleIceCandidates;
+        public event ConnectionTryTerminateHandler OnConnectionTryTerminate;
         #endregion
 
         #region PROPERTIES
+        private String StartingSessionSid { get; set; }
         private ActionType StartingSessionAction { get; set; }
         private JID StartingSessionRecipient { get; set; }
-        private String StartingSessionSid { get; set; }
 
         public String StunServerIP { get; set; }
         public Int32 StunServerPort { get; set; }
@@ -178,14 +178,10 @@ namespace Jabber.Client
 
             if (!this.holePuncher.CanStart && this.TurnSupported)
             {
-                this.p2pConnectionSucceed = true;
-
                 this.StartTurnPeer(sid);
             }
             else
             {
-                this.p2pConnectionSucceed = false;
-
                 this.holePuncher.StartTcpPunch(this.HolePunchSuccess, this.HolePunchFailure);
             }
         }
@@ -198,18 +194,19 @@ namespace Jabber.Client
         /// <param name="punchData"></param>
         private void HolePunchSuccess(object sender, Socket connectedSocket, Object punchData)
         {
-            lock (JingleIceManager.processLocker)
-            {
-                this.p2pConnectionSucceed = true;
+            JingleSession jingleSession = this.JingleManager.FindSession(punchData as String);
 
-                JingleSession jingleSession = this.JingleManager.FindSession(punchData as String);
+            if (this.OnConnectionTryTerminate != null)
+                this.OnConnectionTryTerminate(this, punchData as String);
 
+            if (this.OnHolePunchSucceed != null)
                 this.OnHolePunchSucceed(this, connectedSocket, jingleSession.Remote);
 
-                this.DestroyTurnSession(punchData as String);
-                this.StartingSessionSid = null;
-                this.StartingSessionRecipient = null;
-            }
+
+            this.DestroyTurnSession(punchData as String);
+
+            this.StartingSessionSid = null;
+            this.StartingSessionRecipient = null;
         }
 
         /// <summary>
@@ -219,11 +216,8 @@ namespace Jabber.Client
         /// <param name="punchData"></param>
         private void HolePunchFailure(object sender, Object punchData)
         {
-            lock (JingleIceManager.processLocker)
-            {
-                if (!this.p2pConnectionSucceed && this.TurnSupported)
-                    this.StartTurnPeer(punchData as String);
-            }
+            if (this.TurnSupported)
+                this.StartTurnPeer(punchData as String);
         }
         #endregion
 
@@ -240,8 +234,8 @@ namespace Jabber.Client
                 this.StartingSessionSid = JingleUtilities.GenerateSid;
                 this.StartingSessionAction = ActionType.session_initiate;
 
-                if (this.OnBeforeInitiateSessionAllocate != null)
-                    this.OnBeforeInitiateSessionAllocate(this, new EventArgs());
+                if (this.OnBeforeInitiatorAllocate != null)
+                    this.OnBeforeInitiatorAllocate(this, new EventArgs());
 
                 if (this.TurnSupported)
                 {
@@ -270,8 +264,8 @@ namespace Jabber.Client
                 this.StartingSessionSid = jingle.Sid;
                 this.StartingSessionAction = ActionType.session_accept;
 
-                if (this.OnBeforeAcceptSessionAllocate != null)
-                    this.OnBeforeAcceptSessionAllocate(this, new EventArgs());
+                if (this.OnBeforeResponderAllocate != null)
+                    this.OnBeforeResponderAllocate(this, new EventArgs());
 
                 if (this.TurnSupported)
                 {
@@ -352,6 +346,9 @@ namespace Jabber.Client
                     {
                         if (this.OnTurnStart != null)
                             this.OnTurnStart(this, candidate.EndPoint, sid);
+
+                        if (this.OnConnectionTryTerminate != null)
+                            this.OnConnectionTryTerminate(this, sid);
 
                         this.StartingSessionSid = null;
                         this.StartingSessionRecipient = null;
@@ -459,6 +456,9 @@ namespace Jabber.Client
         {
             if (this.StartingSessionRecipient != null)
             {
+                if (this.OnConnectionTryTerminate != null)
+                    this.OnConnectionTryTerminate(this, this.StartingSessionSid);
+
                 this.DestroyTurnSession(this.StartingSessionSid);
 
                 this.StartingSessionSid = null;
@@ -484,10 +484,11 @@ namespace Jabber.Client
         /// <param name="receivedMsg"></param>
         private void turnManager_OnConnectionBindSucceed(object sender, Socket connectedSocket, StunMessage receivedMsg)
         {
-            this.p2pConnectionSucceed = true;
-
             if (this.OnTurnConnectionBindSucceed != null)
                 this.OnTurnConnectionBindSucceed(this, connectedSocket, this.StartingSessionSid, this.StartingSessionRecipient);
+
+            if (this.OnConnectionTryTerminate != null)
+                this.OnConnectionTryTerminate(this, this.StartingSessionSid);
 
             this.StartingSessionSid = null;
             this.StartingSessionRecipient = null;
