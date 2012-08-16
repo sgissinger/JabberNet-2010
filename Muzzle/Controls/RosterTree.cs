@@ -16,6 +16,7 @@ using System.Collections;
 using System.ComponentModel;
 using System.ComponentModel.Design;
 using System.Drawing;
+using System.Globalization;
 using System.Windows.Forms;
 using Bedrock.Collections;
 using Jabber;
@@ -33,21 +34,21 @@ namespace Muzzle.Controls
     public partial class RosterTree : System.Windows.Forms.TreeView
     {
         // image list offsets
-        private const int OFFLINE    = 0;
-        private const int ONLINE     = 1;
-        private const int AWAY       = 2;
-        private const int XA         = 3;
-        private const int DND        = 4;
-        private const int CHATTY     = 5;
-        private const int EXPANDED   = 6;
-        private const int COLLAPSED  = 7;
+        private const int OFFLINE = 0;
+        private const int ONLINE = 1;
+        private const int AWAY = 2;
+        private const int XA = 3;
+        private const int DND = 4;
+        private const int CHATTY = 5;
+        private const int EXPANDED = 6;
+        private const int COLLAPSED = 7;
 
-        private Jabber.Client.RosterManager   m_roster = null;
+        private Jabber.Client.RosterManager m_roster = null;
         private Jabber.Client.PresenceManager m_pres = null;
         private Jabber.Client.JabberClient m_client = null;
 
         private IDictionary m_groups = new SkipList();
-        private IDictionary m_items  = new SkipList();
+        private IDictionary m_items = new SkipList();
 
         private Color m_statusColor = Color.Teal;
 
@@ -65,14 +66,24 @@ namespace Muzzle.Controls
         private void DrawGroup(DrawTreeNodeEventArgs e)
         {
             GroupNode node = (GroupNode)e.Node;
-            string counts = String.Format("({0}/{1})", node.Current, node.Total);
+
+            string counts = String.Format(CultureInfo.CurrentCulture,
+                                          "({0}/{1})",
+                                          node.Current,
+                                          node.Total);
 
             if (node.IsSelected)
             {
-                string newText = node.GroupName + " " + counts;
+                string newText = String.Format(CultureInfo.CurrentCulture,
+                                               "{0} {1}",
+                                               node.GroupName,
+                                               counts);
+
                 e.DrawDefault = true;
+
                 if (node.Text != newText)
                     node.Text = newText;
+
                 return;
             }
             Graphics g = e.Graphics;
@@ -142,13 +153,18 @@ namespace Muzzle.Controls
         private void RosterTree_DragDrop(object sender, DragEventArgs e)
         {
             GroupNode group = GetDropGroup(e);
+
             if (group == null)
                 return;
+
             ItemNode item = e.Data.GetData(typeof(ItemNode)) as ItemNode;
             GroupNode parent = (GroupNode)item.Parent;
             Item i = (Item)item.Item.CloneNode(true, m_client.Document);
             i.RemoveGroup(parent.GroupName);
-            i.AddGroup(group.GroupName);
+
+            if(group.GroupName != this.Unfiled)
+                i.AddGroup(group.GroupName);
+
             m_roster.Modify(i);
         }
 
@@ -177,10 +193,34 @@ namespace Muzzle.Controls
         }
 
         /// <summary>
+        /// The text filter applied to roster items
+        /// </summary>
+        [Category("Managers")]
+        [DefaultValue("")]
+        [Description("When set to a value, the roster items displayed in the tree are filtered on their username, nickname and resource")]
+        public String Filter { get; set; }
+
+        /// <summary>
+        /// The availability filter applied to roster items
+        /// </summary>
+        [Category("Managers")]
+        [DefaultValue(false)]
+        [Description("When set to true, only available roster items are displayed in the tree")]
+        public Boolean ShowOnlyAvailable { get; set; }
+
+        /// <summary>
+        /// Overrides default property to make it useable with the tooltip object
+        /// and avoiding exceptions when base property was setted to true
+        /// </summary>
+        [DefaultValue(false)]
+        public new Boolean ShowNodeToolTips { get; set; }
+
+        /// <summary>
         /// The name of the default group
         /// </summary>
         [Category("Managers")]
         [DefaultValue("Unfiled")]
+        [Description("The name of the default group when items do not have one")]
         public String Unfiled { get; set; }
 
         /// <summary>
@@ -203,7 +243,9 @@ namespace Muzzle.Controls
             {
                 if ((object)m_roster == (object)value)
                     return;
+
                 m_roster = value;
+
                 if (m_roster != null)
                 {
                     m_roster.OnRosterBegin += new Bedrock.ObjectHandler(m_roster_OnRosterBegin);
@@ -224,7 +266,7 @@ namespace Muzzle.Controls
                 // If we are running in the designer, let's try to auto-hook a PresenceManager
                 if ((m_pres == null) && DesignMode)
                 {
-                    IDesignerHost host = (IDesignerHost) base.GetService(typeof(IDesignerHost));
+                    IDesignerHost host = (IDesignerHost)base.GetService(typeof(IDesignerHost));
                     this.PresenceManager = (PresenceManager)Jabber.Connection.StreamComponent.GetComponentFromHost(host, typeof(PresenceManager));
                 }
                 return m_pres;
@@ -233,7 +275,9 @@ namespace Muzzle.Controls
             {
                 if ((object)m_pres == (object)value)
                     return;
+
                 m_pres = value;
+
                 if (m_pres != null)
                     m_pres.OnPrimarySessionChange += new PrimarySessionHandler(m_pres_OnPrimarySessionChange);
             }
@@ -250,7 +294,7 @@ namespace Muzzle.Controls
                 // If we are running in the designer, let's try to auto-hook a JabberClient
                 if ((m_client == null) && DesignMode)
                 {
-                    IDesignerHost host = (IDesignerHost) base.GetService(typeof(IDesignerHost));
+                    IDesignerHost host = (IDesignerHost)base.GetService(typeof(IDesignerHost));
                     this.Client = (JabberClient)Jabber.Connection.StreamComponent.GetComponentFromHost(host, typeof(JabberClient));
                 }
                 return m_client;
@@ -259,7 +303,9 @@ namespace Muzzle.Controls
             {
                 if ((object)m_client == (object)value)
                     return;
+
                 m_client = value;
+
                 if (m_client != null)
                     m_client.OnDisconnect += new Bedrock.ObjectHandler(m_client_OnDisconnect);
             }
@@ -319,84 +365,64 @@ namespace Muzzle.Controls
             return AddGroupNode(g);
         }
 
-        private void m_roster_OnRosterBegin(object sender)
+        /// <summary>
+        /// Apply text filter on the roster items usernames, nicknames and resources
+        /// </summary>
+        public void ApplyFilter()
         {
             this.BeginUpdate();
-        }
 
-        private void m_roster_OnRosterEnd(object sender)
-        {
+            foreach (JID item in this.RosterManager)
+            {
+                this.ProcessRosterItem(this.RosterManager[item]);
+            }
+
             this.EndUpdate();
         }
 
         /// <summary>
-        /// After a group node is expanded, change to the down-triangle image.
+        /// Exclude an item from the roster based on the filter
         /// </summary>
-        /// <param name="e"></param>
-        protected override void OnAfterExpand(TreeViewEventArgs e)
+        /// <param name="ri"></param>
+        /// <returns></returns>
+        private Boolean ExcludeRosterItem(Item ri)
         {
-            e.Node.ImageIndex = EXPANDED;
-            e.Node.SelectedImageIndex = EXPANDED;
+            Boolean isPresent = this.PresenceManager.IsAvailable(ri.JID);
+            Boolean bob = this.ShowOnlyAvailable && !isPresent;
 
-            base.OnAfterExpand (e);
-        }
+            if (String.IsNullOrEmpty(this.Filter))
+                return bob;
 
-        /// <summary>
-        /// After a group node is collapsed, change to the right-triangle image.
-        /// </summary>
-        /// <param name="e"></param>
-        protected override void OnAfterCollapse(TreeViewEventArgs e)
-        {
-            e.Node.ImageIndex = COLLAPSED;
-            e.Node.SelectedImageIndex = COLLAPSED;
+            Boolean excludeItem = true;
+            String filter = this.Filter.ToLower(CultureInfo.CurrentCulture);
 
-            base.OnAfterCollapse (e);
-        }
+            if (ri.JID.User.ToLower(CultureInfo.CurrentCulture).Contains(filter))
+                excludeItem = false;
 
-        /// <summary>
-        /// When mousing over a node, show a tooltip with the full JID.
-        /// </summary>
-        /// <param name="e"></param>
-        protected override void OnMouseMove(MouseEventArgs e)
-        {
-            base.OnMouseMove(e);
-            ItemNode node = this.GetNodeAt(e.X, e.Y) as ItemNode;
-            if (node == null)
-            { // none selected, or a group
-                tt.SetToolTip(this, "");
-                return;
-            }
-            if (node.JID.ToString() != tt.GetToolTip(this))
+            if (excludeItem)
             {
-                tt.SetToolTip(this, node.JID.ToString());
+                if (!String.IsNullOrEmpty(ri.Nickname) &&
+                    ri.Nickname.ToLower(CultureInfo.CurrentCulture).Contains(filter))
+                    excludeItem = false;
+
+                if (excludeItem)
+                {
+                    foreach (Presence item in this.PresenceManager.GetAll(ri.JID))
+                    {
+                        if (!String.IsNullOrEmpty(item.From.Resource) &&
+                            item.From.Resource.ToLower(CultureInfo.CurrentCulture).Contains(filter))
+                            excludeItem = false;
+                    }
+                }
             }
+
+            if (!excludeItem)
+                return this.ShowOnlyAvailable && !isPresent;
+
+            return excludeItem;
         }
 
-        protected override void OnMouseClick(MouseEventArgs e)
-        {
-            base.OnMouseClick(e);
-
-            if (e.Button == MouseButtons.Right)
-            {
-                TreeNode node = this.GetNodeAt(e.Location);
-
-                this.SelectedNode = node;
-            }
-        }
-
-        private GroupNode AddGroupNode(Group g)
-        {
-            GroupNode gn = (GroupNode)m_groups[g.GroupName];
-            if (gn == null)
-            {
-                gn = new GroupNode(g);
-                m_groups.Add(g.GroupName, gn);
-                this.Nodes.Add(gn);
-            }
-            return gn;
-        }
-
-        private void m_roster_OnRosterItem(object sender, Jabber.Protocol.IQ.Item ri)
+        private void ProcessRosterItem(Item ri)
         {
             bool remove = (ri.Subscription == Subscription.remove);
 
@@ -431,10 +457,13 @@ namespace Muzzle.Controls
             if (remove)
                 return;
 
+            if (this.ExcludeRosterItem(ri))
+                return;
+
             // add the new ones back
             Hashtable ghash = new Hashtable();
             Group[] groups = ri.GetGroups();
-            for (int i=groups.Length-1; i>=0; i--)
+            for (int i = groups.Length - 1; i >= 0; i--)
             {
                 if (String.IsNullOrEmpty(groups[i].GroupName))
                     groups[i].GroupName = this.Unfiled;
@@ -461,6 +490,94 @@ namespace Muzzle.Controls
             }
         }
 
+        /// <summary>
+        /// After a group node is expanded, change to the down-triangle image.
+        /// </summary>
+        /// <param name="e"></param>
+        protected override void OnAfterExpand(TreeViewEventArgs e)
+        {
+            e.Node.ImageIndex = EXPANDED;
+            e.Node.SelectedImageIndex = EXPANDED;
+
+            base.OnAfterExpand(e);
+        }
+
+        /// <summary>
+        /// After a group node is collapsed, change to the right-triangle image.
+        /// </summary>
+        /// <param name="e"></param>
+        protected override void OnAfterCollapse(TreeViewEventArgs e)
+        {
+            e.Node.ImageIndex = COLLAPSED;
+            e.Node.SelectedImageIndex = COLLAPSED;
+
+            base.OnAfterCollapse(e);
+        }
+
+        /// <summary>
+        /// When mousing over a node, show a tooltip with the full JID.
+        /// </summary>
+        /// <param name="e"></param>
+        protected override void OnMouseMove(MouseEventArgs e)
+        {
+            base.OnMouseMove(e);
+
+            if (this.ShowNodeToolTips)
+            {
+                ItemNode node = this.GetNodeAt(e.X, e.Y) as ItemNode;
+
+                if (node == null)
+                { // none selected, or a group
+                    tt.SetToolTip(this, String.Empty);
+                    return;
+                }
+
+                if (node.JID.ToString() != tt.GetToolTip(this))
+                {
+                    tt.SetToolTip(this, node.JID.ToString());
+                }
+            }
+        }
+
+        protected override void OnMouseClick(MouseEventArgs e)
+        {
+            base.OnMouseClick(e);
+
+            if (e.Button == MouseButtons.Right)
+            {
+                TreeNode node = this.GetNodeAt(e.Location);
+
+                this.SelectedNode = node;
+            }
+        }
+
+        private GroupNode AddGroupNode(Group g)
+        {
+            GroupNode gn = (GroupNode)m_groups[g.GroupName];
+            if (gn == null)
+            {
+                gn = new GroupNode(g);
+                m_groups.Add(g.GroupName, gn);
+                this.Nodes.Add(gn);
+            }
+            return gn;
+        }
+
+        private void m_roster_OnRosterBegin(object sender)
+        {
+            this.BeginUpdate();
+        }
+
+        private void m_roster_OnRosterEnd(object sender)
+        {
+            this.EndUpdate();
+        }
+
+        private void m_roster_OnRosterItem(object sender, Jabber.Protocol.IQ.Item ri)
+        {
+            this.ProcessRosterItem(ri);
+        }
+
         private void m_client_OnDisconnect(object sender)
         {
             this.Nodes.Clear();
@@ -472,7 +589,7 @@ namespace Muzzle.Controls
         private void m_pres_OnPrimarySessionChange(object sender, JID bare)
         {
             Presence pres = m_pres[bare];
-            LinkedList nodelist = (LinkedList) m_items[bare.ToString()];
+            LinkedList nodelist = (LinkedList)m_items[bare.ToString()];
             if (nodelist == null)
                 return;
 
@@ -494,7 +611,8 @@ namespace Muzzle.Controls
             /// Create a GroupNode
             /// </summary>
             /// <param name="rg"></param>
-            public GroupNode(Jabber.Protocol.IQ.Group rg) : base(rg.GroupName, COLLAPSED, COLLAPSED)
+            public GroupNode(Group rg)
+                : base(rg.GroupName, COLLAPSED, COLLAPSED)
             {
                 m_group = rg;
             }
@@ -524,6 +642,7 @@ namespace Muzzle.Controls
                 get
                 {
                     int count = 0;
+
                     foreach (ItemNode i in this.Nodes)
                     {
                         if (i.ImageIndex != OFFLINE)
@@ -539,7 +658,7 @@ namespace Muzzle.Controls
         /// </summary>
         public class ItemNode : TreeNode
         {
-            private Jabber.Protocol.IQ.Item m_item;
+            private Item m_item;
             private string m_status = null;
             private string m_nick = null;
 
@@ -547,7 +666,7 @@ namespace Muzzle.Controls
             /// Create an ItemNode
             /// </summary>
             /// <param name="ri">The roster item to create from</param>
-            public ItemNode(Jabber.Protocol.IQ.Item ri)
+            public ItemNode(Item ri)
             {
                 m_item = ri;
                 m_nick = ri.Nickname;
@@ -600,10 +719,11 @@ namespace Muzzle.Controls
             /// <param name="p"></param>
             public void ChangePresence(Presence p)
             {
-                SelectedImageIndex = ImageIndex = getPresenceImage(p);
+                SelectedImageIndex = ImageIndex = GetPresenceImage(p);
 
                 string txt = null;
-                if ((p == null) || (p.Status == null) || (p.Status == ""))
+
+                if (p == null || String.IsNullOrEmpty(p.Status))
                 {
                     txt = m_nick;
                     m_status = null;
@@ -611,15 +731,18 @@ namespace Muzzle.Controls
                 else
                 {
                     m_status = p.Status;
-                    txt = m_nick + " (" + m_status + ")";
+                    txt = String.Format(CultureInfo.CurrentCulture,
+                                        "{0} ({1})",
+                                        m_nick,
+                                        m_status);
                 }
                 if (Text != txt)
                     Text = txt;
             }
 
-            private static int getPresenceImage(Presence p)
+            private static int GetPresenceImage(Presence p)
             {
-                if ((p == null) || (p.Type == PresenceType.unavailable))
+                if (p == null || p.Type == PresenceType.unavailable)
                     return OFFLINE;
 
                 switch (p.Show)
@@ -640,6 +763,5 @@ namespace Muzzle.Controls
                 return OFFLINE;
             }
         }
-
     }
 }

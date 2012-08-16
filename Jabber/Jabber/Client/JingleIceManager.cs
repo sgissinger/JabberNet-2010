@@ -13,7 +13,9 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.Design;
 using System.Net;
+using System.Net.Security;
 using System.Net.Sockets;
+using System.Security.Cryptography.X509Certificates;
 using System.Xml;
 using Jabber.Connection;
 using Jabber.Protocol;
@@ -24,17 +26,15 @@ using Jabber.Stun.Attributes;
 
 namespace Jabber.Client
 {
-    public delegate void JingleDescriptionGatheringHandler(object sender, XmlDocument ownerDoc, out Element jingleDescription, out String contentName);
+    public delegate void DescriptionGatheringHandler(object sender, XmlDocument ownerDoc, String sid, out Element jingleDescription, out String contentName);
 
-    public delegate void JingleIceCandidatesGatheringHandler(object sender, JingleIce jingleIce, IPEndPoint hostEP, TurnAllocation allocation);
-
-    public delegate void TurnStartHandler(object sender, IPEndPoint peerEP, String sid);
+    public delegate void IceCandidatesGatheringHandler(object sender, JingleIce jingleIce, IPEndPoint hostEP, TurnAllocation allocation);
 
     public delegate void HolePunchSucceedHandler(object sender, Socket connectedSocket, Jingle jingle);
 
-    public delegate void TurnConnectionBindSucceedHandler(object sender, Socket connectedSocket, String sid, JID recipient);
+    public delegate void TurnStartHandler(object sender, IPEndPoint peerEP, String sid);
 
-    public delegate void ConnectionTryTerminateHandler(object sender, String sid);
+    public delegate void TurnConnectionBindSucceedHandler(object sender, Socket connectedSocket, String sid, JID recipient);
 
     /// <summary>
     /// TODO: Documentation Class
@@ -51,13 +51,13 @@ namespace Jabber.Client
 
         #region EVENTS
         public event EventHandler OnBeforeInitiatorAllocate;
-        public event EventHandler OnBeforeResponderAllocate;
+        public event SessionIdHandler OnBeforeResponderAllocate;
+        public event DescriptionGatheringHandler OnDescriptionGathering;
+        public event IceCandidatesGatheringHandler OnIceCandidatesGathering;
         public event HolePunchSucceedHandler OnHolePunchSucceed;
         public event TurnStartHandler OnTurnStart;
         public event TurnConnectionBindSucceedHandler OnTurnConnectionBindSucceed;
-        public event JingleDescriptionGatheringHandler OnJingleDescription;
-        public event JingleIceCandidatesGatheringHandler OnJingleIceCandidates;
-        public event ConnectionTryTerminateHandler OnConnectionTryTerminate;
+        public event SessionIdHandler OnConnectionTryEnded;
         #endregion
 
         #region PROPERTIES
@@ -81,6 +81,20 @@ namespace Jabber.Client
         public Boolean TurnSupported { get; set; }
         public String TurnUsername { get; set; }
         public String TurnPassword { get; set; }
+
+        /// <summary>
+        /// TODO: Documentation Property
+        /// </summary>
+        [Browsable(false)]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public X509Certificate2 TurnClientCertificate { get; set; }
+
+        /// <summary>
+        /// TODO: Documentation Property
+        /// </summary>
+        [Browsable(false)]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public RemoteCertificateValidationCallback TurnRemoteCertificateValidation { get; set; }
 
         /// <summary>
         /// The JingleManager for this view
@@ -196,8 +210,8 @@ namespace Jabber.Client
         {
             JingleSession jingleSession = this.JingleManager.FindSession(punchData as String);
 
-            if (this.OnConnectionTryTerminate != null)
-                this.OnConnectionTryTerminate(this, punchData as String);
+            if (this.OnConnectionTryEnded != null)
+                this.OnConnectionTryEnded(this, punchData as String);
 
             if (this.OnHolePunchSucceed != null)
                 this.OnHolePunchSucceed(this, connectedSocket, jingleSession.Remote);
@@ -265,7 +279,7 @@ namespace Jabber.Client
                 this.StartingSessionAction = ActionType.session_accept;
 
                 if (this.OnBeforeResponderAllocate != null)
-                    this.OnBeforeResponderAllocate(this, new EventArgs());
+                    this.OnBeforeResponderAllocate(this, jingle.Sid);
 
                 if (this.TurnSupported)
                 {
@@ -347,8 +361,8 @@ namespace Jabber.Client
                         if (this.OnTurnStart != null)
                             this.OnTurnStart(this, candidate.EndPoint, sid);
 
-                        if (this.OnConnectionTryTerminate != null)
-                            this.OnConnectionTryTerminate(this, sid);
+                        if (this.OnConnectionTryEnded != null)
+                            this.OnConnectionTryEnded(this, sid);
 
                         this.StartingSessionSid = null;
                         this.StartingSessionRecipient = null;
@@ -364,7 +378,7 @@ namespace Jabber.Client
         /// <param name="sid"></param>
         private void CreateTurnSession(String sid)
         {
-            TurnManager turnManager = new TurnManager(this.StunServerEP, ProtocolType.Tcp, null, null);
+            TurnManager turnManager = new TurnManager(this.StunServerEP, ProtocolType.Tcp, this.TurnClientCertificate, this.TurnRemoteCertificateValidation);
 
             turnManager.OnAllocateSucceed += new AllocateSuccessHandler(this.turnManager_OnAllocateSucceed);
             turnManager.OnAllocateFailed += new MessageReceptionHandler(this.turnManager_OnAllocateFailed);
@@ -388,6 +402,10 @@ namespace Jabber.Client
                 if (this.turnSessions[sid].TurnAllocation != null)
                     this.turnSessions[sid].TurnAllocation.StopAutoRefresh();
 
+                this.turnSessions[sid].TurnManager.OnAllocateSucceed -= this.turnManager_OnAllocateSucceed;
+                this.turnSessions[sid].TurnManager.OnAllocateFailed -= this.turnManager_OnAllocateFailed;
+                this.turnSessions[sid].TurnManager.OnConnectionAttemptReceived -= this.turnManager_OnConnectionAttemptReceived;
+                this.turnSessions[sid].TurnManager.OnConnectionBindSucceed -= this.turnManager_OnConnectionBindSucceed;
                 this.turnSessions[sid].TurnManager.Disconnect();
 
                 this.turnSessions[sid].TurnManager = null;
@@ -420,8 +438,8 @@ namespace Jabber.Client
                     Ufrag = JingleUtilities.GenerateIceUfrag
                 };
 
-                if (this.OnJingleIceCandidates != null)
-                    this.OnJingleIceCandidates(this, jingleIce, (sender as TurnManager).HostEP, allocation);
+                if (this.OnIceCandidatesGathering != null)
+                    this.OnIceCandidatesGathering(this, jingleIce, (sender as TurnManager).HostEP, allocation);
 
                 this.localCandidates.Add(this.StartingSessionSid, jingleIce.GetCandidates());
 
@@ -431,8 +449,8 @@ namespace Jabber.Client
                 Element jingleDescription = null;
                 String contentName = null;
 
-                if (this.OnJingleDescription != null)
-                    this.OnJingleDescription(this, doc, out jingleDescription, out contentName);
+                if (this.OnDescriptionGathering != null)
+                    this.OnDescriptionGathering(this, doc, this.StartingSessionSid, out jingleDescription, out contentName);
 
                 jingleIq = this.JingleManager.SessionRequest(this.StartingSessionRecipient,
                                                              this.StartingSessionAction,
@@ -456,8 +474,8 @@ namespace Jabber.Client
         {
             if (this.StartingSessionRecipient != null)
             {
-                if (this.OnConnectionTryTerminate != null)
-                    this.OnConnectionTryTerminate(this, this.StartingSessionSid);
+                if (this.OnConnectionTryEnded != null)
+                    this.OnConnectionTryEnded(this, this.StartingSessionSid);
 
                 this.DestroyTurnSession(this.StartingSessionSid);
 
@@ -487,8 +505,8 @@ namespace Jabber.Client
             if (this.OnTurnConnectionBindSucceed != null)
                 this.OnTurnConnectionBindSucceed(this, connectedSocket, this.StartingSessionSid, this.StartingSessionRecipient);
 
-            if (this.OnConnectionTryTerminate != null)
-                this.OnConnectionTryTerminate(this, this.StartingSessionSid);
+            if (this.OnConnectionTryEnded != null)
+                this.OnConnectionTryEnded(this, this.StartingSessionSid);
 
             this.StartingSessionSid = null;
             this.StartingSessionRecipient = null;

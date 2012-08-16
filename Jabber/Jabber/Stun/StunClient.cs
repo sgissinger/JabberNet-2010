@@ -99,7 +99,7 @@ namespace Jabber.Stun
         /// <summary>
         /// TODO: Documentation Property
         /// </summary>
-        public RemoteCertificateValidationCallback RemoteCertificateValidationHandler { get; private set; }
+        public RemoteCertificateValidationCallback RemoteCertificateValidation { get; private set; }
         /// <summary>
         /// Contains the TcpClient handling TLS over TCP connection with the STUN Server
         /// </summary>
@@ -141,9 +141,9 @@ namespace Jabber.Stun
         /// Find your certificate under "Personal", it must have a little key in its icon, right click on it, choose "All tasks > Export...".
         /// Check the "Export key" checkbox, finish the process and then you have a valid X509Certificate2 with its private key in it
         /// </param>
-        /// <param name="remoteCertificateValidationHandler">The callback handler which validate STUN Server TLS certificate</param>
-        public StunClient(IPEndPoint stunServerEP, ProtocolType protocolType, X509Certificate2 clientCertificate, RemoteCertificateValidationCallback remoteCertificateValidationHandler)
-            : this(null, stunServerEP, protocolType, clientCertificate, remoteCertificateValidationHandler)
+        /// <param name="remoteCertificateValidation">The callback handler which validate STUN Server TLS certificate</param>
+        public StunClient(IPEndPoint stunServerEP, ProtocolType protocolType, X509Certificate2 clientCertificate, RemoteCertificateValidationCallback remoteCertificateValidation)
+            : this(null, stunServerEP, protocolType, clientCertificate, remoteCertificateValidation)
         { }
 
         /// <summary>
@@ -159,8 +159,8 @@ namespace Jabber.Stun
         /// Find your certificate under "Personal", it must have a little key in its icon, right click on it, choose "All tasks > Export...".
         /// Check the "Export key" checkbox, finish the process and then you have a valid X509Certificate2 with its private key in it
         /// </param>
-        /// <param name="remoteCertificateValidationHandler">The callback handler which validate STUN Server TLS certificate</param>
-        public StunClient(IPEndPoint hostEP, IPEndPoint stunServerEP, ProtocolType protocolType, X509Certificate2 clientCertificate, RemoteCertificateValidationCallback remoteCertificateValidationHandler)
+        /// <param name="remoteCertificateValidation">The callback handler which validate STUN Server TLS certificate</param>
+        public StunClient(IPEndPoint hostEP, IPEndPoint stunServerEP, ProtocolType protocolType, X509Certificate2 clientCertificate, RemoteCertificateValidationCallback remoteCertificateValidation)
         {
             this.PendingTransactions = new Dictionary<byte[], KeyValuePair<StunMessage, Object>>(new ByteArrayComparer());
 
@@ -169,10 +169,10 @@ namespace Jabber.Stun
             this.ProtocolType = protocolType;
             this.ClientCertificate = clientCertificate;
 
-            if(this.UseSsl && remoteCertificateValidationHandler == null)
-                    throw new ArgumentException("You must provide a valid RemoteCertificateValidationCallback", "remoteCertificateValidationHandler");
+            if(this.UseSsl && remoteCertificateValidation == null)
+                    throw new ArgumentException("You must provide a valid RemoteCertificateValidationCallback", "remoteCertificateValidation");
 
-            this.RemoteCertificateValidationHandler = remoteCertificateValidationHandler;
+            this.RemoteCertificateValidation = remoteCertificateValidation;
 
             if (this.ProtocolType != ProtocolType.Tcp && this.ProtocolType != ProtocolType.Udp)
                 throw new ArgumentException("Only UDP and TCP are acceptable values", "protocolType");
@@ -252,15 +252,15 @@ namespace Jabber.Stun
                 this.SslClient.Client = this.Socket;
                 this.SslClient.Connect(this.ServerEP);
 
-                LocalCertificateSelectionCallback localCertificateSelectionHandler = null;
-                localCertificateSelectionHandler = (sender, targetHost, localCertificates, remoteCertificate, acceptableIssuers) => localCertificates[0];
+                LocalCertificateSelectionCallback localCertificateSelection = null;
+                localCertificateSelection = (sender, targetHost, localCertificates, remoteCertificate, acceptableIssuers) => localCertificates[0];
 
                 X509Certificate2Collection clientCertificates = new X509Certificate2Collection();
                 clientCertificates.Add(this.ClientCertificate);
 
                 this.SslStream = new SslStream(this.SslClient.GetStream(), false,
-                                               this.RemoteCertificateValidationHandler,
-                                               localCertificateSelectionHandler);
+                                               this.RemoteCertificateValidation,
+                                               localCertificateSelection);
 
                 IAsyncResult ar = this.SslStream.BeginAuthenticateAsClient(this.ServerEP.Address.ToString(), clientCertificates, SslProtocols.Tls, true, null, null);
 

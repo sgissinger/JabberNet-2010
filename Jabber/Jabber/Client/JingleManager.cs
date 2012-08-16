@@ -11,15 +11,17 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Globalization;
 using System.Xml;
 using Jabber.Connection;
 using Jabber.Protocol;
 using Jabber.Protocol.Client;
 using Jabber.Protocol.IQ;
-using System.Globalization;
 
 namespace Jabber.Client
 {
+    public delegate void SessionIdHandler(object sender, String sid);
+
     /// <summary>
     /// Manages Jingle sessions with peers
     /// </summary>
@@ -182,11 +184,11 @@ namespace Jabber.Client
                     case ActionType.session_terminate:
                         this.Stream.Write(iq.GetAcknowledge(this.Stream.Document));
 
-                        if (this.Sessions.ContainsKey(jingle.Sid))
-                            this.Sessions.Remove(jingle.Sid);
-
                         if (this.OnReceivedSessionTerminate != null)
                             this.OnReceivedSessionTerminate(this, iq);
+
+                        if (this.Sessions.ContainsKey(jingle.Sid))
+                            this.Sessions.Remove(jingle.Sid);
 
                         iq.Handled = true;
                         break;

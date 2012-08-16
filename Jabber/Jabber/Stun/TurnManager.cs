@@ -389,7 +389,7 @@ namespace Jabber.Stun
             this.TurnTcpManager = new TurnManager(this.StunClient.ServerEP,
                                                   this.StunClient.ProtocolType,
                                                   this.StunClient.ClientCertificate,
-                                                  this.StunClient.RemoteCertificateValidationHandler);
+                                                  this.StunClient.RemoteCertificateValidation);
 
             this.TurnTcpManager.OnAllocateSucceed += (object sender, TurnAllocation allocation, StunMessage sentMsg, StunMessage receivedMsg) =>
                 {
