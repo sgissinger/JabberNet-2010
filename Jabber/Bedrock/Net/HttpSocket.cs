@@ -103,9 +103,9 @@ namespace Bedrock.Net
         /// Create a socket.  This starts a thread for background processing, but the thread is mostly paused
         /// waiting for new requests.
         /// </summary>
-        public HttpSocket(ISocketEventListener listener) : base(listener)
-        {
-        }
+        public HttpSocket(ISocketEventListener listener)
+            : base(listener)
+        { }
 
         /// <summary>
         /// The URI of the HTTP proxy.  Note: HTTPS connections through a proxy are not yet supported.
@@ -217,15 +217,18 @@ namespace Bedrock.Net
             if (Connected)
                 return;
 
-            m_ssl = (uri != null) && (uri.Scheme == "https");
+            m_ssl = uri != null && uri.Scheme == "https";
             m_host = uri.Host;
+
             if (m_proxyURI != null)
             {
                 // TODO: add CONNECT support here.  ShttpProxy?
                 if (m_ssl)
                     throw new InvalidOperationException("Can't do SSL through proxies yet.");
+
                 uri = m_proxyURI;
             }
+
             m_addr = new Address(uri.Host, uri.Port);
             Connect();
         }
@@ -236,6 +239,7 @@ namespace Bedrock.Net
 
             if (!m_keepRunning)
                 return;
+
             m_state = ParseState.START;
             m_sock = new AsyncSocket(null, this, m_ssl, false);
             m_sock.Connect(m_addr, m_host);
@@ -255,6 +259,7 @@ namespace Bedrock.Net
 
             if (Connected)
                 m_sock.Close();
+
             m_sock = null;
         }
 
@@ -269,8 +274,10 @@ namespace Bedrock.Net
                     return;
 
                 m_keepRunning = false;
+
                 if (!IsPending)
                     Close();
+
                 // otherwise, we'll close after the current pending request completes
             }
         }
@@ -309,21 +316,26 @@ namespace Bedrock.Net
             MemoryStream ms = new MemoryStream(req.Length + 256);
             WriteString(ms, req.Method);
             WriteString(ms, " ");
+
             if (m_proxyURI == null)
                 WriteString(ms, req.URI.PathAndQuery);
             else
                 WriteString(ms, req.URI.ToString());
+
             ms.Write(SP_HTTP11_CRLF, 0, SP_HTTP11_CRLF.Length);
 
             WebHeaderCollection coll = new WebHeaderCollection();
             coll.Add(HttpRequestHeader.Host, req.URI.Host);
+
             if (req.ContentType != null)
                 coll.Add(HttpRequestHeader.ContentType, req.ContentType);
+
             if (m_proxyCredentials != null)
             {
                 byte[] creds = Encoding.ASCII.GetBytes(m_proxyCredentials.UserName + ":" + m_proxyCredentials.Password);
                 coll.Add("Proxy-Authorization", "Basic " + Convert.ToBase64String(creds));
             }
+
             coll.Add("X-JN-Name", m_name);
             coll.Add(HttpRequestHeader.Date, string.Format("{0:r}", DateTime.Now));
             coll.Add(HttpRequestHeader.ContentLength, req.Length.ToString());
@@ -400,9 +412,12 @@ namespace Bedrock.Net
             while (i < last)
             {
                 j = Array.IndexOf(buf, check[0], i);
+
                 if (j == -1)
                     return null;
+
                 i = j;
+
                 if (check.Length > 1)
                 {
                     i++;

@@ -95,7 +95,7 @@ namespace Jabber.Connection
 
             lock (m_pending)
             {
-                if (!m_pending.TryGetValue(id, out td))
+                if (id == null || !m_pending.TryGetValue(id, out td))
                     return;
 
                 // this wasn't one that was being tracked.

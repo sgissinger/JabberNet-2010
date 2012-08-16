@@ -11,7 +11,6 @@
  * Jabber-Net is licensed under the LGPL.
  * See LICENSE.txt for details.
  * --------------------------------------------------------------------------*/
-
 using System.Diagnostics;
 
 namespace Bedrock.Net
@@ -38,8 +37,7 @@ namespace Bedrock.Net
         /// Only to be called by things that immediately set m_listener!
         /// </summary>
         protected BaseSocket()
-        {
-        }
+        { }
 
         /// <summary>
         /// Construct a BaseSocket.

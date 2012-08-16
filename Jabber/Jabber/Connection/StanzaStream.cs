@@ -15,7 +15,6 @@ using System;
 using System.Diagnostics;
 using System.Text;
 using System.Xml;
-
 using Bedrock.Net;
 using Jabber.Protocol;
 

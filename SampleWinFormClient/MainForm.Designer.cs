@@ -3,10 +3,6 @@ namespace SampleWinFormClient
 {
     public partial class MainForm
     {
-        /// <summary>
-        /// Required designer variable.
-        /// </summary>
-        private System.ComponentModel.Container components = null;
 
         /// <summary>
         /// Clean up any resources being used.
@@ -38,30 +34,25 @@ namespace SampleWinFormClient
             this.pnlPresence = new System.Windows.Forms.StatusBarPanel();
             this.tabControl1 = new System.Windows.Forms.TabControl();
             this.tpRoster = new System.Windows.Forms.TabPage();
-
-            this.idler = new Bedrock.Util.IdleTime();
-
             this.roster = new Muzzle.Controls.RosterTree();
-            this.debug = new Muzzle.Controls.XmppDebugger();
-
-            this.cm = new Jabber.Connection.CapsManager(this.components);
-            this.dm = new Jabber.Connection.DiscoManager(this.components);
-            this.psm = new Jabber.Connection.PubSubManager(this.components);
-            this.muc = new Jabber.Connection.ConferenceManager(this.components);
-
             this.jc = new Jabber.Client.JabberClient(this.components);
             this.pm = new Jabber.Client.PresenceManager(this.components);
+            this.cm = new Jabber.Connection.CapsManager(this.components);
+            this.dm = new Jabber.Connection.DiscoManager(this.components);
             this.rm = new Jabber.Client.RosterManager(this.components);
-            this.bmm = new Jabber.Client.BookmarkManager(this.components);
-
             this.tpServices = new System.Windows.Forms.TabPage();
             this.services = new SampleWinFormClient.Controls.ServiceDisplay();
             this.tpBookmarks = new System.Windows.Forms.TabPage();
             this.lvBookmarks = new System.Windows.Forms.ListView();
-            this.chName = new System.Windows.Forms.ColumnHeader();
-            this.chNick = new System.Windows.Forms.ColumnHeader();
-            this.chAutoJoin = new System.Windows.Forms.ColumnHeader();
+            this.chName = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.chNick = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.chAutoJoin = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.tpDebug = new System.Windows.Forms.TabPage();
+            this.debug = new Muzzle.Controls.XmppDebugger();
+            this.idler = new Bedrock.Util.IdleTime();
+            this.psm = new Jabber.Connection.PubSubManager(this.components);
+            this.muc = new Jabber.Connection.ConferenceManager(this.components);
+            this.bmm = new Jabber.Client.BookmarkManager(this.components);
             this.mnuPresence = new System.Windows.Forms.ContextMenu();
             this.mnuAvailable = new System.Windows.Forms.MenuItem();
             this.mnuAway = new System.Windows.Forms.MenuItem();
@@ -115,7 +106,7 @@ namespace SampleWinFormClient
             this.pnlCon.AutoSize = System.Windows.Forms.StatusBarPanelAutoSize.Spring;
             this.pnlCon.Name = "pnlCon";
             this.pnlCon.Text = "Click on \"Offline\", and select a presence to log in.";
-            this.pnlCon.Width = 538;
+            this.pnlCon.Width = 539;
             // 
             // pnlSSL
             // 
@@ -172,6 +163,7 @@ namespace SampleWinFormClient
             this.roster.Sorted = true;
             this.roster.StatusColor = System.Drawing.Color.Teal;
             this.roster.TabIndex = 0;
+            this.roster.Unfiled = null;
             this.roster.DoubleClick += new System.EventHandler(this.roster_DoubleClick);
             // 
             // jc
@@ -184,16 +176,16 @@ namespace SampleWinFormClient
             this.jc.LocalCertificate = null;
             this.jc.Password = null;
             this.jc.User = null;
-            this.jc.OnRegisterInfo += new Jabber.Client.RegisterInfoHandler(this.jc_OnRegisterInfo);
-            this.jc.OnError += new Bedrock.ExceptionHandler(this.jc_OnError);
+            this.jc.OnMessage += new Jabber.Client.MessageHandler(this.jc_OnMessage);
             this.jc.OnIQ += new Jabber.Client.IQHandler(this.jc_OnIQ);
-            this.jc.OnAuthenticate += new Bedrock.ObjectHandler(this.jc_OnAuthenticate);
-            this.jc.OnStreamError += new Jabber.Protocol.ProtocolHandler(this.jc_OnStreamError);
-            this.jc.OnConnect += new Jabber.Connection.StanzaStreamHandler(this.jc_OnConnect);
-            this.jc.OnDisconnect += new Bedrock.ObjectHandler(this.jc_OnDisconnect);
             this.jc.OnAuthError += new Jabber.Protocol.ProtocolHandler(this.jc_OnAuthError);
             this.jc.OnRegistered += new Jabber.Client.IQHandler(this.jc_OnRegistered);
-            this.jc.OnMessage += new Jabber.Client.MessageHandler(this.jc_OnMessage);
+            this.jc.OnRegisterInfo += new Jabber.Client.RegisterInfoHandler(this.jc_OnRegisterInfo);
+            this.jc.OnError += new Bedrock.ExceptionHandler(this.jc_OnError);
+            this.jc.OnStreamError += new Jabber.Protocol.ProtocolHandler(this.jc_OnStreamError);
+            this.jc.OnAuthenticate += new Bedrock.ObjectHandler(this.jc_OnAuthenticate);
+            this.jc.OnConnect += new Jabber.Connection.StanzaStreamHandler(this.jc_OnConnect);
+            this.jc.OnDisconnect += new Bedrock.ObjectHandler(this.jc_OnDisconnect);
             // 
             // pm
             // 
@@ -205,7 +197,7 @@ namespace SampleWinFormClient
             // 
             this.cm.DiscoManager = this.dm;
             this.cm.Features = new string[0];
-            this.cm.FileName = "caps.xml";
+            this.cm.Identities = new Jabber.Connection.Ident[0];
             this.cm.Node = "http://cursive.net/clients/csharp-example";
             this.cm.OverrideFrom = null;
             this.cm.Stream = this.jc;
@@ -312,6 +304,30 @@ namespace SampleWinFormClient
             this.debug.TabIndex = 0;
             this.debug.TextColor = System.Drawing.Color.Black;
             // 
+            // idler
+            // 
+            this.idler.InvokeControl = this;
+            this.idler.OnIdle += new Bedrock.Util.SpanEventHandler(this.idler_OnIdle);
+            this.idler.OnUnIdle += new Bedrock.Util.SpanEventHandler(this.idler_OnUnIdle);
+            // 
+            // psm
+            // 
+            this.psm.OverrideFrom = null;
+            this.psm.Stream = this.jc;
+            // 
+            // muc
+            // 
+            this.muc.OverrideFrom = null;
+            this.muc.Stream = this.jc;
+            // 
+            // bmm
+            // 
+            this.bmm.ConferenceManager = this.muc;
+            this.bmm.OverrideFrom = null;
+            this.bmm.Stream = this.jc;
+            this.bmm.OnConferenceAdd += new Jabber.Client.BookmarkConferenceDelegate(this.bmm_OnConferenceAdd);
+            this.bmm.OnConferenceRemove += new Jabber.Client.BookmarkConferenceDelegate(this.bmm_OnConferenceRemove);
+            // 
             // mnuPresence
             // 
             this.mnuPresence.MenuItems.AddRange(new System.Windows.Forms.MenuItem[] {
@@ -364,7 +380,7 @@ namespace SampleWinFormClient
             // 
             this.connectToolStripMenuItem.Name = "connectToolStripMenuItem";
             this.connectToolStripMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F9;
-            this.connectToolStripMenuItem.Size = new System.Drawing.Size(200, 22);
+            this.connectToolStripMenuItem.Size = new System.Drawing.Size(189, 22);
             this.connectToolStripMenuItem.Text = "&Connect";
             this.connectToolStripMenuItem.Click += new System.EventHandler(this.connectToolStripMenuItem_Click);
             // 
@@ -372,20 +388,20 @@ namespace SampleWinFormClient
             // 
             this.joinConferenceToolStripMenuItem.Name = "joinConferenceToolStripMenuItem";
             this.joinConferenceToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.J)));
-            this.joinConferenceToolStripMenuItem.Size = new System.Drawing.Size(200, 22);
+            this.joinConferenceToolStripMenuItem.Size = new System.Drawing.Size(189, 22);
             this.joinConferenceToolStripMenuItem.Text = "&Join Conference";
             this.joinConferenceToolStripMenuItem.Click += new System.EventHandler(this.joinConferenceToolStripMenuItem_Click);
             // 
             // toolStripMenuItem1
             // 
             this.toolStripMenuItem1.Name = "toolStripMenuItem1";
-            this.toolStripMenuItem1.Size = new System.Drawing.Size(197, 6);
+            this.toolStripMenuItem1.Size = new System.Drawing.Size(186, 6);
             // 
             // exitToolStripMenuItem
             // 
             this.exitToolStripMenuItem.Name = "exitToolStripMenuItem";
             this.exitToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Q)));
-            this.exitToolStripMenuItem.Size = new System.Drawing.Size(200, 22);
+            this.exitToolStripMenuItem.Size = new System.Drawing.Size(189, 22);
             this.exitToolStripMenuItem.Text = "E&xit";
             this.exitToolStripMenuItem.Click += new System.EventHandler(this.exitToolStripMenuItem_Click);
             // 
@@ -402,7 +418,7 @@ namespace SampleWinFormClient
             // 
             this.servicesToolStripMenuItem.Name = "servicesToolStripMenuItem";
             this.servicesToolStripMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F8;
-            this.servicesToolStripMenuItem.Size = new System.Drawing.Size(144, 22);
+            this.servicesToolStripMenuItem.Size = new System.Drawing.Size(133, 22);
             this.servicesToolStripMenuItem.Text = "&Services";
             this.servicesToolStripMenuItem.Click += new System.EventHandler(this.servicesToolStripMenuItem_Click);
             // 
@@ -410,7 +426,7 @@ namespace SampleWinFormClient
             // 
             this.debugToolStripMenuItem.Name = "debugToolStripMenuItem";
             this.debugToolStripMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F12;
-            this.debugToolStripMenuItem.Size = new System.Drawing.Size(144, 22);
+            this.debugToolStripMenuItem.Size = new System.Drawing.Size(133, 22);
             this.debugToolStripMenuItem.Text = "&Debug";
             this.debugToolStripMenuItem.Click += new System.EventHandler(this.debugToolStripMenuItem_Click);
             // 
@@ -428,7 +444,7 @@ namespace SampleWinFormClient
             // 
             this.addContactToolStripMenuItem.Name = "addContactToolStripMenuItem";
             this.addContactToolStripMenuItem.ShortcutKeys = System.Windows.Forms.Keys.Insert;
-            this.addContactToolStripMenuItem.Size = new System.Drawing.Size(187, 22);
+            this.addContactToolStripMenuItem.Size = new System.Drawing.Size(176, 22);
             this.addContactToolStripMenuItem.Text = "&Add Contact";
             this.addContactToolStripMenuItem.Click += new System.EventHandler(this.menuItem3_Click);
             // 
@@ -436,7 +452,7 @@ namespace SampleWinFormClient
             // 
             this.removeContactToolStripMenuItem.Name = "removeContactToolStripMenuItem";
             this.removeContactToolStripMenuItem.ShortcutKeys = System.Windows.Forms.Keys.Delete;
-            this.removeContactToolStripMenuItem.Size = new System.Drawing.Size(187, 22);
+            this.removeContactToolStripMenuItem.Size = new System.Drawing.Size(176, 22);
             this.removeContactToolStripMenuItem.Text = "&Remove Contact";
             this.removeContactToolStripMenuItem.Click += new System.EventHandler(this.menuItem5_Click);
             // 
@@ -444,7 +460,7 @@ namespace SampleWinFormClient
             // 
             this.addGroupToolStripMenuItem.Name = "addGroupToolStripMenuItem";
             this.addGroupToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.G)));
-            this.addGroupToolStripMenuItem.Size = new System.Drawing.Size(187, 22);
+            this.addGroupToolStripMenuItem.Size = new System.Drawing.Size(176, 22);
             this.addGroupToolStripMenuItem.Text = "&Add Group";
             this.addGroupToolStripMenuItem.Click += new System.EventHandler(this.addGroupToolStripMenuItem_Click);
             // 
@@ -461,16 +477,16 @@ namespace SampleWinFormClient
             // 
             this.addToolStripMenuItem.Name = "addToolStripMenuItem";
             this.addToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.B)));
-            this.addToolStripMenuItem.Size = new System.Drawing.Size(192, 22);
+            this.addToolStripMenuItem.Size = new System.Drawing.Size(181, 22);
             this.addToolStripMenuItem.Text = "Add";
             this.addToolStripMenuItem.Click += new System.EventHandler(this.addToolStripMenuItem_Click);
             // 
             // removeToolStripMenuItem
             // 
             this.removeToolStripMenuItem.Name = "removeToolStripMenuItem";
-            this.removeToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)(((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift)
-                        | System.Windows.Forms.Keys.B)));
-            this.removeToolStripMenuItem.Size = new System.Drawing.Size(192, 22);
+            this.removeToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)(((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift) 
+            | System.Windows.Forms.Keys.B)));
+            this.removeToolStripMenuItem.Size = new System.Drawing.Size(181, 22);
             this.removeToolStripMenuItem.Text = "Remove";
             this.removeToolStripMenuItem.Click += new System.EventHandler(this.removeToolStripMenuItem_Click);
             // 
@@ -486,7 +502,7 @@ namespace SampleWinFormClient
             // 
             this.closeTabToolStripMenuItem.Name = "closeTabToolStripMenuItem";
             this.closeTabToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.W)));
-            this.closeTabToolStripMenuItem.Size = new System.Drawing.Size(174, 22);
+            this.closeTabToolStripMenuItem.Size = new System.Drawing.Size(163, 22);
             this.closeTabToolStripMenuItem.Text = "&Close Tab";
             this.closeTabToolStripMenuItem.Click += new System.EventHandler(this.closeTabToolStripMenuItem_Click);
             // 
@@ -503,7 +519,7 @@ namespace SampleWinFormClient
             // 
             this.subscribePubSubToolStripMenuItem.Name = "subscribePubSubToolStripMenuItem";
             this.subscribePubSubToolStripMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F10;
-            this.subscribePubSubToolStripMenuItem.Size = new System.Drawing.Size(156, 22);
+            this.subscribePubSubToolStripMenuItem.Size = new System.Drawing.Size(145, 22);
             this.subscribePubSubToolStripMenuItem.Text = "&Subscribe";
             this.subscribePubSubToolStripMenuItem.Click += new System.EventHandler(this.subscribeToPubSubToolStripMenuItem_Click);
             // 
@@ -511,33 +527,9 @@ namespace SampleWinFormClient
             // 
             this.deletePubSubToolStripMenuItem.Name = "deletePubSubToolStripMenuItem";
             this.deletePubSubToolStripMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F11;
-            this.deletePubSubToolStripMenuItem.Size = new System.Drawing.Size(156, 22);
+            this.deletePubSubToolStripMenuItem.Size = new System.Drawing.Size(145, 22);
             this.deletePubSubToolStripMenuItem.Text = "&Delete";
             this.deletePubSubToolStripMenuItem.Click += new System.EventHandler(this.deletePubSubToolStripMenuItem_Click);
-            // 
-            // psm
-            // 
-            this.psm.OverrideFrom = null;
-            this.psm.Stream = this.jc;
-            // 
-            // idler
-            // 
-            this.idler.InvokeControl = this;
-            this.idler.OnIdle += new Bedrock.Util.SpanEventHandler(this.idler_OnIdle);
-            this.idler.OnUnIdle += new Bedrock.Util.SpanEventHandler(this.idler_OnUnIdle);
-            // 
-            // muc
-            // 
-            this.muc.OverrideFrom = null;
-            this.muc.Stream = this.jc;
-            // 
-            // bmm
-            // 
-            this.bmm.ConferenceManager = this.muc;
-            this.bmm.OverrideFrom = null;
-            this.bmm.Stream = this.jc;
-            this.bmm.OnConferenceAdd += new Jabber.Client.BookmarkConferenceDelegate(this.bmm_OnConferenceAdd);
-            this.bmm.OnConferenceRemove += new Jabber.Client.BookmarkConferenceDelegate(this.bmm_OnConferenceRemove);
             // 
             // MainForm
             // 
@@ -564,6 +556,7 @@ namespace SampleWinFormClient
             this.menuStrip1.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
+
         }
         #endregion
 
@@ -621,5 +614,6 @@ namespace SampleWinFormClient
         private System.Windows.Forms.ToolStripMenuItem bookmarkToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem addToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem removeToolStripMenuItem;
+        private System.ComponentModel.IContainer components;
     }
 }

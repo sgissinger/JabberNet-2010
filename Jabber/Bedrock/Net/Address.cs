@@ -12,10 +12,8 @@
  * See LICENSE.txt for details.
  * --------------------------------------------------------------------------*/
 using System;
-
 using System.Diagnostics;
 using System.Net;
-
 using NetLib.DNS;
 using NetLib.DNS.Records;
 

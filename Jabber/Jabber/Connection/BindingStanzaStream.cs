@@ -1,3 +1,4 @@
+using System;
 using Bedrock.Net;
 using Jabber.Protocol.Stream;
 
@@ -7,26 +8,29 @@ namespace Jabber.Connection
     {
         public BindingStanzaStream(IStanzaEventListener listener)
             : base(listener)
-        {
-        }
+        { }
 
         protected override BaseSocket CreateSocket()
         {
             XEP124Socket sock = new XEP124Socket(this);
             ProxyType pt = (ProxyType)m_listener[Options.PROXY_TYPE];
+
             if (pt == ProxyType.HTTP)
             {
                 string host = m_listener[Options.PROXY_HOST] as string;
                 int port = (int)m_listener[Options.PROXY_PORT];
+
                 if (port == -1)
                     port = 80;
+
                 string proxy_uri = string.Format("http://{0}:{1}/", host, port);
                 sock.ProxyURI = new System.Uri(proxy_uri);
+
                 string user = m_listener[Options.PROXY_USER] as string;
-                if ((user != null) && (user != ""))
+
+                if (!String.IsNullOrEmpty(user))
                 {
-                    sock.ProxyCredentials = new System.Net.NetworkCredential(user,
-                        m_listener[Options.PROXY_PW] as string);
+                    sock.ProxyCredentials = new System.Net.NetworkCredential(user, m_listener[Options.PROXY_PW] as string);
                 }
             }
             return sock;

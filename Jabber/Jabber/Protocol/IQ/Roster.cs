@@ -11,9 +11,7 @@
  * Jabber-Net is licensed under the LGPL.
  * See LICENSE.txt for details.
  * --------------------------------------------------------------------------*/
-
 using System.Xml;
-
 
 namespace Jabber.Protocol.IQ
 {
@@ -27,8 +25,7 @@ namespace Jabber.Protocol.IQ
         /// </summary>
         /// <param name="doc"></param>
         public RosterIQ(XmlDocument doc) : base(doc)
-        {
-        }
+        { }
     }
 
     /// <summary>
@@ -41,8 +38,7 @@ namespace Jabber.Protocol.IQ
         /// </summary>
         /// <param name="doc"></param>
         public Roster(XmlDocument doc) : base("query", URI.ROSTER, doc)
-        {
-        }
+        { }
 
         /// <summary>
         ///
@@ -50,10 +46,9 @@ namespace Jabber.Protocol.IQ
         /// <param name="prefix"></param>
         /// <param name="qname"></param>
         /// <param name="doc"></param>
-        public Roster(string prefix, XmlQualifiedName qname, XmlDocument doc) :
-            base(prefix, qname, doc)
-        {
-        }
+        public Roster(string prefix, XmlQualifiedName qname, XmlDocument doc)
+            : base(prefix, qname, doc)
+        { }
 
         /// <summary>
         /// Add a roster item
@@ -134,8 +129,7 @@ namespace Jabber.Protocol.IQ
         /// </summary>
         /// <param name="doc"></param>
         public Item(XmlDocument doc) : base("item", URI.ROSTER, doc)
-        {
-        }
+        { }
 
         /// <summary>
         ///
@@ -143,10 +137,9 @@ namespace Jabber.Protocol.IQ
         /// <param name="prefix"></param>
         /// <param name="qname"></param>
         /// <param name="doc"></param>
-        public Item(string prefix, XmlQualifiedName qname, XmlDocument doc) :
-            base(prefix, qname, doc)
-        {
-        }
+        public Item(string prefix, XmlQualifiedName qname, XmlDocument doc)
+            : base(prefix, qname, doc)
+        { }
 
         /// <summary>
         /// Item JID
@@ -266,8 +259,7 @@ namespace Jabber.Protocol.IQ
         /// </summary>
         /// <param name="doc"></param>
         public Group(XmlDocument doc) : base("group", URI.ROSTER, doc)
-        {
-        }
+        { }
 
         /// <summary>
         ///
@@ -275,10 +267,9 @@ namespace Jabber.Protocol.IQ
         /// <param name="prefix"></param>
         /// <param name="qname"></param>
         /// <param name="doc"></param>
-        public Group(string prefix, XmlQualifiedName qname, XmlDocument doc) :
-            base(prefix, qname, doc)
-        {
-        }
+        public Group(string prefix, XmlQualifiedName qname, XmlDocument doc)
+            : base(prefix, qname, doc)
+        { }
 
         /// <summary>
         /// Name of the group.

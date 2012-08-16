@@ -192,7 +192,7 @@ namespace Jabber.Client
         {
             lock (this)
             {
-                return (m_items[jid.Bare] != null);
+                return m_items[jid.Bare] != null && (m_items[jid.Bare] as UserPresenceManager).Count > 0;
             }
         }
 

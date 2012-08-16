@@ -11,12 +11,14 @@
  * Jabber-Net is licensed under the LGPL.
  * See LICENSE.txt for details.
  * --------------------------------------------------------------------------*/
-
 using System;
 using System.Diagnostics;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
 using System.Xml;
 using Bedrock.Net;
 using Jabber.Protocol;
+using Bedrock;
 
 namespace Jabber.Connection
 {
@@ -42,8 +44,7 @@ namespace Jabber.Connection
         /// <param name="listener"></param>
         internal HttpStanzaStream(IStanzaEventListener listener)
             : base(listener)
-        {
-        }
+        { }
 
         /// <summary>
         /// Determines whether or not the client is connected to the XMPP server.
@@ -66,12 +67,12 @@ namespace Jabber.Connection
         /// </summary>
         public override void InitializeStream()
         {
-            bool first = (m_elements == null);
+            bool first = m_elements == null;
             m_elements = new AsynchElementStream();
             m_elements.OnDocumentStart += new ProtocolHandler(m_elements_OnDocumentStart);
-            m_elements.OnDocumentEnd += new Bedrock.ObjectHandler(m_elements_OnDocumentEnd);
+            m_elements.OnDocumentEnd += new ObjectHandler(m_elements_OnDocumentEnd);
             m_elements.OnElement += new ProtocolHandler(m_elements_OnElement);
-            m_elements.OnError += new Bedrock.ExceptionHandler(m_elements_OnError);
+            m_elements.OnError += new ExceptionHandler(m_elements_OnError);
 
             m_listener.StreamInit(m_elements);
 
@@ -95,11 +96,12 @@ namespace Jabber.Connection
             Debug.Assert(to != null);
 
             string host = (string)m_listener[Options.NETWORK_HOST];
-            if ((host == null) || (host == ""))
+
+            if (String.IsNullOrEmpty(host))
                 host = to;
 
             string url = (string)m_listener[Options.POLL_URL];
-            if ((url == null) || (url == ""))
+            if (String.IsNullOrEmpty(url))
             {
 #if !__MonoCS__
                 url = Address.LookupTXT("_xmppconnect.", to, "_xmpp-client-xbosh");
@@ -175,6 +177,7 @@ namespace Jabber.Connection
             // TODO: socket should still be connected, excepts for races.  Revist.
             if (clean)
                 Write("</stream:stream>");
+
             m_sock.Close();
         }
 
@@ -218,8 +221,7 @@ namespace Jabber.Connection
         #region ISocketEventListener Members
 
         void ISocketEventListener.OnInit(BaseSocket newSock)
-        {
-        }
+        { }
 
         ISocketEventListener ISocketEventListener.GetListener(BaseSocket newSock)
         {
@@ -287,14 +289,10 @@ namespace Jabber.Connection
         /// <param name="chain">The chain of CAs for the cert</param>
         /// <param name="sslPolicyErrors">A bitfield for the erorrs in the certificate.</param>
         /// <returns>True if the cert should be accepted anyway.</returns>
-        bool ISocketEventListener.OnInvalidCertificate(BaseSocket sock,
-            System.Security.Cryptography.X509Certificates.X509Certificate certificate,
-            System.Security.Cryptography.X509Certificates.X509Chain chain,
-            System.Net.Security.SslPolicyErrors sslPolicyErrors)
+        bool ISocketEventListener.OnInvalidCertificate(BaseSocket sock, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
             return m_listener.OnInvalidCertificate(sock, certificate, chain, sslPolicyErrors);
         }
         #endregion
     }
 }
-

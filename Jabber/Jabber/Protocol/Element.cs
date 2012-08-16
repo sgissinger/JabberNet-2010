@@ -141,7 +141,8 @@ namespace Jabber.Protocol
             }
             else
             {
-                this.AppendChild(value);
+                this.AppendChild(this.OwnerDocument.ImportNode(value, true));
+                //this.AppendChild(value);
             }
         }
 

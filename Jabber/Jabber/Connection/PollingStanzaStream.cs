@@ -25,9 +25,9 @@ namespace Jabber.Connection
         /// Creates a PollingStanzaStream
         ///</summary>
         ///<param name="listener">Listener associated with PollingStanzaStream.</param>
-        public PollingStanzaStream(IStanzaEventListener listener) : base(listener)
-        {
-        }
+        public PollingStanzaStream(IStanzaEventListener listener)
+            : base(listener)
+        { }
 
         /// <summary>
         /// Create a XEP25Socket.
@@ -39,4 +39,3 @@ namespace Jabber.Connection
         }
     }
 }
-

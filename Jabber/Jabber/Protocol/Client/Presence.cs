@@ -138,7 +138,7 @@ namespace Jabber.Protocol.Client
             get
             {
                 String pri = Priority;
-                if ((pri == null) || (pri == ""))
+                if (String.IsNullOrEmpty(pri))
                     return 0;
                 try
                 {

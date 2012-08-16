@@ -668,9 +668,8 @@ namespace Jabber.Client
                     {
                         f = xdata.GetField("username");
                         if (f != null)
-                        {
                             this.User = f.Val;
-                        }
+
                         f = xdata.GetField("password");
                         if (f != null)
                             this.Password = f.Val;

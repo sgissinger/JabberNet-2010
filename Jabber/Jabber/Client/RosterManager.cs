@@ -13,12 +13,11 @@
  * --------------------------------------------------------------------------*/
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
-using Bedrock.Collections;
 using Jabber.Protocol.Client;
 using Jabber.Protocol.IQ;
-using System.Collections.Generic;
 
 namespace Jabber.Client
 {
@@ -312,14 +311,15 @@ namespace Jabber.Client
 
         private void GotIQ(object sender, IQ iq)
         {
-            if ((iq.Query == null) ||
-                (iq.Query.NamespaceURI != Jabber.Protocol.URI.ROSTER) ||
-                ((iq.Type != IQType.result) && (iq.Type != IQType.set)))
+            if (iq.Query == null ||
+                iq.Query.NamespaceURI != Jabber.Protocol.URI.ROSTER ||
+                (iq.Type != IQType.result && iq.Type != IQType.set))
                 return;
 
             iq.Handled = true;
             Roster r = (Roster)iq.Query;
-            if ((iq.Type == IQType.result) && (OnRosterBegin != null))
+
+            if (iq.Type == IQType.result && OnRosterBegin != null)
                 OnRosterBegin(this);
 
             foreach (Item i in r.GetItems())
@@ -341,7 +341,7 @@ namespace Jabber.Client
                     OnRosterItem(this, i);
             }
 
-            if ((iq.Type == IQType.result) && (OnRosterEnd != null))
+            if (iq.Type == IQType.result && OnRosterEnd != null)
                 OnRosterEnd(this);
         }
 

@@ -11,7 +11,6 @@
  * Jabber-Net is licensed under the LGPL.
  * See LICENSE.txt for details.
  * --------------------------------------------------------------------------*/
-
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -24,7 +23,7 @@ using Jabber.Protocol;
 using Jabber.Protocol.Stream;
 
 namespace Bedrock.Net
-{    
+{
     /// <summary>
     /// XEP-0124 Error conditions
     /// </summary>
@@ -36,8 +35,7 @@ namespace Bedrock.Net
         /// <param name="reason"></param>
         public XEP124Exception(string reason)
             : base(reason)
-        {
-        }
+        { }
     }
 
     /// <summary>
@@ -66,7 +64,7 @@ namespace Bedrock.Net
         private X509Certificate m_remote_cert = null;
         private bool m_StartStream = false;
         private string m_NS;
-        private string m_lang = System.Globalization.CultureInfo.CurrentCulture.IetfLanguageTag;
+        private string m_lang = System.Globalization.CultureInfo.CurrentCulture.TwoLetterISOLanguageName;
         private XmlDocument m_doc = new XmlDocument();
 
         private Uri m_proxyURI = null;
@@ -83,9 +81,9 @@ namespace Bedrock.Net
         /// Create an instance
         /// </summary>
         /// <param name="listener"></param>
-        public XEP124Socket(ISocketEventListener listener) : base(listener)
-        {
-        }
+        public XEP124Socket(ISocketEventListener listener) 
+            : base(listener)
+        { }
 
         /// <summary>
         /// The xml:lang for all requests.  Defaults to the current culture's language tag.
@@ -186,6 +184,7 @@ namespace Bedrock.Net
             // Switch to the other socket than the last one, assuming the other socket isn't pending.
             // If the other socket is pending, use the last one.
             HttpSocket other = (m_lastSock == m_sockA) ? m_sockB : m_sockA;
+
             if (!other.IsPending)
                 m_lastSock = other;
 
@@ -226,7 +225,7 @@ namespace Bedrock.Net
                     //    m_queue.AddFirst((XmlElement)null);
 
                     Debug.WriteLine("A: " + m_sockA.IsPending);
-                    Debug.WriteLine("b: " + m_sockB.IsPending);
+                    Debug.WriteLine("B: " + m_sockB.IsPending);
                     while ((m_queue.First == null) || BothPending)
                     {
                         Monitor.Wait(m_queue);
@@ -402,7 +401,7 @@ namespace Bedrock.Net
                 throw new NotImplementedException("Call Write(XmlElement)");
 
             // HACK
-            byte[] p = ENC.GetBytes("Psuedo-stream body");
+            byte[] p = ENC.GetBytes("Pseudo-stream body");
             m_listener.OnWrite(this, p, 0, p.Length);
             if (m_sid == null)
             {
@@ -438,12 +437,12 @@ namespace Bedrock.Net
                 Random rnd = new Random();
                 long r = m_rid = (long)rnd.Next();
                 body.Content = CONTENT_TYPE;
-                
+
+                body.Hold = m_hold;
+                body.RID = r;
                 body.To = m_hostid;
                 body.Wait = m_wait;
-                body.Hold = m_hold;
                 body.Lang = m_lang;
-                body.RID = r;
             }
             else
             {
@@ -467,8 +466,7 @@ namespace Bedrock.Net
         /// </summary>
         public override bool Connected
         {
-            get
-            { return m_running; }
+            get { return m_running; }
         }
 
         /// <summary>
@@ -502,8 +500,8 @@ namespace Bedrock.Net
             lock (m_queue)
             {
                 if (!m_running &&
-                    (m_sockA != null) && m_sockA.Connected &&
-                    (m_sockB != null) && m_sockB.Connected)
+                    m_sockA != null && m_sockA.Connected &&
+                    m_sockB != null && m_sockB.Connected)
                 {
                     m_running = true;
                     m_lastSock = m_sockB;
@@ -574,6 +572,7 @@ namespace Bedrock.Net
             string name = ENC.GetString(buf,
                                         offset + e.MinBytesPerChar,
                                         ct.NameEnd - offset - e.MinBytesPerChar);
+
             Debug.Assert(name == "body");
             Body b = new Body(m_doc);
             string val;
@@ -622,7 +621,7 @@ namespace Bedrock.Net
                 {
                     m_running = false;
                     Error err = new Error(m_doc);
-                    err.AppendChild(m_doc.CreateElement(b.GetAttribute("condition"), URI.STREAM_ERROR));
+                    err.AppendChild(m_doc.CreateElement(b.Condition.ToString(), URI.STREAM_ERROR));
                     byte[] sbuf = ENC.GetBytes(err.OuterXml);
                     m_listener.OnRead(this, sbuf, 0, sbuf.Length);
                     sbuf = ENC.GetBytes("</stream:stream>");
