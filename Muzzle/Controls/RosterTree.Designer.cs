@@ -56,7 +56,6 @@ namespace Muzzle.Controls
             this.Sorted = true;
             this.DrawNode += new System.Windows.Forms.DrawTreeNodeEventHandler(this.RosterTree_DrawNode);
             this.ItemDrag += new System.Windows.Forms.ItemDragEventHandler(this.RosterTree_ItemDrag);
-            this.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.RosterTree_AfterSelect);
             this.DragDrop += new System.Windows.Forms.DragEventHandler(this.RosterTree_DragDrop);
             this.DragEnter += new System.Windows.Forms.DragEventHandler(this.RosterTree_DragEnter);
             this.DragOver += new System.Windows.Forms.DragEventHandler(this.RosterTree_DragOver);

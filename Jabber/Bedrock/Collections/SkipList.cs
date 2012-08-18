@@ -45,27 +45,27 @@ namespace Bedrock.Collections
         /// </summary>
         private const int DEFAULT_MAX_LEVEL = 6;
 
-        private float        m_probability;
-        private int          m_max_level = DEFAULT_MAX_LEVEL;
+        private float m_probability;
+        private int m_max_level = DEFAULT_MAX_LEVEL;
         private SkipListNode m_header;
-        private Random       m_rand = new Random();
-        private IComparer    m_comparator = System.Collections.Comparer.Default;
-        private int          m_count = 0;
+        private Random m_rand = new Random();
+        private IComparer m_comparator = System.Collections.Comparer.Default;
+        private int m_count = 0;
 
         /// <summary>
         /// Creates a skiplist with the default probability (0.25).
         /// </summary>
-        public SkipList() : this(DEFAULT_PROBABILITY, DEFAULT_MAX_LEVEL)
-        {
-        }
+        public SkipList()
+            : this(DEFAULT_PROBABILITY, DEFAULT_MAX_LEVEL)
+        { }
 
         /// <summary>
         /// Create a skiplist with the default max_level.
         /// </summary>
         /// <param name="probability">Probability of adding a new level</param>
-        public SkipList(float probability) : this(probability, DEFAULT_MAX_LEVEL)
-        {
-        }
+        public SkipList(float probability)
+            : this(probability, DEFAULT_MAX_LEVEL)
+        { }
 
         /// <summary>
         /// Create a skiplist.
@@ -104,7 +104,7 @@ namespace Bedrock.Collections
             SkipListNode n = m_header;
             SkipListNode next;
 
-            for (int i=m_header.Level-1; i>=0; i--)
+            for (int i = m_header.Level - 1; i >= 0; i--)
             {
                 next = n[i];
                 while ((next != null) &&
@@ -131,14 +131,14 @@ namespace Bedrock.Collections
                     // this shouldn't happen any more.
                     //Debug.Assert(false);
                     m_header.Level = level;
-                    for (int i=s; i<level; i++)
+                    for (int i = s; i < level; i++)
                     {
                         update[i] = m_header;
                     }
                 }
 
                 n = new SkipListNode(level, key, val);
-                for (int i=0; i<level; i++)
+                for (int i = 0; i < level; i++)
                 {
                     n[i] = update[i][i];
                     update[i][i] = n;
@@ -197,7 +197,7 @@ namespace Bedrock.Collections
             SkipListNode n = m_header;
             SkipListNode next;
 
-            for (int i=m_header.Level-1; i>=0; i--)
+            for (int i = m_header.Level - 1; i >= 0; i--)
             {
                 next = n[i];
                 while ((next != null) &&
@@ -218,7 +218,7 @@ namespace Bedrock.Collections
                 return;  // or assert
             }
 
-            for (int i=0; i<m_header.Level; i++)
+            for (int i = 0; i < m_header.Level; i++)
             {
                 if (update[i][i] != n)
                     break;
@@ -233,10 +233,7 @@ namespace Bedrock.Collections
         /// </summary>
         public bool IsFixedSize
         {
-            get
-            {
-                return false;
-            }
+            get { return false; }
         }
 
         /// <summary>
@@ -330,10 +327,7 @@ namespace Bedrock.Collections
         /// </summary>
         public bool IsSynchronized
         {
-            get
-            {
-                return false;
-            }
+            get { return false; }
         }
 
         /// <summary>
@@ -359,10 +353,10 @@ namespace Bedrock.Collections
             SkipListNode n = m_header;
             SkipListNode next;
 
-            for(int i=m_header.Level-1; i>=0; i--)
+            for (int i = m_header.Level - 1; i >= 0; i--)
             {
                 next = n[i];
-                while((next != null) &&
+                while ((next != null) &&
                     (m_comparator.Compare(next.Key, key) < 0))
                 {
                     n = next;
@@ -373,7 +367,7 @@ namespace Bedrock.Collections
             // n should always be level > 0, now.
             n = n[0];
 
-            if( (n != null) && (m_comparator.Compare(n.Key, key) == 0))
+            if ((n != null) && (m_comparator.Compare(n.Key, key) == 0))
                 return n;
             else
                 return null;
@@ -382,7 +376,7 @@ namespace Bedrock.Collections
         private int RandomLevel()
         {
             int level = 1;
-            while ((level < m_max_level-1) && (m_rand.NextDouble() < m_probability))
+            while ((level < m_max_level - 1) && (m_rand.NextDouble() < m_probability))
             {
                 level++;
             }
@@ -396,16 +390,16 @@ namespace Bedrock.Collections
             private object m_key;
             private object m_value;
 
-            public SkipListNode(int level) : this(level, null, null)
-            {
-            }
+            public SkipListNode(int level)
+                : this(level, null, null)
+            { }
 
             public SkipListNode(int level, object key, object val)
             {
-                m_next  = new SkipListNode[level];
-                for (int i=0; i<level; i++)
+                m_next = new SkipListNode[level];
+                for (int i = 0; i < level; i++)
                     m_next[i] = null;
-                m_key   = key;
+                m_key = key;
                 m_value = val;
             }
 
@@ -423,7 +417,7 @@ namespace Bedrock.Collections
                     Debug.Assert(value > m_next.Length);
                     SkipListNode[] n = new SkipListNode[value];
                     Array.Copy(m_next, 0, n, 0, m_next.Length);
-                    for (int i=m_next.Length; i<value; i++)
+                    for (int i = m_next.Length; i < value; i++)
                     {
                         n[i] = null;
                     }
@@ -457,7 +451,7 @@ namespace Bedrock.Collections
 
         private class SkipListEnumerator : IDictionaryEnumerator
         {
-            private SkipList     m_list;
+            private SkipList m_list;
             private SkipListNode m_node;
 
             public SkipListEnumerator(SkipList list)
@@ -485,6 +479,7 @@ namespace Bedrock.Collections
                 {
                     if (m_node == m_list.m_header)
                         throw new InvalidOperationException("Call MoveNext, first");
+
                     return Entry;
                 }
             }
@@ -499,18 +494,12 @@ namespace Bedrock.Collections
 
             public object Key
             {
-                get
-                {
-                    return m_node.Key;
-                }
+                get { return m_node.Key; }
             }
 
             public object Value
             {
-                get
-                {
-                    return m_node.Value;
-                }
+                get { return m_node.Value; }
             }
         }
     }

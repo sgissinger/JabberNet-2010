@@ -54,6 +54,8 @@ namespace Muzzle.Controls
 
         private Color m_statusColor = Color.Teal;
 
+        private Dictionary<String, Boolean> m_expandedGroups = new Dictionary<String, Boolean>();
+
         /// <summary>
         /// Create a new RosterTree
         /// </summary>
@@ -62,37 +64,24 @@ namespace Muzzle.Controls
             InitializeComponent();
         }
 
-        private void RosterTree_AfterSelect(object sender, TreeViewEventArgs e)
-        { }
-
         private void DrawGroup(DrawTreeNodeEventArgs e)
         {
             GroupNode node = (GroupNode)e.Node;
 
             string counts = String.Format(CultureInfo.CurrentCulture,
-                                          "({0}/{1})",
+                                          " ({0}/{1})",
                                           node.Current,
                                           node.Total);
 
             if (node.IsSelected)
-            {
-                string newText = String.Format(CultureInfo.CurrentCulture,
-                                               "{0} {1}",
-                                               node.GroupName,
-                                               counts);
-
                 e.DrawDefault = true;
 
-                if (node.Text != newText)
-                    node.Text = newText;
-
-                return;
-            }
             Graphics g = e.Graphics;
             Brush fg = new SolidBrush(this.ForeColor);
             Brush stat_fg = new SolidBrush(this.StatusColor);
 
-            g.DrawString(node.GroupName, this.Font, fg, new Point(e.Bounds.Left, e.Bounds.Top), StringFormat.GenericTypographic);
+            g.DrawString(" " + node.GroupName, this.Font, fg, new Point(e.Bounds.Left, e.Bounds.Top), StringFormat.GenericTypographic);
+
             if (node.Total > 0)
             {
                 SizeF name_size = g.MeasureString(node.GroupName, this.Font);
@@ -103,21 +92,23 @@ namespace Muzzle.Controls
         private void DrawItem(DrawTreeNodeEventArgs e)
         {
             ItemNode node = (ItemNode)e.Node;
+
             if (node.IsSelected)
-            {
                 e.DrawDefault = true;
-                return;
-            }
 
-            Graphics g = e.Graphics;
-            Brush fg = new SolidBrush(this.ForeColor);
-            Brush stat_fg = new SolidBrush(this.StatusColor);
-
-            g.DrawString(node.Nickname, this.Font, fg, new Point(e.Bounds.Left, e.Bounds.Top), StringFormat.GenericTypographic);
-            if (node.Status != null)
+            if (!e.DrawDefault)
             {
-                SizeF nick_size = g.MeasureString(node.Nickname, this.Font);
-                g.DrawString("(" + node.Status + ")", this.Font, stat_fg, new PointF(e.Bounds.Left + nick_size.Width, e.Bounds.Top), StringFormat.GenericTypographic);
+                Graphics g = e.Graphics;
+                Brush fg = new SolidBrush(this.ForeColor);
+                Brush stat_fg = new SolidBrush(this.StatusColor);
+
+                g.DrawString(" " + node.Nickname, this.Font, fg, new Point(e.Bounds.Left, e.Bounds.Top), StringFormat.GenericTypographic);
+
+                if (node.Status != null)
+                {
+                    SizeF nick_size = g.MeasureString(node.Nickname, this.Font);
+                    g.DrawString("(" + node.Status + ")", this.Font, stat_fg, new PointF(e.Bounds.Left + nick_size.Width, e.Bounds.Top), StringFormat.GenericTypographic);
+                }
             }
         }
 
@@ -387,6 +378,7 @@ namespace Muzzle.Controls
                 this.ProcessRosterItem(this.RosterManager[item]);
             }
 
+            this.RefreshCollapsing();
             this.EndUpdate();
         }
 
@@ -502,10 +494,10 @@ namespace Muzzle.Controls
             Hashtable ghash = new Hashtable();
             Group[] groups = ri.GetGroups();
 
-            for (int i = groups.Length - 1; i >= 0; i--)
+            foreach (Group g in groups)
             {
-                if (String.IsNullOrEmpty(groups[i].GroupName))
-                    groups[i].GroupName = this.Unfiled;
+                if (String.IsNullOrEmpty(g.GroupName))
+                    g.GroupName = this.Unfiled;   
             }
 
             if (groups.Length == 0)
@@ -539,6 +531,9 @@ namespace Muzzle.Controls
             e.Node.ImageIndex = EXPANDED;
             e.Node.SelectedImageIndex = EXPANDED;
 
+            if (!this.m_expandedGroups.ContainsKey(e.Node.FullPath))
+                this.m_expandedGroups.Add(e.Node.FullPath, true);
+
             base.OnAfterExpand(e);
         }
 
@@ -551,7 +546,21 @@ namespace Muzzle.Controls
             e.Node.ImageIndex = COLLAPSED;
             e.Node.SelectedImageIndex = COLLAPSED;
 
+            if (this.m_expandedGroups.ContainsKey(e.Node.FullPath))
+                this.m_expandedGroups.Remove(e.Node.FullPath);
+
             base.OnAfterCollapse(e);
+        }
+
+        private void RefreshCollapsing()
+        {
+            foreach (var item in this.m_expandedGroups.Keys)
+            {
+                TreeNode tn = this.FindTreeViewNodeWithPath(this.Nodes, item);
+
+                if (tn != null)
+                    tn.Expand();
+            }
         }
 
         /// <summary>
@@ -600,7 +609,7 @@ namespace Muzzle.Controls
                 String[] groups = g.GroupName.Split(new String[] { this.Client.NestedGroupDelimiter },
                                                     StringSplitOptions.RemoveEmptyEntries);
 
-                String[] nestedGroupList = this.ConstructNestedGroupList(groups);
+                IEnumerable<String> nestedGroupList = this.ConstructNestedGroupList(groups);
                 String parent = null;
                 Int32 baseNameCounter = 0;
 
@@ -665,9 +674,22 @@ namespace Muzzle.Controls
         /// <summary>
         /// TODO; Documentation ConstructNestedGroupList
         /// </summary>
+        /// <param name="groupName"></param>
+        /// <returns></returns>
+        private IEnumerable<String> ConstructNestedGroupList(String groupName)
+        {
+            String[] groups = groupName.Split(new String[] { this.Client.NestedGroupDelimiter },
+                                              StringSplitOptions.RemoveEmptyEntries);
+
+            return this.ConstructNestedGroupList(groups);
+        }
+
+        /// <summary>
+        /// TODO: Documentation ConstructNestedGroupList
+        /// </summary>
         /// <param name="groups"></param>
         /// <returns></returns>
-        private String[] ConstructNestedGroupList(String[] groups)
+        private IEnumerable<String> ConstructNestedGroupList(String[] groups)
         {
             List<String> result = new List<String>();
             String tmp = String.Empty;
@@ -686,19 +708,20 @@ namespace Muzzle.Controls
                 tmp = sb.ToString();
             }
 
-            return result.ToArray();
+            return result;
         }
 
         private void m_roster_OnRosterBegin(object sender)
         {
+            this.BeginUpdate();
+
             if (this.Client.SupportNestedGroups)
                 this.PathSeparator = this.Client.NestedGroupDelimiter;
-
-            this.BeginUpdate();
         }
 
         private void m_roster_OnRosterEnd(object sender)
         {
+            this.RefreshCollapsing();
             this.EndUpdate();
         }
 
