@@ -35,7 +35,9 @@ namespace Jabber.Connection
     /// </summary>
     public abstract class Options
     {
-        //FF
+        /// <summary>
+        /// FF
+        /// </summary>
         public const string ANONYMOUS = "anonymous";
 
         /// <summary>
@@ -153,6 +155,18 @@ namespace Jabber.Connection
         /// Sends response to ping requests if set to true.
         /// </summary>
         public const string SUPPORT_PING = "suppport.ping";
+        /// <summary>
+        /// Sends response to ping requests if set to true.
+        /// </summary>
+        public const string SUPPORT_NESTED_GROUPS = "suppport.nested_groups";
+        /// <summary>
+        /// Sends response to ping requests if set to true.
+        /// </summary>
+        public const string NESTED_GROUPS_DEFAULT_DELIMITER = "nested_groups.default_delimiter";
+        /// <summary>
+        /// Sends response to ping requests if set to true.
+        /// </summary>
+        public const string AUTO_STORE_NESTED_GROUPS_DELIMITER = "auto.nested_groups_delimiter";
 
         /// <summary>
         /// Contains the certificate for our side of the SSL/TLS negotiation.
@@ -222,6 +236,9 @@ namespace Jabber.Connection
         private static readonly object[][] DEFAULTS = new object[][] {
             new object[] {Options.ANONYMOUS, false}, // FF
             new object[] {Options.SUPPORT_PING, true},
+            new object[] {Options.SUPPORT_NESTED_GROUPS, false},
+            new object[] {Options.NESTED_GROUPS_DEFAULT_DELIMITER, "::"},
+            new object[] {Options.AUTO_STORE_NESTED_GROUPS_DELIMITER, false},
             new object[] {Options.TO, "jabber.com"},
             new object[] {Options.KEEP_ALIVE, 30000},
             new object[] {Options.CURRENT_KEEP_ALIVE, -1},
@@ -642,8 +659,7 @@ namespace Jabber.Connection
         /// <param name="filename">A .pfx or .cer file.</param>
         /// <param name="password">The password, if this is a .pfx
         /// file, null if .cer file.</param>
-        public void SetCertificateFile(string filename,
-                                       string password)
+        public void SetCertificateFile(string filename, string password)
         {
             this[Options.LOCAL_CERTIFICATE] = new X509Certificate2(filename, password);
         }
@@ -903,6 +919,49 @@ namespace Jabber.Connection
         }
 
         /// <summary>
+        /// If true, the jabber client will try to get the server roster:delimiter before retrieving roster or will use the default delimiter
+        /// </summary>
+        [Description("If true, the jabber client will try to get the server roster:delimiter before retrieving roster or use the default one")]
+        [DefaultValue(false)]
+        [Category("Automation")]
+        public Boolean SupportNestedGroups
+        {
+            get { return (bool)this[Options.SUPPORT_NESTED_GROUPS]; }
+            set { this[Options.SUPPORT_NESTED_GROUPS] = value; }
+        }
+
+        /// <summary>
+        /// Used as a fallback value for roster group delimiter when the server does not return one or fails returning one
+        /// </summary>
+        [Description("Will be used by the roster manager as a fallback value for group delimiter if the server does return one or failed returning one")]
+        [DefaultValue("::")]
+        [Category("Automation")]
+        public String NestedGroupDefaultDelimiter
+        {
+            get { return (String)this[Options.NESTED_GROUPS_DEFAULT_DELIMITER]; }
+            set { this[Options.NESTED_GROUPS_DEFAULT_DELIMITER] = value; }
+        }
+
+        /// <summary>
+        /// Automatically stores default delimiter if none is already stored
+        /// </summary>
+        [Description("Automatically stores default delimiter if none is already stored.")]
+        [DefaultValue(false)]
+        [Category("Automation")]
+        public bool AutoStoreNestedGroupsDelimiter
+        {
+            get { return (bool)this[Options.AUTO_STORE_NESTED_GROUPS_DELIMITER]; }
+            set { this[Options.AUTO_STORE_NESTED_GROUPS_DELIMITER] = value; }
+        }
+
+        /// <summary>
+        /// Contains the roster group delimiter returned by the server of the default delimiter
+        /// </summary>
+        [Browsable(false)]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public String NestedGroupDelimiter { get; protected set; }
+
+        /// <summary>
         /// Writes just the start tag of the given XML element.
         /// Typically only used for &lt;stream:stream&gt;.
         /// </summary>
@@ -996,13 +1055,12 @@ namespace Jabber.Connection
             bool doClose = false;
             bool doStream = false;
 
-
             lock (StateLock)
             {
                 // if close is called, never try to reconnect.
                 m_reconnect = false;
 
-                if ((State == RunningState.Instance) && (clean))
+                if (State == RunningState.Instance && clean)
                 {
                     doStream = true;
                 }
@@ -1013,8 +1071,9 @@ namespace Jabber.Connection
                 }
             }
 
-            if ((m_stanzas != null) && m_stanzas.Connected && doClose)
+            if (m_stanzas != null && m_stanzas.Connected && doClose)
             {
+                this.NestedGroupDelimiter = null;
                 m_stanzas.Close(doStream);
             }
             else

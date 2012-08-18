@@ -15,6 +15,7 @@ This project is based on [ffailla-jabber-net] VS2010 fork of the original [jabbe
 
 ## XMPP Additions
 
+* [XEP-0083]: Nested Roster Groups
 * [XEP-0199]: XMPP Ping 
 * [XEP-0166]: Jingle coupled to a Jingle Manager for session management only
 * [XEP-0176]: Jingle ICE-UDP Transport Method
@@ -42,6 +43,7 @@ If you need a STUN/TURN server, I currently use [turnserver] to develop STUN/TUR
 * Specific Mono compiler directives remains in place for people needing it
 * Project using the original ones won't be compatible with this project mainly because of the namespace refactoring
 
+[XEP-0083]: http://xmpp.org/extensions/xep-0083.html
 [XEP-0199]: http://xmpp.org/extensions/xep-0199.html
 [XEP-0166]: http://xmpp.org/extensions/xep-0166.html
 [XEP-0176]: http://xmpp.org/extensions/xep-0176.html

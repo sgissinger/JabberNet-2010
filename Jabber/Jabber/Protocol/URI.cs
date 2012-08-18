@@ -287,6 +287,11 @@ namespace Jabber.Protocol
         /// See XEP-0049 (http://www.xmpp.org/extensions/xep-0049.html)
         /// </summary>
         public const string PRIVATE = "jabber:iq:private";
+        /// <summary>
+        /// Roster delimiter for nested group support
+        /// See XEP-0083 (http://www.xmpp.org/extensions/xep-0083.html)
+        /// </summary>
+        public const string ROSTER_DELIMITER = "roster:delimiter";
         #endregion
     }
 }

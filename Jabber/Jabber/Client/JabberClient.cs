@@ -270,8 +270,7 @@ namespace Jabber.Client
         /// Gets or sets the connecting resource.
         /// Used to identify a unique connection.
         /// </summary>
-        [Description("Gets or sets the connecting resource.  " +
-             "Used to identify a unique connection.")]
+        [Description("Gets or sets the connecting resource. Used to identify a unique connection.")]
         [DefaultValue("Jabber.Net")]
         [Category("Jabber")]
         public string Resource
@@ -300,13 +299,14 @@ namespace Jabber.Client
             set
             {
                 base.IsAuthenticated = value;
+
                 if (value)
                 {
                     if (AutoRoster)
                         GetRoster();
+
                     if (AutoPresence)
-                        Presence(PresenceType.available,
-                            "online", null, Priority);
+                        Presence(PresenceType.available, String.Empty, "available", this.Priority);
                 }
             }
         }
@@ -410,10 +410,7 @@ namespace Jabber.Client
         /// <param name="priority">Prioritizes this connection.
         /// Higher number mean higher priority. 0 minumum, 127 max.
         /// -1 means this is a presence-only connection.</param>
-        public void Presence(PresenceType t,
-            string status,
-            string show,
-            int priority)
+        public void Presence(PresenceType t, string status, string show, int priority)
         {
             if (IsAuthenticated)
             {
@@ -451,9 +448,7 @@ namespace Jabber.Client
         /// <param name="t">The type of message.</param>
         /// <param name="to">The JID to send the message to.</param>
         /// <param name="body">The body of the message.</param>
-        public void Message(MessageType t,
-            string to,
-            string body)
+        public void Message(MessageType t, string to, string body)
         {
             if (IsAuthenticated)
             {
@@ -474,9 +469,7 @@ namespace Jabber.Client
         /// </summary>
         /// <param name="to">The JID to send the message to.</param>
         /// <param name="body">The body of the message.</param>
-        public void Message(
-            string to,
-            string body)
+        public void Message(string to, string body)
         {
             Message(MessageType.chat, to, body);
         }
@@ -488,9 +481,22 @@ namespace Jabber.Client
         {
             if (IsAuthenticated)
             {
-                RosterIQ riq = new RosterIQ(Document);
-                riq.Type = IQType.get;
-                Write(riq);
+                if (this.SupportNestedGroups && String.IsNullOrEmpty(this.NestedGroupDelimiter))
+                {
+                    PrivateIQ privIq = new PrivateIQ(new XmlDocument());
+
+                    RosterDelimiter rosterDelim = new RosterDelimiter(privIq.OwnerDocument);
+                    privIq.Instruction.AddChild(rosterDelim);
+
+                    this.Write(privIq);
+                }
+                else
+                {
+                    RosterIQ riq = new RosterIQ(Document);
+                    riq.Type = IQType.get;
+
+                    this.Write(riq);
+                }
             }
             else
             {
@@ -818,6 +824,38 @@ namespace Jabber.Client
                 iq.Query.NamespaceURI == Jabber.Protocol.URI.PING)
             {
                 Write(iq.GetAcknowledge(this.Document));
+            }
+
+            if (this.SupportNestedGroups && !iq.Handled &&
+                iq.Query != null && iq.Type == IQType.result &&
+                iq.Query.NamespaceURI == Jabber.Protocol.URI.PRIVATE &&
+                iq.GetChildElement<Private>().GetChildElement<RosterDelimiter>() != null)
+            {
+                RosterDelimiter rosterDelimiter = iq.GetChildElement<Private>().GetChildElement<RosterDelimiter>();
+
+                if (String.IsNullOrEmpty(rosterDelimiter.InnerText))
+                {
+                    this.NestedGroupDelimiter = this.NestedGroupDefaultDelimiter;
+
+                    if (this.AutoStoreNestedGroupsDelimiter)
+                    {
+                        PrivateIQ privIq = new PrivateIQ(new XmlDocument());
+
+                        RosterDelimiter rosterDelim = new RosterDelimiter(privIq.OwnerDocument);
+                        rosterDelim.InnerText = this.NestedGroupDelimiter;
+                        privIq.Instruction.AddChild(rosterDelim);
+                        privIq.Type = IQType.set;
+
+                        this.Write(privIq);
+                    }
+
+                }
+                else
+                {
+                    this.NestedGroupDelimiter = rosterDelimiter.InnerText;
+                }
+
+                this.GetRoster();
             }
 
             if (AutoIQErrors)

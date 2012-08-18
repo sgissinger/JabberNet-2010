@@ -39,6 +39,7 @@ namespace Jabber.Protocol.IQ
             new QnameType("geoloc",URI.GEOLOC,   typeof(Jabber.Protocol.IQ.GeoLoc)),
 
             new QnameType("query",      URI.PRIVATE,   typeof(Jabber.Protocol.IQ.Private)),
+            new QnameType("roster",     URI.ROSTER_DELIMITER,   typeof(Jabber.Protocol.IQ.RosterDelimiter)),
             new QnameType("storage",    URI.BOOKMARKS, typeof(Jabber.Protocol.IQ.Bookmarks)),
             new QnameType("url",        URI.BOOKMARKS, typeof(Jabber.Protocol.IQ.BookmarkURL)),
             new QnameType("conference", URI.BOOKMARKS, typeof(Jabber.Protocol.IQ.BookmarkConference)),

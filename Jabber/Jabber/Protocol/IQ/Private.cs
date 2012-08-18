@@ -28,8 +28,7 @@ namespace Jabber.Protocol.IQ
         /// </summary>
         /// <param name="doc"></param>
         public PrivateIQ(XmlDocument doc) : base(doc)
-        {
-        }
+        { }
     }
 
     /// <summary>
@@ -44,8 +43,7 @@ namespace Jabber.Protocol.IQ
         /// <param name="doc"></param>
         public Private(XmlDocument doc) : 
             base("query", URI.PRIVATE, doc)
-        {
-        }
+        { }
 
         /// <summary>
         /// Create for inbound
@@ -55,7 +53,31 @@ namespace Jabber.Protocol.IQ
         /// <param name="doc"></param>
         public Private(string prefix, XmlQualifiedName qname, XmlDocument doc) :
             base(prefix, qname, doc)
-        {
-        }
+        { }
+    }
+
+    /// <summary>
+    /// Roster delimiter query.
+    /// See XEP-0083 (http://www.xmpp.org/extensions/xep-0083.html)
+    /// </summary>
+    public class RosterDelimiter : Element
+    {
+        /// <summary>
+        /// Create for outbound.
+        /// </summary>
+        /// <param name="doc"></param>
+        public RosterDelimiter(XmlDocument doc)
+            : base("roster", URI.ROSTER_DELIMITER, doc)
+        { }
+
+        /// <summary>
+        /// Create for inbound
+        /// </summary>
+        /// <param name="prefix"></param>
+        /// <param name="qname"></param>
+        /// <param name="doc"></param>
+        public RosterDelimiter(string prefix, XmlQualifiedName qname, XmlDocument doc)
+            : base(prefix, qname, doc)
+        { }
     }
 }

@@ -13,10 +13,12 @@
  * --------------------------------------------------------------------------*/
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.Design;
 using System.Drawing;
 using System.Globalization;
+using System.Text;
 using System.Windows.Forms;
 using Bedrock.Collections;
 using Jabber;
@@ -35,7 +37,7 @@ namespace Muzzle.Controls
     {
         // image list offsets
         private const int OFFLINE = 0;
-        private const int ONLINE = 1;
+        private const int AVAILABLE = 1;
         private const int AWAY = 2;
         private const int XA = 3;
         private const int DND = 4;
@@ -137,7 +139,8 @@ namespace Muzzle.Controls
 
             Point pt = this.PointToClient(new Point(e.X, e.Y));
             TreeNode node = this.GetNodeAt(pt);
-            while (!(node is GroupNode) && (node != null))
+
+            while (!(node is GroupNode) && node != null)
             {
                 node = node.Parent;
             }
@@ -145,14 +148,16 @@ namespace Muzzle.Controls
                 return null;
 
             ItemNode item = e.Data.GetData(typeof(ItemNode)) as ItemNode;
+
             if (item.Parent == node)
                 return null;
+
             return (GroupNode)node;
         }
 
         private void RosterTree_DragDrop(object sender, DragEventArgs e)
         {
-            GroupNode group = GetDropGroup(e);
+            GroupNode group = this.GetDropGroup(e);
 
             if (group == null)
                 return;
@@ -160,10 +165,14 @@ namespace Muzzle.Controls
             ItemNode item = e.Data.GetData(typeof(ItemNode)) as ItemNode;
             GroupNode parent = (GroupNode)item.Parent;
             Item i = (Item)item.Item.CloneNode(true, m_client.Document);
-            i.RemoveGroup(parent.GroupName);
 
-            if(group.GroupName != this.Unfiled)
-                i.AddGroup(group.GroupName);
+            String parentGroupName = this.Client.SupportNestedGroups ? parent.FullPath : parent.GroupName;
+            i.RemoveGroup(parentGroupName);
+
+            String groupName = this.Client.SupportNestedGroups ? group.FullPath : group.GroupName;
+
+            if (groupName != this.Unfiled)
+                i.AddGroup(groupName);
 
             m_roster.Modify(i);
         }
@@ -171,7 +180,7 @@ namespace Muzzle.Controls
 
         private void RosterTree_DragOver(object sender, DragEventArgs e)
         {
-            if (GetDropGroup(e) == null)
+            if (this.GetDropGroup(e) == null)
                 e.Effect = DragDropEffects.None;
             else
                 e.Effect = DragDropEffects.Move;
@@ -220,7 +229,7 @@ namespace Muzzle.Controls
         /// </summary>
         [Category("Managers")]
         [DefaultValue("Unfiled")]
-        [Description("The name of the default group when items do not have one")]
+        [Description("The name of the default group when roster items are not in any group")]
         public String Unfiled { get; set; }
 
         /// <summary>
@@ -232,7 +241,7 @@ namespace Muzzle.Controls
             get
             {
                 // If we are running in the designer, let's try to auto-hook a RosterManager
-                if ((m_roster == null) && DesignMode)
+                if (m_roster == null && DesignMode)
                 {
                     IDesignerHost host = (IDesignerHost)base.GetService(typeof(IDesignerHost));
                     this.RosterManager = (RosterManager)Jabber.Connection.StreamComponent.GetComponentFromHost(host, typeof(RosterManager));
@@ -312,7 +321,7 @@ namespace Muzzle.Controls
         }
 
         /// <summary>
-        /// Color to draw status text with.  Not applicable until .Net 2.0.
+        /// Color to draw status text with. Not applicable until .Net 2.0.
         /// </summary>
         [Category("Appearance")]
         public Color StatusColor
@@ -322,7 +331,7 @@ namespace Muzzle.Controls
         }
 
         /// <summary>
-        /// Should we draw status text next to each roster item?  Not applicable until .Net 2.0.
+        /// Should we draw status text next to each roster item? Not applicable until .Net 2.0.
         /// </summary>
         [Category("Appearance")]
         [DefaultValue(true)]
@@ -362,7 +371,8 @@ namespace Muzzle.Controls
         {
             Group g = new Group(m_client.Document);
             g.GroupName = groupName;
-            return AddGroupNode(g);
+
+            return this.AddGroupNode(g);
         }
 
         /// <summary>
@@ -387,11 +397,10 @@ namespace Muzzle.Controls
         /// <returns></returns>
         private Boolean ExcludeRosterItem(Item ri)
         {
-            Boolean isPresent = this.PresenceManager.IsAvailable(ri.JID);
-            Boolean bob = this.ShowOnlyAvailable && !isPresent;
+            Boolean isAvailable = this.PresenceManager.IsAvailable(ri.JID);
 
             if (String.IsNullOrEmpty(this.Filter))
-                return bob;
+                return this.ShowOnlyAvailable && !isAvailable;
 
             Boolean excludeItem = true;
             String filter = this.Filter.ToLower(CultureInfo.CurrentCulture);
@@ -417,16 +426,50 @@ namespace Muzzle.Controls
             }
 
             if (!excludeItem)
-                return this.ShowOnlyAvailable && !isPresent;
+                return this.ShowOnlyAvailable && !isAvailable;
 
             return excludeItem;
         }
 
+        /// <summary>
+        /// TODO: Documentation RemoveItemNode
+        /// </summary>
+        /// <param name="itemNode"></param>
+        private void RemoveItemNode(ItemNode itemNode)
+        {
+            GroupNode groupNode = itemNode.Parent as GroupNode;
+            itemNode.Remove();
+
+            this.RemoveGroupNode(groupNode);
+        }
+
+        /// <summary>
+        /// TODO: Documentation RemoveGroupNode
+        /// </summary>
+        /// <param name="groupNode"></param>
+        private void RemoveGroupNode(GroupNode groupNode)
+        {
+            if (groupNode != null && groupNode.Nodes.Count == 0)
+            {
+                m_groups.Remove(groupNode.FullPath);
+
+                GroupNode groupNodeParent = groupNode.Parent as GroupNode;
+                groupNode.Remove();
+
+                this.RemoveGroupNode(groupNodeParent);
+            }
+        }
+
+        /// <summary>
+        /// TODO: Documentation ProcessRosterItem
+        /// </summary>
+        /// <param name="ri"></param>
         private void ProcessRosterItem(Item ri)
         {
-            bool remove = (ri.Subscription == Subscription.remove);
+            bool remove = ri.Subscription == Subscription.remove;
 
             LinkedList nodelist = (LinkedList)m_items[ri.JID.ToString()];
+
             if (nodelist == null)
             {
                 // First time through.
@@ -438,18 +481,13 @@ namespace Muzzle.Controls
             }
             else
             {
-                // update to an existing item.  remove all of them, and start over.
+                // update to an existing item. remove all of them, and start over.
                 foreach (ItemNode i in nodelist)
                 {
-                    GroupNode gn = i.Parent as GroupNode;
-                    i.Remove();
-                    if ((gn != null) && (gn.Nodes.Count == 0))
-                    {
-                        m_groups.Remove(gn.GroupName);
-                        gn.Remove();
-                    }
+                    this.RemoveItemNode(i);
                 }
                 nodelist.Clear();
+
                 if (remove)
                     m_items.Remove(ri.JID.ToString());
             }
@@ -463,6 +501,7 @@ namespace Muzzle.Controls
             // add the new ones back
             Hashtable ghash = new Hashtable();
             Group[] groups = ri.GetGroups();
+
             for (int i = groups.Length - 1; i >= 0; i--)
             {
                 if (String.IsNullOrEmpty(groups[i].GroupName))
@@ -477,10 +516,11 @@ namespace Muzzle.Controls
 
             foreach (Group g in groups)
             {
-                GroupNode gn = AddGroupNode(g);
+                GroupNode gn = this.AddGroupNode(g);
                 // might have the same group twice.
                 if (ghash.Contains(g.GroupName))
                     continue;
+
                 ghash.Add(g.GroupName, g);
 
                 ItemNode i = new ItemNode(ri);
@@ -553,18 +593,107 @@ namespace Muzzle.Controls
 
         private GroupNode AddGroupNode(Group g)
         {
-            GroupNode gn = (GroupNode)m_groups[g.GroupName];
-            if (gn == null)
+            GroupNode gn = null;
+
+            if (this.Client.SupportNestedGroups)
             {
-                gn = new GroupNode(g);
-                m_groups.Add(g.GroupName, gn);
-                this.Nodes.Add(gn);
+                String[] groups = g.GroupName.Split(new String[] { this.Client.NestedGroupDelimiter },
+                                                    StringSplitOptions.RemoveEmptyEntries);
+
+                String[] nestedGroupList = this.ConstructNestedGroupList(groups);
+                String parent = null;
+                Int32 baseNameCounter = 0;
+
+                foreach (String nestedGroup in nestedGroupList)
+                {
+                    gn = (GroupNode)m_groups[nestedGroup];
+
+                    if (gn == null)
+                    {
+                        gn = new GroupNode(groups[baseNameCounter]);
+                        m_groups.Add(nestedGroup, gn);
+
+                        if (!String.IsNullOrEmpty(parent))
+                        {
+                            TreeNode tn = this.FindTreeViewNodeWithPath(this.Nodes, parent);
+                            tn.Nodes.Add(gn);
+                        }
+                        else
+                            this.Nodes.Add(gn);
+                    }
+
+                    parent = nestedGroup;
+                    baseNameCounter++;
+                }
+            }
+            else
+            {
+                gn = (GroupNode)m_groups[g.GroupName];
+
+                if (gn == null)
+                {
+                    gn = new GroupNode(g.GroupName);
+                    m_groups.Add(g.GroupName, gn);
+                    this.Nodes.Add(gn);
+                }
             }
             return gn;
         }
 
+        /// <summary>
+        /// TODO: Documentation FindTreeViewNodeWithPath
+        /// </summary>
+        /// <param name="nodes"></param>
+        /// <param name="fullPath"></param>
+        /// <returns></returns>
+        private TreeNode FindTreeViewNodeWithPath(TreeNodeCollection nodes, String fullPath)
+        {
+            foreach (TreeNode node in nodes)
+            {
+                if (fullPath.Equals(node.FullPath))
+                    return node;
+
+                TreeNode candidate = this.FindTreeViewNodeWithPath(node.Nodes, fullPath);
+
+                if (candidate != null)
+                    return candidate;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// TODO; Documentation ConstructNestedGroupList
+        /// </summary>
+        /// <param name="groups"></param>
+        /// <returns></returns>
+        private String[] ConstructNestedGroupList(String[] groups)
+        {
+            List<String> result = new List<String>();
+            String tmp = String.Empty;
+
+            foreach (String group in groups)
+            {
+                StringBuilder sb = new StringBuilder();
+
+                sb.Append(tmp);
+                sb.Append(group);
+
+                result.Add(sb.ToString());
+
+                sb.Append(this.Client.NestedGroupDelimiter);
+
+                tmp = sb.ToString();
+            }
+
+            return result.ToArray();
+        }
+
         private void m_roster_OnRosterBegin(object sender)
         {
+            if (this.Client.SupportNestedGroups)
+                this.PathSeparator = this.Client.NestedGroupDelimiter;
+
             this.BeginUpdate();
         }
 
@@ -605,16 +734,16 @@ namespace Muzzle.Controls
         /// </summary>
         public class GroupNode : TreeNode
         {
-            private Jabber.Protocol.IQ.Group m_group;
+            private String groupName;
 
             /// <summary>
             /// Create a GroupNode
             /// </summary>
             /// <param name="rg"></param>
-            public GroupNode(Group rg)
-                : base(rg.GroupName, COLLAPSED, COLLAPSED)
+            public GroupNode(String groupName)
+                : base(groupName, COLLAPSED, COLLAPSED)
             {
-                m_group = rg;
+                this.groupName = groupName;
             }
 
             /// <summary>
@@ -622,7 +751,7 @@ namespace Muzzle.Controls
             /// </summary>
             public string GroupName
             {
-                get { return m_group.GroupName; }
+                get { return groupName; }
             }
 
             /// <summary>
@@ -631,25 +760,52 @@ namespace Muzzle.Controls
             public int Total
             {
                 // TODO: what if we're not showing offline?
-                get { return this.Nodes.Count; }
+                get { return this.GetTotalNodes(this.Nodes); }
             }
 
             /// <summary>
             /// Current number of online members of the group
             /// </summary>
-            public int Current
+            public Int32 Current
             {
                 get
                 {
-                    int count = 0;
+                    Int32 count = 0;
 
-                    foreach (ItemNode i in this.Nodes)
+                    foreach (TreeNode i in this.Nodes)
                     {
-                        if (i.ImageIndex != OFFLINE)
-                            count++;
+                        if (i as ItemNode != null)
+                        {
+                            if (i.ImageIndex != OFFLINE)
+                                count++;
+                        }
+                        else
+                        {
+                            count += (i as GroupNode).Current;
+                        }
                     }
                     return count;
                 }
+            }
+
+            /// <summary>
+            /// TODO: Documentation GetTotalNodes
+            /// </summary>
+            /// <param name="nodes"></param>
+            /// <returns></returns>
+            private Int32 GetTotalNodes(TreeNodeCollection nodes)
+            {
+                Int32 allNodes = nodes.Count;
+
+                foreach (TreeNode node in nodes)
+                {
+                    allNodes += this.GetTotalNodes(node.Nodes);
+
+                    if (node as GroupNode != null)
+                        allNodes--;
+                }
+
+                return allNodes;
             }
         }
 
@@ -749,7 +905,8 @@ namespace Muzzle.Controls
                 {
                     case null:
                     case "":
-                        return ONLINE;
+                    case "available":
+                        return AVAILABLE;
                     case "away":
                         return AWAY;
                     case "xa":
