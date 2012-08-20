@@ -306,7 +306,7 @@ namespace Jabber.Client
                         GetRoster();
 
                     if (AutoPresence)
-                        Presence(PresenceType.available, String.Empty, "available", this.Priority);
+                        Presence(PresenceType.available, String.Empty, null, this.Priority);
                 }
             }
         }
