@@ -166,13 +166,13 @@ namespace Jabber.Stun
 
                     client = new TcpClient();
                     client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, 1);
-
+                    
                     if (this.HostEP != null)
                         client.Client.Bind(this.HostEP);
 
                     IAsyncResult result = client.Client.BeginConnect(peerEP.Address, peerEP.Port, null, null);
 
-                    result.AsyncWaitHandle.WaitOne(2000, true);
+                    result.AsyncWaitHandle.WaitOne(5000, true);
 
                     if (nbTries == 3 || client.Client.Connected)
                     {

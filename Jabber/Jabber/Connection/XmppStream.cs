@@ -923,7 +923,7 @@ namespace Jabber.Connection
         /// </summary>
         [Description("If true, the jabber client will try to get the server roster:delimiter before retrieving roster or use the default one")]
         [DefaultValue(false)]
-        [Category("Automation")]
+        [Category("Nested Groups")]
         public Boolean SupportNestedGroups
         {
             get { return (bool)this[Options.SUPPORT_NESTED_GROUPS]; }
@@ -935,7 +935,7 @@ namespace Jabber.Connection
         /// </summary>
         [Description("Will be used by the roster manager as a fallback value for group delimiter if the server does return one or failed returning one")]
         [DefaultValue("::")]
-        [Category("Automation")]
+        [Category("Nested Groups")]
         public String NestedGroupDefaultDelimiter
         {
             get { return (String)this[Options.NESTED_GROUPS_DEFAULT_DELIMITER]; }
@@ -947,7 +947,7 @@ namespace Jabber.Connection
         /// </summary>
         [Description("Automatically stores default delimiter if none is already stored.")]
         [DefaultValue(false)]
-        [Category("Automation")]
+        [Category("Nested Groups")]
         public bool AutoStoreNestedGroupsDelimiter
         {
             get { return (bool)this[Options.AUTO_STORE_NESTED_GROUPS_DELIMITER]; }

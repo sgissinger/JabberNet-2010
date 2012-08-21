@@ -237,10 +237,7 @@ namespace Jabber.Stun
             else
                 this.SocketType = SocketType.Dgram;
 
-
             this.Socket = new Socket(this.ServerEP.AddressFamily, this.SocketType, this.ProtocolType);
-            this.Socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, 1);
-
 
             if (this.HostEP != null)
                 this.Socket.Bind(this.HostEP);

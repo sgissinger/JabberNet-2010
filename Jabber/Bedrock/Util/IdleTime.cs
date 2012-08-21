@@ -59,16 +59,24 @@ namespace Bedrock.Util
         public event SpanEventHandler OnIdle;
 
         /// <summary>
+        /// Fired when user has been idle (mouse, keyboard) for the configured number of seconds.
+        /// </summary>
+        public event SpanEventHandler OnExtendedIdle;
+
+        /// <summary>
         /// Fired when the user comes back.
         /// </summary>
         public event SpanEventHandler OnUnIdle;
 
         private const double DEFAULT_POLL = 5;      // 5s in s.
         private const double DEFAULT_IDLE = 5 * 60; // 5m in s.
+        private const double DEFAULT_EXTENDED_IDLE = 15 * 60; // 15m in s.
 
         private System.Timers.Timer m_timer = null;
         private double m_notifySecs = DEFAULT_IDLE;
+        private double m_notifyExtendedSecs = DEFAULT_EXTENDED_IDLE;
         private bool m_idle = false;
+        private bool m_extendedIdle = false;
         private DateTime m_idleStart = DateTime.MinValue;
         private ISynchronizeInvoke m_invoker = null;
 
@@ -132,6 +140,17 @@ namespace Bedrock.Util
         }
 
         /// <summary>
+        /// The amount of time (in seconds) the computer can be idle before OnExtendedIdle is fired.
+        /// </summary>
+        [Category("Time")]
+        [DefaultValue(DEFAULT_EXTENDED_IDLE)]
+        public double IdleExtendedLength
+        {
+            get { return m_notifyExtendedSecs; }
+            set { m_notifyExtendedSecs = value; }
+        }
+
+        /// <summary>
         /// Are we currently idle?
         /// </summary>
         [Category("Logic")]
@@ -153,7 +172,7 @@ namespace Bedrock.Util
                 // If we are running in the designer, let's try to get
                 // an invoke control from the environment.  VB
                 // programmers can't seem to follow directions.
-                if ((this.m_invoker == null) && DesignMode)
+                if (this.m_invoker == null && this.DesignMode)
                 {
                     IDesignerHost host = (IDesignerHost)base.GetService(typeof(IDesignerHost));
                     if (host != null)
@@ -175,24 +194,32 @@ namespace Bedrock.Util
 
         private void m_timer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
-            double idle = GetIdleTime();
+            double idle = IdleTime.GetIdleTime();
+
             if (m_idle)
             {
-                if (idle < PollInterval)
+                if (idle < this.PollInterval)
                 {
                     m_idle = false;
-                    if (OnUnIdle != null)
+
+                    if (this.OnUnIdle != null)
                     {
                         TimeSpan span = DateTime.Now - m_idleStart;
-                        if ((m_invoker != null) &&
-                            (m_invoker.InvokeRequired))
+
+                        if (m_invoker != null && m_invoker.InvokeRequired)
                         {
-                            m_invoker.Invoke(OnUnIdle, new object[] { this, span });
+                            m_invoker.Invoke(this.OnUnIdle, new object[] { this, span });
                         }
                         else
-                            OnUnIdle(this, span);
+                            this.OnUnIdle(this, span);
                     }
                     m_idleStart = DateTime.MinValue;
+                }
+                else if (idle > m_notifyExtendedSecs && !m_extendedIdle)
+                {
+                    m_extendedIdle = true;
+
+                    this.Idle(idle, this.OnExtendedIdle);
                 }
             }
             else
@@ -201,18 +228,24 @@ namespace Bedrock.Util
                 {
                     m_idle = true;
                     m_idleStart = DateTime.Now;
-                    if (OnIdle != null)
-                    {
-                        TimeSpan span = new TimeSpan((long)(idle * 1000L));
-                        if ((m_invoker != null) &&
-                            (m_invoker.InvokeRequired))
-                        {
-                            m_invoker.Invoke(OnIdle, new object[] { this, span });
-                        }
-                        else
-                            OnIdle(this, span);
-                    }
+
+                    this.Idle(idle, this.OnIdle);
                 }
+            }
+        }
+
+        private void Idle(double idle, SpanEventHandler spanEvent)
+        {
+            if (spanEvent != null)
+            {
+                TimeSpan span = new TimeSpan((long)(idle * 1000L));
+
+                if (m_invoker != null && m_invoker.InvokeRequired)
+                {
+                    m_invoker.Invoke(spanEvent, new object[] { this, span });
+                }
+                else
+                    spanEvent(this, span);
             }
         }
     }
