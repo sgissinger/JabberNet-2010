@@ -256,6 +256,9 @@ namespace Muzzle.Controls
         /// </summary>
         public RosterTree()
         {
+            // Enable default double buffering processing (DoubleBuffered returns true)
+            this.SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint, true);
+
             InitializeComponent();
         }
    

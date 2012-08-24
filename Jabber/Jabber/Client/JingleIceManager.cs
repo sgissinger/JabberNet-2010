@@ -263,6 +263,25 @@ namespace Jabber.Client
         }
 
         /// <summary>
+        /// TODO: Documentation AbortInitiateSession
+        /// </summary>
+        public void AbortInitiateSession()
+        {
+            if (this.TurnSupported)
+            {
+                this.DestroyTurnSession(this.StartingSessionSid);
+            }
+            else
+            {
+                throw new NotSupportedException();
+            }
+
+            this.StartingSessionRecipient = null;
+            this.StartingSessionSid = null;
+            this.StartingSessionAction = ActionType.UNSPECIFIED;
+        }
+
+        /// <summary>
         /// TODO: Documentation jingleManager_OnReceivedSessionInitiate
         /// </summary>
         /// <param name="sender"></param>

@@ -116,6 +116,7 @@
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
     <OutputPath>bin\Release\</OutputPath>
     <DocumentationFile />
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup>
     <AssemblyName>JabberNet</AssemblyName>
@@ -141,6 +142,12 @@
     </Compile>
     <Compile Include="Jabber\Client\BookmarkManager.Designer.cs">
       <DependentUpon>BookmarkManager.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Jabber\Client\PingManager.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="Jabber\Client\PingManager.Designer.cs">
+      <DependentUpon>PingManager.cs</DependentUpon>
     </Compile>
     <Compile Include="Jabber\Client\JabberClient.Designer.cs">
       <DependentUpon>JabberClient.cs</DependentUpon>
@@ -624,6 +631,9 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Jabber\Client\JingleIceManager.bmp" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Jabber\Client\PingManager.bmp" />
   </ItemGroup>
   <Import Condition="'$(BuildMono)'==''" Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>

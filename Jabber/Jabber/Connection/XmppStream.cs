@@ -154,10 +154,6 @@ namespace Jabber.Connection
         /// <summary>
         /// Sends response to ping requests if set to true.
         /// </summary>
-        public const string SUPPORT_PING = "suppport.ping";
-        /// <summary>
-        /// Sends response to ping requests if set to true.
-        /// </summary>
         public const string SUPPORT_NESTED_GROUPS = "suppport.nested_groups";
         /// <summary>
         /// Sends response to ping requests if set to true.
@@ -231,11 +227,10 @@ namespace Jabber.Connection
     /// <summary>
     /// Manages the XMPP stream of the connection.
     /// </summary>
-    public abstract partial class XmppStream : System.ComponentModel.Component, IStanzaEventListener
+    public abstract partial class XmppStream : Component, IStanzaEventListener
     {
         private static readonly object[][] DEFAULTS = new object[][] {
             new object[] {Options.ANONYMOUS, false}, // FF
-            new object[] {Options.SUPPORT_PING, true},
             new object[] {Options.SUPPORT_NESTED_GROUPS, false},
             new object[] {Options.NESTED_GROUPS_DEFAULT_DELIMITER, "::"},
             new object[] {Options.AUTO_STORE_NESTED_GROUPS_DELIMITER, false},
@@ -904,18 +899,6 @@ namespace Jabber.Connection
         public string ServerVersion
         {
             get { return m_serverVersion; }
-        }
-
-        /// <summary>
-        /// Sends XMPP Ping response to XMPP Ping request if set to true.
-        /// </summary>
-        [Description("Automatically respond to XMPP Ping requests.")]
-        [DefaultValue(true)]
-        [Category("Automation")]
-        public bool SupportPing
-        {
-            get { return (bool)this[Options.SUPPORT_PING]; }
-            set { this[Options.SUPPORT_PING] = value; }
         }
 
         /// <summary>

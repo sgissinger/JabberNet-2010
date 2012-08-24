@@ -819,13 +819,6 @@ namespace Jabber.Client
             if (OnIQ != null)
                 OnIQ(this, iq);
 
-            if (this.SupportPing && !iq.Handled && 
-                iq.Query != null && iq.Type == IQType.get &&
-                iq.Query.NamespaceURI == Jabber.Protocol.URI.PING)
-            {
-                Write(iq.GetAcknowledge(this.Document));
-            }
-
             if (this.SupportNestedGroups && !iq.Handled &&
                 iq.Query != null && iq.Type == IQType.result &&
                 iq.Query.NamespaceURI == Jabber.Protocol.URI.PRIVATE &&
