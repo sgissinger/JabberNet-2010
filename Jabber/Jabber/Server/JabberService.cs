@@ -12,11 +12,8 @@
  * See LICENSE.txt for details.
  * --------------------------------------------------------------------------*/
 using System;
-
 using System.ComponentModel;
 using System.Xml;
-
-
 using Jabber.Connection;
 using Jabber.Protocol;
 using Jabber.Protocol.Accept;
@@ -268,16 +265,15 @@ namespace Jabber.Server
         /// <param name="elem">The stanza to write</param>
         public override void Write(XmlElement elem)
         {
-            if (State == RunningState.Instance)
+            if (State == RunningState.Instance &&
+                String.IsNullOrEmpty(elem.GetAttribute("from")))
             {
-                if (elem.GetAttribute("from") == "")
-                {
-                    JID from = this[Options.OVERRIDE_FROM] as JID;
-                    if (from == null)
-                        from = this.ComponentID;
+                JID from = this[Options.OVERRIDE_FROM] as JID;
 
-                    elem.SetAttribute("from", from);
-                }
+                if (from == null)
+                    from = this.ComponentID;
+
+                elem.SetAttribute("from", from);
             }
             base.Write(elem);
         }

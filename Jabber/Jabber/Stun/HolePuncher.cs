@@ -172,7 +172,7 @@ namespace Jabber.Stun
 
                     IAsyncResult result = client.Client.BeginConnect(peerEP.Address, peerEP.Port, null, null);
 
-                    result.AsyncWaitHandle.WaitOne(5000, true);
+                    result.AsyncWaitHandle.WaitOne(3000, true);
 
                     if (nbTries == 3 || client.Client.Connected)
                     {

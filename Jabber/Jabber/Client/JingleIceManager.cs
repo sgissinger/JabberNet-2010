@@ -430,8 +430,8 @@ namespace Jabber.Client
                 this.turnSessions[sid].TurnManager = null;
                 this.turnSessions[sid].TurnAllocation = null;
 
-                this.turnSessions.Remove(sid);
                 this.localCandidates.Remove(sid);
+                this.turnSessions.Remove(sid);
             }
         }
 

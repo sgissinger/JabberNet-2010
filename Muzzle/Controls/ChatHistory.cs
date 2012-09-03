@@ -56,7 +56,7 @@ namespace Muzzle.Controls
             if (body == null)
                 return;  // typing indicator, e.g.
 
-            string nick = (this.Nickname == null) ? msg.From.Resource : this.Nickname;
+            string nick = String.IsNullOrEmpty(this.Nickname) ? msg.From.Resource : this.Nickname;
 
             this.AppendMaybeScroll(m_recvColor, nick + ":", body);
         }

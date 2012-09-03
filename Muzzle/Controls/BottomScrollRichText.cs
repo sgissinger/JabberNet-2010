@@ -181,7 +181,7 @@ namespace Muzzle.Controls
         /// </summary>
         public void ClearAndScroll()
         {
-            this.Text = "";
+            this.Text = String.Empty;
             this.Select(0, 0);
             this.ScrollToCaret();
             m_bottom = true;
@@ -354,7 +354,7 @@ namespace Muzzle.Controls
                     rm += lines[i].Length + 1;
                 }
                 this.Select(0, rm);
-                this.SelectedText = "";
+                this.SelectedText = String.Empty;
                 this.ReadOnly = ro;
             }
 

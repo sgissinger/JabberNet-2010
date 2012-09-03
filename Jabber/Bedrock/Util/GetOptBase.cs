@@ -11,16 +11,17 @@
  * Jabber-Net is licensed under the LGPL.
  * See LICENSE.txt for details.
  * --------------------------------------------------------------------------*/
+using System;
+using System.Collections;
+using System.Diagnostics;
+using System.IO;
+using System.Reflection;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Windows.Forms;
+
 namespace Bedrock.Util
-
 {
-    using System;
-    using System.Collections;
-    using System.Diagnostics;
-    using System.Reflection;
-    using System.Text;
-    using System.Text.RegularExpressions;
-
     /// <summary>
     /// GetOpt should be subclassed to create a class that handles
     /// command-line parameters.  The subclass should use fields or properties
@@ -32,18 +33,16 @@ namespace Bedrock.Util
     /// </summary>
     public class GetOpt
     {
-        private object    m_obj   = null;
-        private string[]  m_args  = null;
-        private Hashtable m_flags =
-            new Hashtable(StringComparer.InvariantCultureIgnoreCase);
+        private Object m_obj = null;
+        private String[] m_args = null;
+        private Hashtable m_flags = new Hashtable(StringComparer.InvariantCultureIgnoreCase);
 
         // Regular expression to parse these:
         // /a
         // /a:foo
         // -a
         // -a:foo
-        private static readonly Regex FLAG_REGEX =
-            new Regex("[/-]([a-z0-9_]+)([:=](.*))?", RegexOptions.IgnoreCase);
+        private static readonly Regex FLAG_REGEX = new Regex("[/-]([a-z0-9_]+)([:=](.*))?", RegexOptions.IgnoreCase);
         /// <summary>
         /// Really only useful for subclasses, I think.
         /// </summary>
@@ -56,9 +55,9 @@ namespace Bedrock.Util
         /// Get ready to process command line parameters for the given target object.
         /// </summary>
         /// <param name="target">Object to set parameters on</param>
-        public GetOpt(object target)
+        public GetOpt(Object target)
         {
-            m_obj = (target == null) ? this : target;
+            m_obj = target == null ? this : target;
         }
         /// <summary>
         /// Process command line parameters for the given target object, with the
@@ -66,99 +65,102 @@ namespace Bedrock.Util
         /// </summary>
         /// <param name="target">Object to set parameters on</param>
         /// <param name="args">An array of arguments.  If null, use the environment's command line.</param>
-        public GetOpt(object target, string[] args) : this(target)
+        public GetOpt(Object target, String[] args)
+            : this(target)
         {
-            Process(args);
+            this.Process(args);
         }
         /// <summary>
         /// Subclass interface, processing immediately.
         /// </summary>
         /// <param name="args">An array of arguments.  If null, use the environment's command line.</param>
-        public GetOpt(string[] args) : this(null, args)
-        {
-        }
+        public GetOpt(String[] args)
+            : this(null, args)
+        { }
+
         /// <summary>
         /// Process the given command line parameters.
         /// </summary>
         /// <param name="args">An array of arguments.  If null, use the environment's command line.</param>
-        public void Process(string[] args)
+        public void Process(String[] args)
         {
-            int        i;
+            Int32 i;
             MemberInfo mi;
-            Match      rm;
-            Type       mit;
+            Match rm;
+            Type mit;
 
-            SetFlags();
+            this.SetFlags();
+
             if (args == null)
             {
-                string[] e = Environment.GetCommandLineArgs();
-                args = new string[e.Length - 1];
-                Array.Copy(e, 1, args, 0, e.Length-1);
+                String[] e = Environment.GetCommandLineArgs();
+
+                args = new String[e.Length - 1];
+                Array.Copy(e, 1, args, 0, e.Length - 1);
             }
 
-            for (i=0; i<args.Length; i++)
+            for (i = 0; i < args.Length; i++)
             {
                 rm = FLAG_REGEX.Match(args[i]);
+
                 if (!rm.Success)   // no more flags
-                {
                     break;
-                }
 
-                mi = (MemberInfo) m_flags[rm.Groups[1].ToString()];
+                mi = m_flags[rm.Groups[1].ToString()] as MemberInfo;
+
                 if (mi == null)
-                {
                     throw new ArgumentException("Invalid command-line argument", args[i]);
-                }
 
-                mit = GetMemberType(mi);
+                mit = GetOpt.GetMemberType(mi);
+
                 // methods return null types, for now.
                 // TODO: should this be moved to SetValue?
                 // Not sure what to do with bool params, then.
                 if (mit == null)
                 {
-                    string old_flag = args[i];
-                    MethodInfo meth = (MethodInfo) mi;
+                    String old_flag = args[i];
+                    MethodInfo meth = mi as MethodInfo;
                     ParameterInfo[] pi = meth.GetParameters();
-                    object[] parms = new object[pi.Length];
-                    for (int j=0; j<pi.Length; j++)
+                    Object[] parms = new Object[pi.Length];
+
+                    for (int j = 0; j < pi.Length; j++)
                     {
-                        if (i+1 >= args.Length)
-                        {
+                        if (i + 1 >= args.Length)
                             throw new IndexOutOfRangeException("Not enough parameters for: " + old_flag);
-                        }
-                        parms[j] = ConvertValue(args[++i], pi[j].ParameterType);
+
+                        parms[j] = this.ConvertValue(args[++i], pi[j].ParameterType);
                     }
 
                     meth.Invoke(m_obj, parms);
                 }
 
                 // bool flags act as toggles
-                else if (mit == typeof(bool))
+                else if (mit == typeof(Boolean))
                 {
-                    SetValue(mi, ! (bool) GetValue(mi));
+                    this.SetValue(mi, !(Boolean)this.GetValue(mi));
                 }
                 else
                 {
                     // use the value after the colon, if it exists
                     if (rm.Groups[3].Success)
                     {
-                        SetValue(mi, rm.Groups[3].ToString());
+                        this.SetValue(mi, rm.Groups[3].ToString());
                     }
                     else
                     {
-                        if (i+1 >= args.Length)
-                        {
+                        if (i + 1 >= args.Length)
                             throw new IndexOutOfRangeException("Not enough parameters for: " + args[i]);
-                        }
-                        SetValue(mi, args[++i]);
+
+                        this.SetValue(mi, args[++i]);
                     }
                 }
             }
             // copy the rest of the argument array (those after the flags)
             // into an array for later use.
-            m_args = new string[args.Length - i];
+            m_args = new String[args.Length - i];
             Array.Copy(args, i, m_args, 0, args.Length - i);
-            CheckRequired();
+
+            this.CheckRequired();
         }
         /// <summary>
         /// Look at myself, to see if there are any command line
@@ -168,21 +170,22 @@ namespace Bedrock.Util
         {
             if (m_flags.Count != 0)
                 return;
-            MemberInfo[] mis = GetCommandLineMembers();
+
+            MemberInfo[] mis = this.GetCommandLineMembers();
+
             foreach (MemberInfo mi in mis)
             {
-                CommandLineAttribute cla = GetOption(mi);
-                string cf = cla.CommandFlag;
+                CommandLineAttribute cla = this.GetOption(mi);
+                String cf = cla.CommandFlag;
+
                 // If no CommandFlag specified, use the member name.
                 if (cf == null)
-                {
                     cf = mi.Name;
-                }
+
                 // make sure required parameters are initialized to null.
-                if (cla.Required && (GetValue(mi) != null))
-                {
+                if (cla.Required && this.GetValue(mi) != null)
                     throw new ArgumentException("Must provide null initial value for required parameters: ", mi.Name);
-                }
+
                 m_flags[cf] = mi;
             }
         }
@@ -191,14 +194,14 @@ namespace Bedrock.Util
         /// </summary>
         private void CheckRequired()
         {
-            MemberInfo[] mis = GetCommandLineMembers();
+            MemberInfo[] mis = this.GetCommandLineMembers();
+
             foreach (MemberInfo mi in mis)
             {
-                CommandLineAttribute cla = GetOption(mi);
-                if (cla.Required && (GetValue(mi) == null))
-                {
+                CommandLineAttribute cla = this.GetOption(mi);
+
+                if (cla.Required && this.GetValue(mi) == null)
                     throw new ArgumentException("Did not provide required parameter: ", mi.Name);
-                }
             }
         }
         /// <summary>
@@ -207,20 +210,22 @@ namespace Bedrock.Util
         /// </summary>
         /// <param name="mi">The member to set</param>
         /// <param name="val">The value to set</param>
-        private void SetValue(MemberInfo mi, object val)
+        private void SetValue(MemberInfo mi, Object val)
         {
             switch (mi.MemberType)
             {
-            case MemberTypes.Field:
-                FieldInfo fi = (FieldInfo) mi;
-                fi.SetValue(m_obj, ConvertValue(val, fi.FieldType));
-                break;
-            case MemberTypes.Property:
-                PropertyInfo pi = (PropertyInfo) mi;
-                pi.SetValue(m_obj, ConvertValue(val, pi.PropertyType), null);
-                break;
-            default:
-                throw new ArgumentException("Invalid member type", "mi");
+                case MemberTypes.Field:
+                    FieldInfo fi = mi as FieldInfo;
+                    fi.SetValue(m_obj, this.ConvertValue(val, fi.FieldType));
+                    break;
+
+                case MemberTypes.Property:
+                    PropertyInfo pi = mi as PropertyInfo;
+                    pi.SetValue(m_obj, this.ConvertValue(val, pi.PropertyType), null);
+                    break;
+
+                default:
+                    throw new ArgumentException("Invalid member type", "mi");
             }
         }
         /// <summary>
@@ -228,14 +233,13 @@ namespace Bedrock.Util
         /// Enums need special handling, at least for now.
         /// </summary>
         /// <param name="val">The value to convert</param>
-        /// <param name="TargetType">The type to convert it to</param>
-        private object ConvertValue(object val, Type TargetType)
+        /// <param name="targetType">The type to convert it to</param>
+        private Object ConvertValue(Object val, Type targetType)
         {
-            if (TargetType.IsEnum)
-            {
-                return Enum.Parse(TargetType, (string) val, true);
-            }
-            return Convert.ChangeType(val, TargetType);
+            if (targetType.IsEnum)
+                return Enum.Parse(targetType, val as String, true);
+
+            return Convert.ChangeType(val, targetType);
         }
         /// <summary>
         /// Get the value from a field or property, depending on the type of member.
@@ -244,18 +248,21 @@ namespace Bedrock.Util
         private object GetValue(MemberInfo mi)
         {
             object ret = null;
+
             switch (mi.MemberType)
             {
-            case MemberTypes.Field:
-                FieldInfo fi = (FieldInfo) mi;
-                ret = fi.GetValue(m_obj);
-                break;
-            case MemberTypes.Property:
-                PropertyInfo pi = (PropertyInfo) mi;
-                ret = pi.GetValue(m_obj, null);
-                break;
-            default:
-                throw new ArgumentException("Invalid member type", "mi");
+                case MemberTypes.Field:
+                    FieldInfo fi = mi as FieldInfo;
+                    ret = fi.GetValue(m_obj);
+                    break;
+
+                case MemberTypes.Property:
+                    PropertyInfo pi = mi as PropertyInfo;
+                    ret = pi.GetValue(m_obj, null);
+                    break;
+
+                default:
+                    throw new ArgumentException("Invalid member type", "mi");
             }
             return ret;
         }
@@ -266,21 +273,25 @@ namespace Bedrock.Util
         private static Type GetMemberType(MemberInfo mi)
         {
             Type ret = null;
+
             switch (mi.MemberType)
             {
-            case MemberTypes.Field:
-                FieldInfo fi = (FieldInfo) mi;
-                ret = fi.FieldType;
-                break;
-            case MemberTypes.Property:
-                PropertyInfo pi = (PropertyInfo) mi;
-                ret = pi.PropertyType;
-                break;
-            case MemberTypes.Method:
-                ret = null;
-                break;
-            default:
-                throw new ArgumentException("Invalid member type", "mi");
+                case MemberTypes.Field:
+                    FieldInfo fi = mi as FieldInfo;
+                    ret = fi.FieldType;
+                    break;
+
+                case MemberTypes.Property:
+                    PropertyInfo pi = mi as PropertyInfo;
+                    ret = pi.PropertyType;
+                    break;
+
+                case MemberTypes.Method:
+                    ret = null;
+                    break;
+
+                default:
+                    throw new ArgumentException("Invalid member type", "mi");
             }
             return ret;
         }
@@ -292,11 +303,14 @@ namespace Bedrock.Util
         private MemberInfo[] GetCommandLineMembers()
         {
             Type t = m_obj.GetType();
+
             MemberInfo[] mis = t.FindMembers(MemberTypes.All,
                                              BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance,
-                                             new MemberFilter(AttrMemberFilter),
+                                             new MemberFilter(GetOpt.AttrMemberFilter),
                                              typeof(CommandLineAttribute));
+
             Debug.Assert(mis.Length > 0, "Must have at least one CommandLine attribute on class: " + t.FullName);
+
             return mis;
         }
 
@@ -306,9 +320,9 @@ namespace Bedrock.Util
         /// </summary>
         /// <param name="m">The member to evaluate</param>
         /// <param name="filterCriteria">The attribute type to check for</param>
-        private static bool AttrMemberFilter(MemberInfo m, object filterCriteria)
+        private static Boolean AttrMemberFilter(MemberInfo m, Object filterCriteria)
         {
-            return m.GetCustomAttributes((Type)filterCriteria, true).Length > 0;
+            return m.GetCustomAttributes(filterCriteria as Type, true).Length > 0;
         }
         /// <summary>
         /// Get the CommandLineAttribute off of a member.  Assumes that the member implements
@@ -317,14 +331,16 @@ namespace Bedrock.Util
         /// <param name="mi">The member to retrieve from</param>
         private CommandLineAttribute GetOption(MemberInfo mi)
         {
-            object[] o = mi.GetCustomAttributes(typeof(CommandLineAttribute), true);
+            Object[] o = mi.GetCustomAttributes(typeof(CommandLineAttribute), true);
+
             Debug.Assert(o.Length == 1);
-            return ((CommandLineAttribute[]) o)[0];
+
+            return (o as CommandLineAttribute[])[0];
         }
         /// <summary>
         /// The list of command-line arguments that were not associated with flags.
         /// </summary>
-        public virtual string[] Args
+        public virtual String[] Args
         {
             get { return m_args; }
         }
@@ -334,105 +350,111 @@ namespace Bedrock.Util
         /// field associated with the flag.
         /// If you're using this, you've probably got a design problem.
         /// </summary>
-        public object this[string flag]
+        public Object this[String flag]
         {
             get
             {
-                SetFlags();
-                MemberInfo mi = (MemberInfo) m_flags[flag];
-                return GetValue(mi);
+                this.SetFlags();
+                MemberInfo mi = m_flags[flag] as MemberInfo;
+
+                return this.GetValue(mi);
             }
             set
             {
-                SetFlags();
-                MemberInfo mi = (MemberInfo) m_flags[flag];
-                SetValue(mi, value);
+                this.SetFlags();
+                MemberInfo mi = m_flags[flag] as MemberInfo;
+
+                this.SetValue(mi, value);
             }
         }
         /// <summary>
         /// Get a usage description string from the object.
         /// Use the CommandLineAttribute descriptions wherever possible.
         /// </summary>
-        public virtual string Usage
+        public virtual String Usage
         {
             get
             {
-                SetFlags();
+                this.SetFlags();
                 StringBuilder sb = new StringBuilder();
+
                 // Gr.  this used to work, and I can't find the new API.
                 //sb.Append(System.IO.File.GetFileNameFromPath(Environment.GetCommandLineArgs()[0]));
-                sb.Append(Environment.GetCommandLineArgs()[0]);
-                string[] keys = new string[m_flags.Count];
+                sb.Append(Path.GetFileName(Environment.GetCommandLineArgs()[0]));
+
+                String[] keys = new String[m_flags.Count];
                 m_flags.Keys.CopyTo(keys, 0);
                 Array.Sort(keys);
-                foreach (object key in keys)
+
+                foreach (Object key in keys)
                 {
-                    MemberInfo mi = (MemberInfo) m_flags[key];
+                    MemberInfo mi = m_flags[key] as MemberInfo;
                     CommandLineAttribute cla = GetOption(mi);
-                    Type       mit = GetMemberType(mi);
+                    Type mit = GetOpt.GetMemberType(mi);
+
                     sb.Append(" ");
+
                     if (!cla.Required)
-                    {
                         sb.Append("[");
-                    }
 
                     // method
                     if (mit == null)
                     {
-                        MethodInfo meth = (MethodInfo) mi;
+                        MethodInfo meth = mi as MethodInfo;
                         ParameterInfo[] pis = meth.GetParameters();
                         sb.AppendFormat("/{0}", key);
+
                         foreach (ParameterInfo pi in pis)
                         {
                             sb.Append(" ");
                             sb.Append(pi.ParameterType.Name);
                         }
                     }
-                    else if (mit == typeof(bool))
+                    else if (mit == typeof(Boolean))
                     {
                         sb.AppendFormat("/{0}", key);
                     }
                     else if (mit.IsEnum)
                     {
                         sb.AppendFormat("/{0} (", key);
-                        string val = GetValue(mi).ToString();
-                        string[] names = Enum.GetNames(mit);
-                        bool first = true;
-                        foreach (string n in names)
+                        String val = this.GetValue(mi).ToString();
+                        String[] names = Enum.GetNames(mit);
+                        Boolean first = true;
+
+                        foreach (String n in names)
                         {
                             if (first)
-                            {
                                 first = false;
-                            }
                             else
-                            {
                                 sb.Append("|");
-                            }
+
                             if (val == n)
-                            {
                                 sb.AppendFormat("*{0}*", n);
-                            }
                             else
-                            {
                                 sb.Append(n);
-                            }
                         }
                         sb.Append(")");
                     }
                     else
                     {
-                        sb.AppendFormat("/{0} {1}", key, GetValue(mi));
+                        sb.AppendFormat("/{0}={1}", key, this.GetOption(m_flags[key] as MemberInfo).UsageValue);
                     }
+
                     if (!cla.Required)
-                    {
                         sb.Append("]");
-                    }
                 }
                 sb.Append(Environment.NewLine);
-                foreach (object key in keys)
+                sb.Append(Environment.NewLine);
+
+                foreach (Object key in keys)
                 {
-                    sb.AppendFormat("\t/{0}: \t{1}", key, GetOption((MemberInfo)m_flags[key]).Description);
+                    String desc = this.GetOption(m_flags[key] as MemberInfo).Description;
+
+                    sb.AppendFormat("/{0}\n   {1}", key, desc);
                     sb.Append(Environment.NewLine);
+
+                    if (!String.IsNullOrEmpty(desc))
+                        sb.Append(Environment.NewLine);
                 }
                 return sb.ToString();
             }
@@ -450,15 +472,22 @@ namespace Bedrock.Util
         /// Echo Command-Line requirements for a GUI app via a MessageBox
         /// (since we do not have user-visible stdout)
         /// </summary>
+        public virtual void UsageGUI()
+        {
+            MessageBox.Show(Usage, "Command-line argument usage", MessageBoxButtons.OK, MessageBoxIcon.Error);
+
+            //throw new NotImplementedException("This is the only thing that requires Windows.Forms.  Removed.");
+        }
+
+        /// <summary>
+        /// Echo Command-Line requirements for a GUI app via a MessageBox
+        /// (since we do not have user-visible stdout)
+        /// </summary>
         public virtual void UsageGUIExit()
         {
-            /*
-          MessageBox.Show
-            (Usage, "Command-line argument usage",
-             MessageBoxButtons.OK, MessageBoxIcon.Error);
-          Environment.Exit(64);
-             */
-            throw new NotImplementedException("This is the only thing that requires Windows.Forms.  Removed.");
+            this.UsageGUI();
+
+            Environment.Exit(64);
         }
     }
     /// <summary>
@@ -466,86 +495,72 @@ namespace Bedrock.Util
     /// that gets this attribute is a possible command-line argument for the
     /// program containing the GetOpt subclass.
     /// </summary>
-    [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property | AttributeTargets.Method,
-                    AllowMultiple=false)]
+    [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property | AttributeTargets.Method, AllowMultiple = false)]
     public class CommandLineAttribute : Attribute
     {
-        private string m_commandFlag = null;
-        private string m_description = null;
-        private bool   m_required    = false;
         /// <summary>
         /// Use the member name for the command-line parameter.
         /// </summary>
         public CommandLineAttribute()
-        {
-        }
+        { }
+
         /// <summary>
         /// Use the given string as the command-line parameter.
         /// </summary>
         /// <param name="commandFlag"> </param>
-        public CommandLineAttribute(string commandFlag)
-        {
-            m_commandFlag = commandFlag;
-        }
+        public CommandLineAttribute(String commandFlag)
+            : this(commandFlag, String.Empty, false, commandFlag)
+        { }
+
         /// <summary>
         /// Use the given string as the command-line parameter.
         /// </summary>
         /// <param name="commandFlag"> </param>
         /// <param name="description"> </param>
-        public CommandLineAttribute(string commandFlag, string description)
-        {
-            m_commandFlag = commandFlag;
-            m_description = description;
-        }
+        public CommandLineAttribute(String commandFlag, String description)
+            : this(commandFlag, description, false, commandFlag)
+        { }
+
         /// <summary>
         /// Use the given string as the command-line parameter.
         /// </summary>
         /// <param name="commandFlag"> </param>
         /// <param name="description"> </param>
         /// <param name="required"> </param>
-        public CommandLineAttribute(string commandFlag, string description, bool required)
+        public CommandLineAttribute(String commandFlag, String description, Boolean required)
+            : this(commandFlag, description, required, commandFlag)
+        { }
+
+        /// <summary>
+        /// Use the given string as the command-line parameter.
+        /// </summary>
+        /// <param name="commandFlag"> </param>
+        /// <param name="description"> </param>
+        /// <param name="required"> </param>
+        /// <param name="usageValue"> </param>
+        public CommandLineAttribute(String commandFlag, String description, Boolean required, String usageValue)
         {
-            m_commandFlag = commandFlag;
-            m_description = description;
-            m_required    = required;
+            this.CommandFlag = commandFlag;
+            this.UsageValue = usageValue;
+
+            this.Description = description;
+            this.Required = required;
         }
         /// <summary>
         /// Get the command-line flag.  If none was specified, returns null.
         /// </summary>
-        public string CommandFlag
-        {
-            get
-            {
-                return m_commandFlag;
-            }
-        }
+        public String CommandFlag { get; private set; }
         /// <summary>
         /// Get the command-line description.  If none was specified, returns null.
         /// </summary>
-        public string Description
-        {
-            get
-            {
-                return m_description;
-            }
-            set
-            {
-                m_description = value;
-            }
-        }
+        public String Description { get; set; }
+        /// <summary>
+        /// Get the command-line value shown in usage text. If none was specified, returns CommandFlag.
+        /// </summary>
+        public String UsageValue { get; set; }
         /// <summary>
         /// Is the option required?  Defaults to false.
         /// </summary>
-        public bool Required
-        {
-            get
-            {
-                return m_required;
-            }
-            set
-            {
-                m_required = value;
-            }
-        }
+        public Boolean Required { get; set; }
     }
 }

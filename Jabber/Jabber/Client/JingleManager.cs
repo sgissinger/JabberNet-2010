@@ -17,6 +17,7 @@ using Jabber.Connection;
 using Jabber.Protocol;
 using Jabber.Protocol.Client;
 using Jabber.Protocol.IQ;
+using Bedrock;
 
 namespace Jabber.Client
 {
@@ -32,6 +33,10 @@ namespace Jabber.Client
         /// Session informations about every opened sessions using their SID as key
         /// </summary>
         private Dictionary<String, JingleSession> Sessions { get; set; }
+        /// <summary>
+        /// TODO: Documentation Property
+        /// </summary>
+        private IQTracker Tracker { get; set; }
         #endregion
 
         #region EVENTS
@@ -109,7 +114,7 @@ namespace Jabber.Client
 
             this.Sessions = new Dictionary<String, JingleSession>(StringComparer.Create(CultureInfo.CurrentCulture, false));
 
-            this.OnStreamChanged += new Bedrock.ObjectHandler(JingleManager_OnStreamChanged);
+            this.OnStreamChanged += new ObjectHandler(JingleManager_OnStreamChanged);
         }
         #endregion
 
@@ -120,6 +125,8 @@ namespace Jabber.Client
         /// <param name="sender"></param>
         private void JingleManager_OnStreamChanged(object sender)
         {
+            //this.Tracker = new IQTracker(m_stream);
+
             JabberClient cli = m_stream as JabberClient;
 
             if (cli == null)

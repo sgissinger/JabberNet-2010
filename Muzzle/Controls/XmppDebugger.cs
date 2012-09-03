@@ -33,18 +33,7 @@ namespace Muzzle.Controls
         private string m_send = "SEND:";
         private string m_recv = "RECV:";
         private string m_err = "ERROR:";
-        private string m_last = "";
-
-
-        /// <summary>
-        /// Create
-        /// </summary>
-        public XmppDebugger()
-        {
-            InitializeComponent();
-
-            this.OnStreamChanged += new Bedrock.ObjectHandler(XmppDebugger_OnStreamChanged);
-        }
+        private string m_last = String.Empty;
 
         /// <summary>
         /// What color to use for the "SEND:" string.
@@ -140,6 +129,32 @@ namespace Muzzle.Controls
             set { m_err = value; }
         }
 
+        /// <summary>
+        /// Create
+        /// </summary>
+        public XmppDebugger()
+        {
+            InitializeComponent();
+
+            this.OnStreamChanged += new Bedrock.ObjectHandler(XmppDebugger_OnStreamChanged);
+
+            this.Disposed += new EventHandler(XmppDebugger_Disposed);
+        }
+
+        private void XmppDebugger_Disposed(object sender, EventArgs e)
+        {
+            this.rtSend.KeyUp -= this.rtSend_KeyUp;
+            this.rtDebug.KeyUp -= this.rtDebug_KeyUp;
+            this.KeyUp -= this.XmppDebugger_KeyUp;
+
+            this.OnStreamChanged -= this.XmppDebugger_OnStreamChanged;
+
+            m_stream.OnReadText -= this.m_stream_OnReadText;
+            m_stream.OnWriteText -= this.m_stream_OnWriteText;
+            m_stream.OnError -= this.m_stream_OnError;
+            m_stream.OnConnect -= this.m_stream_OnConnect;
+        }
+
         private void XmppDebugger_OnStreamChanged(object sender)
         {
             if (m_stream == null)
@@ -154,7 +169,11 @@ namespace Muzzle.Controls
         private void Write(Color color, string tag, string text)
         {
             Debug.WriteLine(tag + " " + text);
-            rtDebug.AppendMaybeScroll(color, tag, text);
+
+            this.InvokeOrNot(() =>
+            {
+                rtDebug.AppendMaybeScroll(color, tag, text);
+            });
         }
 
         /// <summary>
@@ -173,8 +192,10 @@ namespace Muzzle.Controls
 
         private void m_stream_OnConnect(object sender, Jabber.Connection.StanzaStream stream)
         {
-            // I think this is right.  Double check.
-            rtDebug.Clear();
+            this.InvokeOrNot(() =>
+            {
+                rtDebug.Clear();
+            });
         }
 
         private void m_stream_OnReadText(object sender, string txt)

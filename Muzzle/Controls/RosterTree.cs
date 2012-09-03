@@ -76,7 +76,7 @@ namespace Muzzle.Controls
         /// <summary>
         /// The text filter applied to roster items
         /// </summary>
-        [Category("Managers")]
+        [Category("Filtering")]
         [DefaultValue("")]
         [Description("When set to a value, the roster items displayed in the tree are filtered on their username, nickname and resource")]
         public String Filter { get; set; }
@@ -84,7 +84,7 @@ namespace Muzzle.Controls
         /// <summary>
         /// The availability filter applied to roster items
         /// </summary>
-        [Category("Managers")]
+        [Category("Filtering")]
         [DefaultValue(false)]
         [Description("When set to true, only available roster items are displayed in the tree")]
         public Boolean ShowOnlyOnline { get; set; }
@@ -225,6 +225,8 @@ namespace Muzzle.Controls
         /// <summary>
         /// The group names for the roster
         /// </summary>
+        [Browsable(false)]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public string[] Groups
         {
             get
@@ -238,14 +240,44 @@ namespace Muzzle.Controls
         /// <summary>
         /// The excluded group names for the roster
         /// </summary>
+        [Category("Filtering")]
         public string[] ExcludedGroups
         {
             get
             {
-                String[] g = new String[m_excludedGroups.Count];
-                m_excludedGroups.Keys.CopyTo(g, 0);
+                String[] tmp = new String[m_excludedGroups.Count];
+                m_excludedGroups.Keys.CopyTo(tmp, 0);
 
-                return g;
+                return tmp;
+            }
+            set
+            {
+                m_excludedGroups.Clear();
+
+                foreach(String group in value)
+                    m_excludedGroups.Add(group, true);
+            }
+        }
+
+        /// <summary>
+        /// The excluded group names for the roster
+        /// </summary>
+        [Category("Filtering")]
+        public string[] ExpandedGroups
+        {
+            get
+            {
+                String[] tmp = new String[m_expandedGroups.Count];
+                m_expandedGroups.Keys.CopyTo(tmp, 0);
+
+                return tmp;
+            }
+            set
+            {
+                m_expandedGroups.Clear();
+
+                foreach (String group in value)
+                    m_expandedGroups.Add(group, true);
             }
         }
         #endregion
@@ -482,13 +514,13 @@ namespace Muzzle.Controls
         /// <param name="e"></param>
         protected override void OnAfterExpand(TreeViewEventArgs e)
         {
-            base.OnAfterExpand(e);
-
             e.Node.ImageIndex = EXPANDED;
             e.Node.SelectedImageIndex = EXPANDED;
 
             if (!this.m_expandedGroups.ContainsKey(e.Node.FullPath))
                 this.m_expandedGroups.Add(e.Node.FullPath, true);
+
+            base.OnAfterExpand(e);
         }
 
         /// <summary>
@@ -497,13 +529,13 @@ namespace Muzzle.Controls
         /// <param name="e"></param>
         protected override void OnAfterCollapse(TreeViewEventArgs e)
         {
-            base.OnAfterCollapse(e);
-
             e.Node.ImageIndex = COLLAPSED;
             e.Node.SelectedImageIndex = COLLAPSED;
 
             if (this.m_expandedGroups.ContainsKey(e.Node.FullPath))
                 this.m_expandedGroups.Remove(e.Node.FullPath);
+
+            base.OnAfterCollapse(e);
         }
         #endregion
 

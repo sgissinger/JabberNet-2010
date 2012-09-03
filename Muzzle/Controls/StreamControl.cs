@@ -48,7 +48,7 @@ namespace Muzzle.Controls
             {
                 // If we are running in the designer, let's try to get an XmppStream control
                 // from the environment.
-                if ((this.m_stream == null) && DesignMode)
+                if (this.m_stream == null && DesignMode)
                 {
                     IDesignerHost host = (IDesignerHost)base.GetService(typeof(IDesignerHost));
                     this.Stream = StreamComponent.GetStreamFromHost(host);
@@ -80,7 +80,7 @@ namespace Muzzle.Controls
         /// <param name="elem"></param>
         public void Write(XmlElement elem)
         {
-            if ((this.OverrideFrom != null) && (elem.GetAttribute("from") == ""))
+            if (this.OverrideFrom != null && elem.GetAttribute("from") == "")
                 elem.SetAttribute("from", this.OverrideFrom);
 
             m_stream.Write(elem);
@@ -96,10 +96,27 @@ namespace Muzzle.Controls
         ///<param name="cbArg">Arguments to pass to the callback.</param>
         public void BeginIQ(IQ iq, IqCB cb, object cbArg)
         {
-            if ((this.OverrideFrom != null) && (iq.From == null))
+            if (this.OverrideFrom != null && iq.From == null)
                 iq.From = this.OverrideFrom;
 
             m_stream.Tracker.BeginIQ(iq, cb, cbArg);
+        }
+
+        /// <summary>
+        /// TODO: Documentation InvokeOrNot
+        /// </summary>
+        /// <param name="invokableMethod"></param>
+        public void InvokeOrNot(MethodInvoker invokableMethod)
+        {
+            if (this.InvokeRequired)
+            {
+                this.Invoke(new MethodInvoker(() =>
+                {
+                    invokableMethod();
+                }));
+            }
+            else
+                invokableMethod();
         }
     }
 }

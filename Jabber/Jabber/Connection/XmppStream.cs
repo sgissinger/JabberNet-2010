@@ -16,6 +16,7 @@ using System.Collections;
 using System.ComponentModel;
 using System.ComponentModel.Design;
 using System.Diagnostics;
+using System.IO;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Xml;
@@ -1513,8 +1514,8 @@ namespace Jabber.Connection
             m_reconnect = false;
 
             // ignore spurious IO errors on shutdown.
-            if (((State == ClosingState.Instance) || (State == ClosedState.Instance)) &&
-                ((e is System.IO.IOException) || (e.InnerException is System.IO.IOException)))
+            if ((State == ClosingState.Instance || State == ClosedState.Instance) &&
+                (e is IOException || e.InnerException is IOException))
                 return;
 
             if (OnError != null)
@@ -1525,7 +1526,7 @@ namespace Jabber.Connection
                     OnError(this, e);
             }
 
-            if ((State != ClosingState.Instance) && (State == ClosedState.Instance))
+            if (State != ClosingState.Instance && State == ClosedState.Instance)
                 Close(false);
         }
 

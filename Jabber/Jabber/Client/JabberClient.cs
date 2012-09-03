@@ -148,7 +148,7 @@ namespace Jabber.Client
         public event PresenceHandler OnAfterPresenceOut;
 
         /// <summary>
-        /// Determines if SutoLogin is false, and if it is time to log in.
+        /// Determines if AutoLogin is false, and if it is time to log in.
         /// This callback will receive the results of the IQ type=get
         /// in the jabber:iq:auth namespace.  When login is completed,
         /// IsConnected property is set to true.  If there is a login error, the
@@ -1036,7 +1036,6 @@ namespace Jabber.Client
             stream.AddFactory(new Jabber.Protocol.Client.Factory());
             stream.AddFactory(new Jabber.Protocol.IQ.Factory());
             stream.AddFactory(new Jabber.Protocol.X.Factory());
-
         }
     }
 

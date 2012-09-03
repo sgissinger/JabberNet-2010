@@ -12,12 +12,11 @@
  * See LICENSE.txt for details.
  * --------------------------------------------------------------------------*/
 using System;
-
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Xml;
-
+using Jabber.Protocol;
 using Jabber.Protocol.Client;
 
 namespace Jabber.Connection
@@ -38,8 +37,7 @@ namespace Jabber.Connection
         /// <param name="message">Description of the error.</param>
         public IQTimeoutException(string message)
             : base(message)
-        {
-        }
+        { }
     }
 
     ///<summary>
@@ -67,10 +65,10 @@ namespace Jabber.Connection
     /// <summary>
     /// Tracks outstanding IQ requests.
     /// </summary>
-    public class IQTracker: IIQTracker
+    public class IQTracker : IIQTracker
     {
         private Dictionary<string, TrackerData> m_pending = new Dictionary<string, TrackerData>();
-        private XmppStream m_cli     = null;
+        private XmppStream m_cli = null;
 
         /// <summary>
         /// Creates a new IQ tracker.
@@ -79,15 +77,17 @@ namespace Jabber.Connection
         public IQTracker(XmppStream stream)
         {
             m_cli = stream;
-            m_cli.OnProtocol += new Jabber.Protocol.ProtocolHandler(OnIQ);
+            m_cli.OnProtocol += new ProtocolHandler(OnIQ);
         }
 
         private void OnIQ(object sender, XmlElement elem)
         {
             IQ iq = elem as IQ;
+
             if (iq == null)
                 return;
-            if ((iq.Type != IQType.result) && (iq.Type != IQType.error))
+
+            if (iq.Type != IQType.result && iq.Type != IQType.error)
                 return;
 
             string id = iq.ID;
@@ -139,6 +139,7 @@ namespace Jabber.Connection
             AutoResetEvent are = new AutoResetEvent(false);
             TrackerData td = new TrackerData(SignalEvent, are, iqp.To, iqp.ID);
             string id = iqp.ID;
+
             lock (m_pending)
             {
                 m_pending[id] = td;
@@ -168,7 +169,7 @@ namespace Jabber.Connection
         /// </summary>
         public class TrackerData
         {
-            private IqCB  cb;
+            private IqCB cb;
             private object data;
             private JID jid;
             private string id;
@@ -206,7 +207,7 @@ namespace Jabber.Connection
             public bool IsMatch(IQ iq)
             {
                 JID from = iq.From;
-                return (iq.ID == id) && ((jid == null) || (from == null) || (from == jid));
+                return (iq.ID == id) && (jid == null || from == null || from == jid);
             }
 
             /// <summary>

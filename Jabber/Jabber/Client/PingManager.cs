@@ -80,7 +80,9 @@ namespace Jabber.Client
                 iq.Query != null && iq.Type == IQType.get &&
                 iq.Query.NamespaceURI == Jabber.Protocol.URI.PING)
             {
-                Write(iq.GetAcknowledge(new XmlDocument()));
+                iq.Handled = true;
+
+                this.Write(iq.GetAcknowledge(m_stream.Document));
             }
         }
         #endregion

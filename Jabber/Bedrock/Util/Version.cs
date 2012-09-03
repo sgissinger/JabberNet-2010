@@ -12,10 +12,10 @@
  * See LICENSE.txt for details.
  * --------------------------------------------------------------------------*/
 using System;
-
 using System.Collections.Specialized;
 using System.Reflection;
 using System.Text.RegularExpressions;
+
 namespace Bedrock.Util
 {
     /// <summary>

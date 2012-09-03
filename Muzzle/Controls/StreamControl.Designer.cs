@@ -13,10 +13,9 @@ namespace Muzzle.Controls
         /// </summary>
         protected override void Dispose(bool disposing)
         {
-            if (disposing)
+            if (disposing && components != null)
             {
-                if (components != null)
-                    components.Dispose();
+                components.Dispose();
             }
             base.Dispose(disposing);
         }
