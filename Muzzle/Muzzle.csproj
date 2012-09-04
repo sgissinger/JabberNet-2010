@@ -202,6 +202,9 @@
       <DependentUpon>BottomScrollRichText.cs</DependentUpon>
       <SubType>Designer</SubType>
     </EmbeddedResource>
+    <EmbeddedResource Include="Controls\ChatHistory.resx">
+      <DependentUpon>ChatHistory.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Forms\ClientLogin.resx">
       <DependentUpon>ClientLogin.cs</DependentUpon>
       <SubType>Designer</SubType>
@@ -266,40 +269,18 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="jabbernet.key" />
-    <None Include="Resources\StatusAway.bmp" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Controls\BottomScrollRichText.bmp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\StatusChatty.bmp" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\TreeContracted.bmp" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\StatusDnd.bmp" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\TreeExpanded.bmp" />
-  </ItemGroup>
-  <ItemGroup>
     <EmbeddedResource Include="Controls\Litmus.bmp" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\StatusOffline.bmp" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\StatusOnline.bmp" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Controls\RosterTree.bmp" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Controls\StripChart.bmp" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\StatusXa.bmp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Jabber\JabberNet.csproj">
@@ -315,6 +296,30 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Controls\JidMulti.bmp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\StatusOnline.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\StatusOffline.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\StatusDnd.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\StatusAway.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\StatusXa.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\StatusChatty.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\TreeContracted.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\TreeExpanded.png" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

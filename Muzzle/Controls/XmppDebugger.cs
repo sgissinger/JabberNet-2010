@@ -39,6 +39,7 @@ namespace Muzzle.Controls
         /// What color to use for the "SEND:" string.
         /// </summary>
         [Category("Appearance")]
+        [DefaultValue(typeof(Color), "Blue")]
         public Color SendColor
         {
             get { return m_sendColor; }
@@ -49,6 +50,7 @@ namespace Muzzle.Controls
         /// What color to use for the "RECV:" string.
         /// </summary>
         [Category("Appearance")]
+        [DefaultValue(typeof(Color), "Orange")]
         public Color ReceiveColor
         {
             get { return m_recvColor; }
@@ -59,6 +61,7 @@ namespace Muzzle.Controls
         /// What color to use for the "ERROR:" string.
         /// </summary>
         [Category("Appearance")]
+        [DefaultValue(typeof(Color), "Red")]
         public Color ErrorColor
         {
             get { return m_errColor; }
@@ -69,6 +72,7 @@ namespace Muzzle.Controls
         /// What color to use for the sent and received text.
         /// </summary>
         [Category("Appearance")]
+        [DefaultValue(typeof(Color), "WindowText")]
         public Color TextColor
         {
             get { return rtDebug.ForeColor; }
@@ -79,6 +83,7 @@ namespace Muzzle.Controls
         /// What color to use for other text inserted
         /// </summary>
         [Category("Appearance")]
+        [DefaultValue(typeof(Color), "Green")]
         public Color OtherColor
         {
             get { return m_otherColor; }
@@ -95,6 +100,13 @@ namespace Muzzle.Controls
             get { return rtDebug.MaxLines; }
             set { rtDebug.MaxLines = value; }
         }
+
+        /// <summary>
+        /// Number of lines currently printed in RichTextBox
+        /// </summary>
+        [Browsable(false)]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public int NbLines { get; private set; }
 
         /// <summary>
         /// The string to prefix on sent bytes.
@@ -174,6 +186,14 @@ namespace Muzzle.Controls
             {
                 rtDebug.AppendMaybeScroll(color, tag, text);
             });
+
+            if (this.NbLines > this.MaxLines)
+            {
+                Array.Copy(this.rtDebug.Lines, 1,
+                           this.rtDebug.Lines, 0, this.rtDebug.Lines.Length - 1);
+            }
+            else
+                this.NbLines++;
         }
 
         /// <summary>
@@ -194,6 +214,7 @@ namespace Muzzle.Controls
         {
             this.InvokeOrNot(() =>
             {
+                this.NbLines = 0;
                 rtDebug.Clear();
             });
         }

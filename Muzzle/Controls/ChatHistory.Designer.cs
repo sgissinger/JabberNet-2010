@@ -28,7 +28,13 @@ namespace Muzzle.Controls
         /// </summary>
         private void InitializeComponent()
         {
-            components = new System.ComponentModel.Container();
+            this.SuspendLayout();
+            // 
+            // ChatHistory
+            // 
+            this.ReadOnly = true;
+            this.ResumeLayout(false);
+
         }
         #endregion
     }

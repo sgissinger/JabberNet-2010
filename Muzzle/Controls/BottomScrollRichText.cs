@@ -16,6 +16,7 @@ using System.ComponentModel;
 using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
+using System.Globalization;
 
 namespace Muzzle.Controls
 {
@@ -295,8 +296,12 @@ namespace Muzzle.Controls
         {
             this.SelectionLength = 0;
             this.SelectionStart = this.TextLength;
-            string rtf = "{\\rtf1\\ansi{{\\colortbl ;" + RTFColor(c) +
-                               "}\\cf1 " + EscapeRTF(text) + "}";
+
+            string rtf = String.Format(CultureInfo.CurrentCulture,
+                                       "{{\\rtf1\\ansi{{{{\\colortbl ;{0}}}\\cf1 {1}}}",
+                                       BottomScrollRichText.RTFColor(c),
+                                       text);
+
             this.SelectedRtf = rtf;
         }
 
@@ -308,9 +313,10 @@ namespace Muzzle.Controls
         public void AppendMaybeScroll(string text)
         {
             bool bottom = m_bottom;
-            this.AppendText(text);
+            this.AppendText(BottomScrollRichText.EscapeRTF(text));
+
             if (bottom)
-                ScrollToBottom();
+                this.ScrollToBottom();
         }
 
         /// <summary>
@@ -332,27 +338,29 @@ namespace Muzzle.Controls
             bool bottom = m_bottom;
             int start = 0;
             int len = 0;
+
             if (!bottom)
             {
                 start = this.SelectionStart;
                 len = this.SelectionLength;
             }
 
-            AppendText(tagColor, tag);
-            AppendText(" ");
-            AppendText(ForeColor, text);
-            AppendText("\r\n");
+            this.AppendText(tagColor, tag);
+            this.AppendText(" ");
+            this.AppendText(this.ForeColor, BottomScrollRichText.EscapeRTF(text));
+            this.AppendText("\r\n");
 
             string[] lines = this.Lines;
+
             if (lines.Length > m_maxLines)
             {
                 int rm = 0;
                 bool ro = this.ReadOnly;
                 this.ReadOnly = false;
+
                 for (int i = 0; i < (lines.Length - m_maxLines); i++)
-                {
                     rm += lines[i].Length + 1;
-                }
+
                 this.Select(0, rm);
                 this.SelectedText = String.Empty;
                 this.ReadOnly = ro;

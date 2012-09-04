@@ -33,15 +33,15 @@ namespace Muzzle.Controls
             // il
             // 
             this.il.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("il.ImageStream")));
-            this.il.TransparentColor = System.Drawing.Color.Magenta;
-            this.il.Images.SetKeyName(0, "");
-            this.il.Images.SetKeyName(1, "");
-            this.il.Images.SetKeyName(2, "");
-            this.il.Images.SetKeyName(3, "");
-            this.il.Images.SetKeyName(4, "");
-            this.il.Images.SetKeyName(5, "");
-            this.il.Images.SetKeyName(6, "");
-            this.il.Images.SetKeyName(7, "");
+            this.il.TransparentColor = System.Drawing.Color.Empty;
+            this.il.Images.SetKeyName(0, "StatusOffline.png");
+            this.il.Images.SetKeyName(1, "StatusOnline.png");
+            this.il.Images.SetKeyName(2, "StatusAway.png");
+            this.il.Images.SetKeyName(3, "StatusXa.png");
+            this.il.Images.SetKeyName(4, "StatusDnd.png");
+            this.il.Images.SetKeyName(5, "StatusChatty.png");
+            this.il.Images.SetKeyName(6, "TreeExpanded.png");
+            this.il.Images.SetKeyName(7, "TreeContracted.png");
             this.il.Images.SetKeyName(8, "blank");
             // 
             // RosterTree
@@ -50,6 +50,7 @@ namespace Muzzle.Controls
             this.DrawMode = System.Windows.Forms.TreeViewDrawMode.OwnerDrawText;
             this.ImageIndex = 1;
             this.ImageList = this.il;
+            this.LineColor = System.Drawing.Color.Black;
             this.SelectedImageIndex = 0;
             this.ShowLines = false;
             this.ShowRootLines = false;
