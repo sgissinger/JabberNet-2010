@@ -206,6 +206,7 @@
     <Compile Include="Jabber\Stun\Attributes\AddressAttributes.cs" />
     <Compile Include="Jabber\Stun\Attributes\StringAttributes.cs" />
     <Compile Include="Jabber\Stun\Attributes\UnknownAttributes.cs" />
+    <Compile Include="Jabber\Stun\Delegates.cs" />
     <Compile Include="Jabber\Stun\HolePuncher.cs" />
     <Compile Include="Jabber\Stun\StunAttribute.cs" />
     <Compile Include="Jabber\Stun\StunClient.cs" />

@@ -26,22 +26,27 @@ namespace NetLib.DNS.Records
         public uint Address;
 
         /// <summary>
+        /// TODO: Documentation Property
+        /// </summary>
+        public IPAddress IPAddress
+        {
+            get { return new IPAddress(this.Address); }
+        }
+
+        /// <summary>
         /// Returns a string representation of the A Record
         /// </summary>
         /// <returns></returns>
         /// <remarks>
         /// The string returned looks like:
         /// <code>
-        /// ip address: [ADDRESS]
+        /// IP Address: [ADDRESS]
         /// where [ADDRESS] = <see cref="System.Net.IPAddress.ToString()"/>
         /// </code>
         /// </remarks>
         public override string ToString()
         {
-            return String.Format(
-                "ip address: {0}",
-                new IPAddress(Address)
-                );
+            return String.Format("IP Address: {0}", this.IPAddress);
         }
     }
 }

@@ -177,6 +177,11 @@ namespace Jabber.Client
         public event RegisterInfoHandler OnRegisterInfo;
 
         /// <summary>
+        /// Retrieves/Sets the status sent when user disconnects
+        /// </summary>
+        public string OfflineStatus { get; set; }
+
+        /// <summary>
         /// Retrieves/Sets the username to connect as.
         /// </summary>
         [Description("The username to connect as.")]
@@ -333,7 +338,7 @@ namespace Jabber.Client
             {
                 Presence p = new Presence(Document);
                 p.Type = PresenceType.unavailable;
-                p.Status = "offline";
+                p.Status = this.OfflineStatus;
                 Write(p);
             }
             base.Close();
@@ -483,7 +488,7 @@ namespace Jabber.Client
             {
                 if (this.SupportNestedGroups && String.IsNullOrEmpty(this.NestedGroupDelimiter))
                 {
-                    PrivateIQ privIq = new PrivateIQ(new XmlDocument());
+                    PrivateIQ privIq = new PrivateIQ(this.Document);
 
                     RosterDelimiter rosterDelim = new RosterDelimiter(privIq.OwnerDocument);
                     privIq.Instruction.AddChild(rosterDelim);
@@ -492,7 +497,7 @@ namespace Jabber.Client
                 }
                 else
                 {
-                    RosterIQ riq = new RosterIQ(Document);
+                    RosterIQ riq = new RosterIQ(this.Document);
                     riq.Type = IQType.get;
 
                     this.Write(riq);
@@ -521,8 +526,10 @@ namespace Jabber.Client
             Roster r = riq.Instruction;
             Item i = r.AddItem();
             i.JID = to;
+
             if (nickname != null)
                 i.Nickname = nickname;
+
             if (groups != null)
             {
                 foreach (string g in groups)
@@ -773,7 +780,7 @@ namespace Jabber.Client
         /// </summary>
         /// <param name="sender">The object calling this method.</param>
         /// <param name="tag">The XML element containing a stanza.</param>
-        protected override void OnElement(object sender, System.Xml.XmlElement tag)
+        protected override void OnElement(object sender, XmlElement tag)
         {
             base.OnElement(sender, tag);
 
@@ -821,7 +828,7 @@ namespace Jabber.Client
 
             if (this.SupportNestedGroups && !iq.Handled &&
                 iq.Query != null && iq.Type == IQType.result &&
-                iq.Query.NamespaceURI == Jabber.Protocol.URI.PRIVATE &&
+                iq.Query.NamespaceURI == URI.PRIVATE &&
                 iq.GetChildElement<Private>().GetChildElement<RosterDelimiter>() != null)
             {
                 RosterDelimiter rosterDelimiter = iq.GetChildElement<Private>().GetChildElement<RosterDelimiter>();
@@ -832,7 +839,7 @@ namespace Jabber.Client
 
                     if (this.AutoStoreNestedGroupsDelimiter)
                     {
-                        PrivateIQ privIq = new PrivateIQ(new XmlDocument());
+                        PrivateIQ privIq = new PrivateIQ(this.Document);
 
                         RosterDelimiter rosterDelim = new RosterDelimiter(privIq.OwnerDocument);
                         rosterDelim.InnerText = this.NestedGroupDelimiter;
@@ -853,9 +860,8 @@ namespace Jabber.Client
 
             if (AutoIQErrors)
             {
-                if (!iq.Handled &&
-                    iq.HasAttribute("from") &&   // Belt.  Suspenders.  Don't respond to roster pushes.
-                    ((iq.Type == IQType.get) || (iq.Type == IQType.set)))
+                if (!iq.Handled && iq.HasAttribute("from") &&   // Belt.  Suspenders.  Don't respond to roster pushes.
+                    (iq.Type == IQType.get || iq.Type == IQType.set))
                 {
                     Write(iq.GetErrorResponse(this.Document, Error.FEATURE_NOT_IMPLEMENTED));
                 }

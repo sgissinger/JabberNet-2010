@@ -16,8 +16,10 @@ using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using Bedrock;
 using Jabber.Protocol.Client;
 using Jabber.Protocol.IQ;
+using Jabber.Protocol;
 
 namespace Jabber.Client
 {
@@ -93,7 +95,7 @@ namespace Jabber.Client
         {
             InitializeComponent();
 
-            this.OnStreamChanged += new Bedrock.ObjectHandler(RosterManager_OnStreamChanged);
+            this.OnStreamChanged += new ObjectHandler(RosterManager_OnStreamChanged);
         }
 
         private void RosterManager_OnStreamChanged(object sender)
@@ -105,22 +107,7 @@ namespace Jabber.Client
 
             cli.OnIQ += new IQHandler(GotIQ);
             cli.OnPresence += new PresenceHandler(cli_OnPresence);
-            cli.OnDisconnect += new Bedrock.ObjectHandler(GotDisconnect);
-        }
-
-
-        /// <summary>
-        /// Gets or sets the Jabber client associated with the Roster Manager.
-        /// </summary>
-        [Description("The JabberClient to hook up to.")]
-        [Category("Jabber")]
-        [Browsable(false)]
-        [Obsolete("Use the Stream property instead")]
-        [ReadOnly(true)]
-        public JabberClient Client
-        {
-            get { return (JabberClient)this.Stream; }
-            set { this.Stream = value; }
+            cli.OnDisconnect += new ObjectHandler(GotDisconnect);
         }
 
         /// <summary>
@@ -145,6 +132,32 @@ namespace Jabber.Client
         {
             get { return m_autoSubscribe; }
             set { m_autoSubscribe = value; }
+        }
+
+        /// <summary>
+        /// Gets the currently-known version of a roster item for this JID.
+        /// </summary>
+        public Item this[JID jid]
+        {
+            get
+            {
+                lock (this)
+                    return m_items.ContainsKey(jid) ? m_items[jid] : null;
+            }
+        }
+
+        /// <summary>
+        /// Gets the number of items currently in the roster.
+        /// </summary>
+        [Browsable(false)]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public int Count
+        {
+            get
+            {
+                lock (this)
+                    return m_items.Count;
+            }
         }
 
         /// <summary>
@@ -185,44 +198,46 @@ namespace Jabber.Client
         [Category("Jabber")]
         public event UnsubscriptionHandler OnUnsubscription;
 
-        /// <summary>
-        /// Returns a string that represents the current object.
-        /// </summary>
-        public override string ToString()
-        {
-            return m_items.ToString();
-        }
-
-        /// <summary>
-        /// Gets the currently-known version of a roster item for this JID.
-        /// </summary>
-        public Item this[JID jid]
-        {
-            get
-            {
-                lock (this)
-                    return m_items.ContainsKey(jid) ? m_items[jid] : null;
-            }
-        }
-
-        /// <summary>
-        /// Gets the number of items currently in the roster.
-        /// </summary>
-        [Browsable(false)]
-        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        public int Count
-        {
-            get
-            {
-                lock (this)
-                    return m_items.Count;
-            }
-        }
-
         private void GotDisconnect(object sender)
         {
             lock (this)
                 m_items.Clear();
+        }
+
+        private void GotIQ(object sender, IQ iq)
+        {
+            if (iq.Query == null ||
+                iq.Query.NamespaceURI != URI.ROSTER ||
+                (iq.Type != IQType.result && iq.Type != IQType.set))
+                return;
+
+            iq.Handled = true;
+            Roster r = (Roster)iq.Query;
+
+            if (iq.Type == IQType.result && OnRosterBegin != null)
+                OnRosterBegin(this);
+
+            foreach (Item i in r.GetItems())
+            {
+                lock (this)
+                {
+                    if (i.Subscription == Subscription.remove)
+                    {
+                        m_items.Remove(i.JID);
+                    }
+                    else
+                    {
+                        if (m_items.ContainsKey(i.JID))
+                            m_items.Remove(i.JID);
+                        m_items[i.JID] = i;
+                    }
+                }
+                if (OnRosterItem != null)
+                    OnRosterItem(this, i);
+            }
+
+            if (iq.Type == IQType.result && OnRosterEnd != null)
+                OnRosterEnd(this);
         }
 
         private void cli_OnPresence(object sender, Presence pres)
@@ -301,48 +316,20 @@ namespace Jabber.Client
         }
 
         /// <summary>
+        /// Returns a string that represents the current object.
+        /// </summary>
+        public override string ToString()
+        {
+            return m_items.ToString();
+        }
+
+        /// <summary>
         /// Adds a new roster item to the database.
         /// </summary>
         /// <param name="iq">An IQ containing a roster query.</param>
         public void AddRoster(IQ iq)
         {
             GotIQ(this, iq);
-        }
-
-        private void GotIQ(object sender, IQ iq)
-        {
-            if (iq.Query == null ||
-                iq.Query.NamespaceURI != Jabber.Protocol.URI.ROSTER ||
-                (iq.Type != IQType.result && iq.Type != IQType.set))
-                return;
-
-            iq.Handled = true;
-            Roster r = (Roster)iq.Query;
-
-            if (iq.Type == IQType.result && OnRosterBegin != null)
-                OnRosterBegin(this);
-
-            foreach (Item i in r.GetItems())
-            {
-                lock (this)
-                {
-                    if (i.Subscription == Subscription.remove)
-                    {
-                        m_items.Remove(i.JID);
-                    }
-                    else
-                    {
-                        if (m_items.ContainsKey(i.JID))
-                            m_items.Remove(i.JID);
-                        m_items[i.JID] = i;
-                    }
-                }
-                if (OnRosterItem != null)
-                    OnRosterItem(this, i);
-            }
-
-            if (iq.Type == IQType.result && OnRosterEnd != null)
-                OnRosterEnd(this);
         }
 
         /// <summary>

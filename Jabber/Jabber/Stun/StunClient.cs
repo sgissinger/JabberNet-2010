@@ -19,10 +19,6 @@ using Jabber.Stun.Attributes;
 
 namespace Jabber.Stun
 {
-    public delegate void MessageReceptionHandler(Object sender, StunMessage receivedMsg, StunMessage sentMsg, Object transactionObject);
-
-    public delegate void IndicationReceptionHandler(Object sender, StunMessage receivedMsg);
-
     /// <summary>
     /// Represents a STUN Client that can send request to a STUN Server
     /// and receive response from it (or not)
@@ -51,15 +47,15 @@ namespace Jabber.Stun
         /// <summary>
         /// TODO: Documentation Event
         /// </summary>
-        public event MessageReceptionHandler OnReceivedSuccessResponse;
+        public event StunMessageReceptionHandler OnReceivedSuccessResponse;
         /// <summary>
         /// TODO: Documentation Event
         /// </summary>
-        public event IndicationReceptionHandler OnReceivedIndication;
+        public event StunIndicationReceptionHandler OnReceivedIndication;
         /// <summary>
         /// TODO: Documentation Event
         /// </summary>
-        public event MessageReceptionHandler OnReceivedError;
+        public event StunMessageReceptionHandler OnReceivedError;
         #endregion
 
         #region MEMBERS
@@ -101,14 +97,6 @@ namespace Jabber.Stun
         /// </summary>
         public RemoteCertificateValidationCallback RemoteCertificateValidation { get; private set; }
         /// <summary>
-        /// Contains the TcpClient handling TLS over TCP connection with the STUN Server
-        /// </summary>
-        private TcpClient SslClient { get; set; }
-        /// <summary>
-        /// Contains the SslStream handling TLS over TCP communication with the STUN Server
-        /// </summary>
-        private SslStream SslStream { get; set; }
-        /// <summary>
         /// Contains True if the current connected Socket must use TLS over TCP to communicate with the STUN Server
         /// </summary>
         public Boolean UseSsl
@@ -122,6 +110,14 @@ namespace Jabber.Stun
         {
             get { return this.Socket != null ? this.Socket.Connected : false; }
         }
+        /// <summary>
+        /// Contains the TcpClient handling TLS over TCP connection with the STUN Server
+        /// </summary>
+        private TcpClient SslClient { get; set; }
+        /// <summary>
+        /// Contains the SslStream handling TLS over TCP communication with the STUN Server
+        /// </summary>
+        private SslStream SslStream { get; set; }
         /// <summary>
         /// TODO: Documentation Property
         /// </summary>

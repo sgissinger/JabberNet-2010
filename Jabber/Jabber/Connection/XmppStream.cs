@@ -17,9 +17,13 @@ using System.ComponentModel;
 using System.ComponentModel.Design;
 using System.Diagnostics;
 using System.IO;
+using System.Net.Security;
+using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Xml;
+using Bedrock.IO;
+using Bedrock.Net;
 using Jabber.Connection.SASL;
 using Jabber.Protocol;
 using Jabber.Protocol.Stream;
@@ -335,15 +339,15 @@ namespace Jabber.Connection
             {
                 if (!m_properties.Contains(prop))
                     return null;
+
                 return m_properties[prop];
             }
             set
             {
                 m_properties[prop] = value;
+
                 if (PropertyChanged != null)
-                {
                     PropertyChanged(this, new PropertyChangedEventArgs(prop));
-                }
             }
         }
 
@@ -850,17 +854,18 @@ namespace Jabber.Connection
             set
             {
                 bool close = false;
+
                 lock (StateLock)
                 {
                     if (value)
-                    {
                         State = RunningState.Instance;
-                    }
                     else
                         close = true;
                 }
+
                 if (close)
                     Close();
+
                 if (value && (OnAuthenticate != null))
                 {
                     if (InvokeRequired)
@@ -980,6 +985,7 @@ namespace Jabber.Connection
         {
             this[Options.CURRENT_KEEP_ALIVE] = -1;
             m_stanzas = StanzaStream.Create(this.Connection, this);
+
             lock (StateLock)
             {
                 State = ConnectingState.Instance;
@@ -995,6 +1001,7 @@ namespace Jabber.Connection
         {
             if ((m_stanzas == null) || (!m_stanzas.Acceptable))
                 m_stanzas = StanzaStream.Create(this.Connection, this);
+
             lock (StateLock)
             {
                 this.State = AcceptingState.Instance;
@@ -1014,11 +1021,10 @@ namespace Jabber.Connection
                 if (m_reconnectTimer != null)
                     m_reconnectTimer.Dispose();
 
-                m_reconnectTimer = new System.Threading.Timer(
-                        new System.Threading.TimerCallback(Reconnect),
-                        null,
-                        (int)this[Options.RECONNECT_TIMEOUT],
-                        System.Threading.Timeout.Infinite);
+                m_reconnectTimer = new Timer(new TimerCallback(Reconnect),
+                                             null,
+                                             (int)this[Options.RECONNECT_TIMEOUT],
+                                             Timeout.Infinite);
             }
         }
 
@@ -1045,9 +1051,8 @@ namespace Jabber.Connection
                 m_reconnect = false;
 
                 if (State == RunningState.Instance && clean)
-                {
                     doStream = true;
-                }
+
                 if (m_state != ClosedState.Instance)
                 {
                     State = ClosingState.Instance;
@@ -1081,7 +1086,7 @@ namespace Jabber.Connection
 
                 m_invoker.BeginInvoke(method, args);
             }
-            catch (System.Reflection.TargetInvocationException e)
+            catch (TargetInvocationException e)
             {
                 Debug.WriteLine("Exception passed along by XmppStream: " + e.ToString());
                 throw e.InnerException;
@@ -1106,6 +1111,7 @@ namespace Jabber.Connection
             {
                 if (m_invoker == null)
                     return false;
+
                 return m_invoker.InvokeRequired;
             }
         }
@@ -1115,7 +1121,7 @@ namespace Jabber.Connection
         /// </summary>
         /// <param name="sender">Caller of this function.</param>
         /// <param name="elem">The XML element that was received.</param>
-        protected virtual void OnDocumentStart(object sender, System.Xml.XmlElement elem)
+        protected virtual void OnDocumentStart(object sender, XmlElement elem)
         {
             bool hack = false;
 
@@ -1135,7 +1141,7 @@ namespace Jabber.Connection
                             // already authed.  last stream restart.
                             State = SASLAuthedState.Instance;
                         else
-                            State = Jabber.Connection.ServerFeaturesState.Instance;
+                            State = ServerFeaturesState.Instance;
                     }
                 }
                 else
@@ -1172,8 +1178,8 @@ namespace Jabber.Connection
             // bad server setup, but no skin off our teeth, we're already
             // SSL'd.  Also, start-tls won't work when polling.
             if ((bool)this[Options.AUTO_TLS] &&
-                (m_features.StartTLS != null) &&
-                (!m_sslOn) &&
+                m_features.StartTLS != null &&
+                !m_sslOn &&
                 m_stanzas.SupportsTLS)
             {
                 // start-tls
@@ -1186,10 +1192,11 @@ namespace Jabber.Connection
             }
 
             Compression comp = m_features.Compression;
+
             if ((bool)this[Options.AUTO_COMPRESS] &&
-                (comp != null) &&
+                comp != null &&
                 comp.HasMethod("zlib") &&
-                (!m_compressionOn) &&
+                !m_compressionOn &&
                 m_stanzas.SupportsCompression)
             {
                 // start compression
@@ -1218,6 +1225,7 @@ namespace Jabber.Connection
                     // if SASL_MECHANISMS is set in the options, it is the limited set
                     // of mechanisms we're willing to try.  Mask them off of the offered set.
                     object smt = this[Options.SASL_MECHANISMS];
+
                     if (smt != null)
                         types = (MechanismType)smt & ms.Types;
                     else
@@ -1226,7 +1234,7 @@ namespace Jabber.Connection
 
                 // If we're doing SASL, and there are mechanisms implemented by both
                 // client and server.
-                if ((types != MechanismType.NONE) && ((bool)this[Options.SASL]))
+                if (types != MechanismType.NONE && (bool)this[Options.SASL])
                 {
                     lock (m_stateLock)
                     {
@@ -1234,17 +1242,19 @@ namespace Jabber.Connection
                     }
 
                     //FF
-                    m_saslProc = SASLProcessor.createProcessor(types
-                                                               , m_sslOn || (bool)this[Options.PLAINTEXT]
-                                                               , ms
-                                                               , (bool)this[Options.ANONYMOUS]);
+                    m_saslProc = SASLProcessor.createProcessor(types,
+                                                               m_sslOn || (bool)this[Options.PLAINTEXT],
+                                                               ms,
+                                                               (bool)this[Options.ANONYMOUS]);
                     if (m_saslProc == null)
                     {
                         FireOnError(new NotImplementedException("No implemented mechanisms in: " + types.ToString()));
                         return;
                     }
+
                     if (OnSASLStart != null)
                         OnSASLStart(this, m_saslProc);
+
                     lock (m_stateLock)
                     {
                         // probably manual authentication
@@ -1255,6 +1265,7 @@ namespace Jabber.Connection
                     try
                     {
                         Step s = m_saslProc.step(null, this.Document);
+
                         if (s != null)
                             this.Write(s);
                     }
@@ -1276,6 +1287,7 @@ namespace Jabber.Connection
                     {
                         State = NonSASLAuthState.Instance;
                     }
+
                     if (OnSASLStart != null)
                         OnSASLStart(this, null); // HACK: old-style auth for jabberclient.
                 }
@@ -1288,11 +1300,11 @@ namespace Jabber.Connection
         /// </summary>
         /// <param name="sender">The object that called this method.</param>
         /// <param name="tag">XML element that contains the new tag.</param>
-        protected virtual void OnElement(object sender, System.Xml.XmlElement tag)
+        protected virtual void OnElement(object sender, XmlElement tag)
         {
             //Debug.WriteLine(tag.OuterXml);
 
-            if (tag is Jabber.Protocol.Stream.Error)
+            if (tag is Error)
             {
                 // Stream error.  Race condition!  Two cases:
                 // 1) OnClose has already fired, in which case we are in ClosedState, and the reconnect timer is pending.
@@ -1383,29 +1395,31 @@ namespace Jabber.Connection
             {
                 switch (tag.Name)
                 {
-                case "proceed":
-                    if (!StartTLS())
+                    case "proceed":
+                        if (!StartTLS())
+                            return;
+
+                        SendNewStreamHeader();
+                        break;
+                    case "failure":
+                        FireOnError(new AuthenticationFailedException());
                         return;
-                    SendNewStreamHeader();
-                    break;
-                case "failure":
-                    FireOnError(new AuthenticationFailedException());
-                    return;
                 }
             }
             else if (State == CompressionState.Instance)
             {
                 switch (tag.Name)
                 {
-                case "compressed":
-                    if (!StartCompression())
+                    case "compressed":
+                        if (!StartCompression())
+                            return;
+
+                        SendNewStreamHeader();
+                        break;
+                    case "failure":
+                        CompressionFailure fail = tag as CompressionFailure;
+                        FireOnError(new CompressionFailedException(fail.Error));
                         return;
-                    SendNewStreamHeader();
-                    break;
-                case "failure":
-                    CompressionFailure fail = tag as CompressionFailure;
-                    FireOnError(new Bedrock.IO.CompressionFailedException(fail.Error));
-                    return;
                 }
 
             }
@@ -1417,8 +1431,10 @@ namespace Jabber.Connection
                     FireOnError(new InvalidOperationException("Expecting stream:features from a version='1.0' server"));
                     return;
                 }
+
                 if (OnSASLEnd != null)
                     OnSASLEnd(this, f);
+
                 m_saslProc = null;
             }
             else
@@ -1432,6 +1448,8 @@ namespace Jabber.Connection
                 }
             }
             CheckAll(tag);
+
+            //tag = null;
         }
 
         /// <summary>
@@ -1447,10 +1465,12 @@ namespace Jabber.Connection
             catch (Exception e)
             {
                 m_reconnect = false;
+
                 if (e.InnerException != null)
                     FireOnError(e.InnerException);
                 else
                     FireOnError(e);
+
                 return false;
             }
             m_sslOn = true;
@@ -1720,6 +1740,7 @@ namespace Jabber.Connection
             lock (m_stateLock)
             {
                 State = ClosedState.Instance;
+
                 if ((m_stanzas != null) && (!m_stanzas.Acceptable))
                     m_stanzas = null;
             }
@@ -1742,8 +1763,10 @@ namespace Jabber.Connection
             lock (StateLock)
             {
                 State = ClosedState.Instance;
+
                 if ((m_stanzas != null) && (!m_stanzas.Acceptable))
                     m_stanzas = null;
+
                 m_sslOn = false;
                 m_compressionOn = false;
             }
@@ -1788,28 +1811,23 @@ namespace Jabber.Connection
                 OnElement(m_stanzas, elem);
         }
 
-        private bool ShowCertificatePrompt(object sender,
-            System.Security.Cryptography.X509Certificates.X509Certificate certificate,
-            System.Security.Cryptography.X509Certificates.X509Chain chain,
-            System.Net.Security.SslPolicyErrors sslPolicyErrors)
+        private bool ShowCertificatePrompt(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
 #if !__MonoCS__
-            CertificatePrompt cp = new CertificatePrompt((X509Certificate2)certificate, chain, sslPolicyErrors);
+            CertificatePrompt cp = new CertificatePrompt(certificate as X509Certificate2, chain, sslPolicyErrors);
             return (cp.ShowDialog() == System.Windows.Forms.DialogResult.OK);
 #else
             return false;
 #endif
         }
 
-        bool IStanzaEventListener.OnInvalidCertificate(Bedrock.Net.BaseSocket sock,
-            System.Security.Cryptography.X509Certificates.X509Certificate certificate,
-            System.Security.Cryptography.X509Certificates.X509Chain chain,
-            System.Net.Security.SslPolicyErrors sslPolicyErrors)
+        bool IStanzaEventListener.OnInvalidCertificate(BaseSocket sock, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
             if (OnInvalidCertificate != null)
             {
                 if ((m_invoker == null) || (!m_invoker.InvokeRequired))
                     return OnInvalidCertificate(sock, certificate, chain, sslPolicyErrors);
+
                 try
                 {
                     // Note: can't use CheckedInvoke here, since we need the return value.  We'll wait for the response.
@@ -1824,7 +1842,7 @@ namespace Jabber.Connection
             if ((m_invoker == null) || (!m_invoker.InvokeRequired))
                 return ShowCertificatePrompt(sock, certificate, chain, sslPolicyErrors);
 
-            return (bool)m_invoker.Invoke(new System.Net.Security.RemoteCertificateValidationCallback(ShowCertificatePrompt), new object[]{ sock, certificate, chain, sslPolicyErrors });
+            return (bool)m_invoker.Invoke(new RemoteCertificateValidationCallback(ShowCertificatePrompt), new object[]{ sock, certificate, chain, sslPolicyErrors });
         }
 
         #endregion

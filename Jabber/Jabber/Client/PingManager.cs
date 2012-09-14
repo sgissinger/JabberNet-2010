@@ -11,12 +11,10 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Globalization;
-using System.Xml;
+using Bedrock;
 using Jabber.Connection;
 using Jabber.Protocol;
 using Jabber.Protocol.Client;
-using Jabber.Protocol.IQ;
 
 namespace Jabber.Client
 {
@@ -25,16 +23,9 @@ namespace Jabber.Client
     /// </summary>
     public partial class PingManager : StreamComponent
     {
-        #region PROPERTIES
-        /// <summary>
-        /// Session informations about every opened sessions using their SID as key
-        /// </summary>
-        private Dictionary<String, JingleSession> Sessions { get; set; }
-        #endregion
-
         #region CONSTRUCTORS & FINALIZERS
         /// <summary>
-        /// Creates a new Jingle Manager inside a container
+        /// Creates a new Ping Manager inside a container
         /// </summary>
         /// <param name="container">Parent container</param>
         public PingManager(IContainer container)
@@ -44,13 +35,13 @@ namespace Jabber.Client
         }
 
         /// <summary>
-        /// Creates a new Jingle Manager
+        /// Creates a new Ping Manager
         /// </summary>
         public PingManager()
         {
             InitializeComponent();
 
-            this.OnStreamChanged += new Bedrock.ObjectHandler(JingleManager_OnStreamChanged);
+            this.OnStreamChanged += new ObjectHandler(self_OnStreamChanged);
         }
         #endregion
 
@@ -59,7 +50,7 @@ namespace Jabber.Client
         /// Entry point for XMPP stream events
         /// </summary>
         /// <param name="sender"></param>
-        private void JingleManager_OnStreamChanged(object sender)
+        private void self_OnStreamChanged(object sender)
         {
             JabberClient cli = m_stream as JabberClient;
 
@@ -78,7 +69,7 @@ namespace Jabber.Client
         {
             if (!iq.Handled &&
                 iq.Query != null && iq.Type == IQType.get &&
-                iq.Query.NamespaceURI == Jabber.Protocol.URI.PING)
+                iq.Query.NamespaceURI == URI.PING)
             {
                 iq.Handled = true;
 

@@ -184,16 +184,16 @@ namespace Muzzle.Controls
 
             this.InvokeOrNot(() =>
             {
-                rtDebug.AppendMaybeScroll(color, tag, text);
-            });
+                this.rtDebug.AppendMaybeScroll(color, tag, text);
 
-            if (this.NbLines > this.MaxLines)
-            {
-                Array.Copy(this.rtDebug.Lines, 1,
-                           this.rtDebug.Lines, 0, this.rtDebug.Lines.Length - 1);
-            }
-            else
-                this.NbLines++;
+                if (this.NbLines > this.MaxLines)
+                {
+                    Array.Copy(this.rtDebug.Lines, 1,
+                               this.rtDebug.Lines, 0, this.rtDebug.Lines.Length - 1);
+                }
+                else
+                    this.NbLines++;
+            });
         }
 
         /// <summary>

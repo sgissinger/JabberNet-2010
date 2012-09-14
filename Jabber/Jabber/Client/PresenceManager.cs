@@ -71,20 +71,6 @@ namespace Jabber.Client
         }
 
         /// <summary>
-        /// Gets or sets the JabberClient associated with the Presence Manager.
-        /// </summary>
-        [Description("Gets or sets the JabberClient associated with the Presence Manager.")]
-        [Category("Jabber")]
-        [Browsable(false)]
-        [Obsolete("Use the Stream property instead")]
-        [ReadOnly(true)]
-        public JabberClient Client
-        {
-            get { return (JabberClient)this.Stream; }
-            set { this.Stream = value; }
-        }
-
-        /// <summary>
         /// The CapsManager for this view
         /// </summary>
         [Category("Jabber")]

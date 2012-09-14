@@ -17,25 +17,18 @@ using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 using System.Xml;
+using Bedrock.Net;
 using Jabber.Connection;
 using Jabber.Protocol;
 using Jabber.Protocol.Client;
 using Jabber.Protocol.IQ;
 using Jabber.Stun;
 using Jabber.Stun.Attributes;
+using NetLib.DNS;
+using NetLib.DNS.Records;
 
 namespace Jabber.Client
 {
-    public delegate void DescriptionGatheringHandler(object sender, XmlDocument ownerDoc, String sid, out Element jingleDescription, out String contentName);
-
-    public delegate void IceCandidatesGatheringHandler(object sender, JingleIce jingleIce, IPEndPoint hostEP, TurnAllocation allocation);
-
-    public delegate void HolePunchSucceedHandler(object sender, Socket connectedSocket, Jingle jingle);
-
-    public delegate void TurnStartHandler(object sender, IPEndPoint peerEP, String sid);
-
-    public delegate void TurnConnectionBindSucceedHandler(object sender, Socket connectedSocket, String sid, JID recipient);
-
     /// <summary>
     /// TODO: Documentation Class
     /// </summary>
@@ -51,21 +44,23 @@ namespace Jabber.Client
 
         #region EVENTS
         public event EventHandler OnBeforeInitiatorAllocate;
-        public event SessionIdHandler OnBeforeResponderAllocate;
-        public event DescriptionGatheringHandler OnDescriptionGathering;
-        public event IceCandidatesGatheringHandler OnIceCandidatesGathering;
-        public event HolePunchSucceedHandler OnHolePunchSucceed;
-        public event TurnStartHandler OnTurnStart;
-        public event TurnConnectionBindSucceedHandler OnTurnConnectionBindSucceed;
-        public event SessionIdHandler OnConnectionTryEnded;
+        public event JingleSessionIdHandler OnBeforeResponderAllocate;
+        public event JingleDescriptionGatheringHandler OnDescriptionGathering;
+        public event JingleIceCandidatesGatheringHandler OnIceCandidatesGathering;
+        public event JingleHolePunchSucceedHandler OnHolePunchSucceed;
+        public event JingleTurnStartHandler OnTurnStart;
+        public event JingleTurnConnectionBindSucceedHandler OnTurnConnectionBindSucceed;
+        public event JingleSessionIdHandler OnConnectionTryEnded;
         #endregion
 
         #region PROPERTIES
-        private String StartingSessionSid { get; set; }
         private ActionType StartingSessionAction { get; set; }
-        private JID StartingSessionRecipient { get; set; }
+        public String StartingSessionSid { get; private set; }
+        public JID StartingSessionRecipient { get; private set; }
 
-        public String StunServerIP { get; set; }
+        [DefaultValue("")]
+        public String StunServerSrvDomain { get; set; }
+        public IPAddress StunServerIP { get; set; }
         public Int32 StunServerPort { get; set; }
 
         /// <summary>
@@ -75,7 +70,27 @@ namespace Jabber.Client
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public IPEndPoint StunServerEP
         {
-            get { return new IPEndPoint(IPAddress.Parse(this.StunServerIP), this.StunServerPort); }
+            get
+            {
+                if (!String.IsNullOrEmpty(this.StunServerSrvDomain) &&
+                    this.StunServerIP == null)
+                {
+                    String stunDomain = null;
+                    Int32 stunPort = 0;
+
+                    Address.LookupSRV("_stun._tcp.", this.StunServerSrvDomain, ref stunDomain, ref stunPort);
+
+                    DnsRequest request = new DnsRequest(stunDomain);
+                    DnsResponse response = request.GetResponse(DnsRecordType.A);
+
+                    ARecord stunARecord = (ARecord)response.GetRecords(DnsRecordType.A)[0];
+
+                    this.StunServerIP = stunARecord.IPAddress;
+                    this.StunServerPort = stunPort;
+                }
+
+                return new IPEndPoint(this.StunServerIP, this.StunServerPort);
+            }
         }
 
         public Boolean TurnSupported { get; set; }
@@ -117,11 +132,20 @@ namespace Jabber.Client
             {
                 if ((object)this.jingleManager != (object)value)
                 {
+                    if (this.jingleManager != null)
+                    {
+                        this.jingleManager.OnReceivedSessionInitiate -= this.jingleManager_OnReceivedSessionInitiate;
+                        this.jingleManager.OnReceivedSessionAccept -= this.jingleManager_OnReceivedSessionAccept;
+                        this.jingleManager.OnReceivedTransportInfo -= this.jingleManager_OnReceivedTransportInfo;
+                        this.jingleManager.OnReceivedSessionTerminate -= this.jingleManager_OnReceivedSessionTerminate;
+                    }
+
                     this.jingleManager = value;
 
                     this.jingleManager.OnReceivedSessionInitiate += new IQHandler(jingleManager_OnReceivedSessionInitiate);
                     this.jingleManager.OnReceivedSessionAccept += new IQHandler(jingleManager_OnReceivedSessionAccept);
                     this.jingleManager.OnReceivedTransportInfo += new IQHandler(jingleManager_OnReceivedTransportInfo);
+                    this.jingleManager.OnReceivedSessionTerminate += new IQHandler(jingleManager_OnReceivedSessionTerminate);
                 }
             }
         }
@@ -154,49 +178,52 @@ namespace Jabber.Client
         /// <param name="sid"></param>
         private void CheckConnectivity(String sid)
         {
-            this.holePuncher = new HolePuncher(this.turnSessions[sid].TurnManager.HostEP, sid);
-
-            JingleSession jingleSession = this.JingleManager.FindSession(sid);
-
-            JingleContent jingleContent = jingleSession.Remote.GetContent(0);
-
-            JingleIce jingleIce = jingleContent.GetElement<JingleIce>(0);
-
-            foreach (JingleIceCandidate remoteCandidate in jingleIce.GetCandidates())
+            if (this.turnSessions.ContainsKey(sid))
             {
-                switch (remoteCandidate.Type)
+                this.holePuncher = new HolePuncher(this.turnSessions[sid].TurnManager.HostEP, sid);
+
+                JingleSession jingleSession = this.JingleManager.FindSession(sid);
+
+                JingleContent jingleContent = jingleSession.Remote.GetContent(0);
+
+                JingleIce jingleIce = jingleContent.GetElement<JingleIce>(0);
+
+                foreach (JingleIceCandidate remoteCandidate in jingleIce.GetCandidates())
                 {
-                    case IceCandidateType.host:
-                    case IceCandidateType.prflx:
-                    case IceCandidateType.srflx:
-                        foreach (JingleIceCandidate localCandidate in this.localCandidates[sid])
-                        {
-                            if (localCandidate.Type == remoteCandidate.Type)
+                    switch (remoteCandidate.Type)
+                    {
+                        case IceCandidateType.host:
+                        case IceCandidateType.prflx:
+                        case IceCandidateType.srflx:
+                            foreach (JingleIceCandidate localCandidate in this.localCandidates[sid])
                             {
-                                this.holePuncher.AddEP(remoteCandidate.Priority, remoteCandidate.EndPoint);
-                                break;
+                                if (localCandidate.Type == remoteCandidate.Type)
+                                {
+                                    this.holePuncher.AddEP(remoteCandidate.Priority, remoteCandidate.EndPoint);
+                                    break;
+                                }
                             }
-                        }
-                        break;
+                            break;
 
-                    case IceCandidateType.relay:
-                        if (this.TurnSupported &&
-                            jingleSession.Remote.Action == ActionType.session_accept)
-                        {
-                            this.turnSessions[sid].TurnManager.CreatePermission(new XorMappedAddress(remoteCandidate.RelatedEndPoint),
-                                                                                this.turnSessions[sid].TurnAllocation);
-                        }
-                        break;
+                        case IceCandidateType.relay:
+                            if (this.TurnSupported &&
+                                jingleSession.Remote.Action == ActionType.session_accept)
+                            {
+                                this.turnSessions[sid].TurnManager.CreatePermission(new XorMappedAddress(remoteCandidate.RelatedEndPoint),
+                                                                                    this.turnSessions[sid].TurnAllocation);
+                            }
+                            break;
+                    }
                 }
-            }
 
-            if (!this.holePuncher.CanStart && this.TurnSupported)
-            {
-                this.StartTurnPeer(sid);
-            }
-            else
-            {
-                this.holePuncher.StartTcpPunch(this.HolePunchSuccess, this.HolePunchFailure);
+                if (!this.holePuncher.CanStart && this.TurnSupported)
+                {
+                    this.StartTurnPeer(sid);
+                }
+                else
+                {
+                    this.holePuncher.StartTcpPunch(this.HolePunchSuccess, this.HolePunchFailure);
+                }
             }
         }
 
@@ -218,9 +245,7 @@ namespace Jabber.Client
 
 
             this.DestroyTurnSession(punchData as String);
-
-            this.StartingSessionSid = null;
-            this.StartingSessionRecipient = null;
+            this.CancelStartingSession();
         }
 
         /// <summary>
@@ -232,6 +257,29 @@ namespace Jabber.Client
         {
             if (this.TurnSupported)
                 this.StartTurnPeer(punchData as String);
+        }
+
+        /// <summary>
+        /// TODO: Documentation CancelStartingSession
+        /// </summary>
+        /// <param name="sid"></param>
+        private void CancelStartingSession(String sid)
+        {
+            if (this.StartingSessionRecipient != null && 
+                this.StartingSessionSid == sid)
+            {
+                this.CancelStartingSession();
+            }
+        }
+
+        /// <summary>
+        /// TODO: Documentation CancelStartingSession
+        /// </summary>
+        private void CancelStartingSession()
+        {
+            this.StartingSessionRecipient = null;
+            this.StartingSessionSid = null;
+            this.StartingSessionAction = ActionType.UNSPECIFIED;
         }
         #endregion
 
@@ -263,22 +311,20 @@ namespace Jabber.Client
         }
 
         /// <summary>
-        /// TODO: Documentation AbortInitiateSession
+        /// TODO: Documentation TerminateSession
         /// </summary>
-        public void AbortInitiateSession()
+        /// <param name="to"></param>
+        /// <param name="sid"></param>
+        public void TerminateSession(JID to, String sid)
         {
-            if (this.TurnSupported)
-            {
-                this.DestroyTurnSession(this.StartingSessionSid);
-            }
-            else
-            {
-                throw new NotSupportedException();
-            }
+            this.jingleManager.SessionTerminate(to, sid, ReasonType.success);
 
-            this.StartingSessionRecipient = null;
-            this.StartingSessionSid = null;
-            this.StartingSessionAction = ActionType.UNSPECIFIED;
+            if (this.TurnSupported)
+                this.DestroyTurnSession(sid);
+            else
+                throw new NotSupportedException();
+
+            this.CancelStartingSession(sid);
         }
 
         /// <summary>
@@ -322,7 +368,7 @@ namespace Jabber.Client
         {
             Jingle jingle = iq.Query as Jingle;
 
-            JingleIQ jingleIq = new JingleIQ(new XmlDocument());
+            JingleIQ jingleIq = new JingleIQ(this.Stream.Document);
 
             jingleIq.From = this.Stream.JID;
             jingleIq.To = iq.From;
@@ -333,7 +379,6 @@ namespace Jabber.Client
             JingleContent jcnt = jingleIq.Instruction.AddContent("checkConnectivity");
 
             this.Stream.Write(jingleIq);
-
             this.CheckConnectivity(jingle.Sid);
 
             iq.Handled = true;
@@ -355,6 +400,26 @@ namespace Jabber.Client
                 this.CheckConnectivity(jingle.Sid);
 
                 iq.Handled = true;
+            }
+        }
+
+        /// <summary>
+        /// TODO: Documentation jingleManager_OnReceivedSessionTerminate
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="iq"></param>
+        private void jingleManager_OnReceivedSessionTerminate(object sender, IQ iq)
+        {
+            Jingle jingle = iq.Query as Jingle;
+
+            if (jingle != null)
+            {
+                if (this.TurnSupported)
+                    this.DestroyTurnSession(jingle.Sid);
+                else
+                    throw new NotSupportedException();
+
+                this.CancelStartingSession(jingle.Sid);
             }
         }
         #endregion
@@ -383,8 +448,7 @@ namespace Jabber.Client
                         if (this.OnConnectionTryEnded != null)
                             this.OnConnectionTryEnded(this, sid);
 
-                        this.StartingSessionSid = null;
-                        this.StartingSessionRecipient = null;
+                        this.CancelStartingSession();
                         break;
                     }
                 }
@@ -399,10 +463,10 @@ namespace Jabber.Client
         {
             TurnManager turnManager = new TurnManager(this.StunServerEP, ProtocolType.Tcp, this.TurnClientCertificate, this.TurnRemoteCertificateValidation);
 
-            turnManager.OnAllocateSucceed += new AllocateSuccessHandler(this.turnManager_OnAllocateSucceed);
-            turnManager.OnAllocateFailed += new MessageReceptionHandler(this.turnManager_OnAllocateFailed);
-            turnManager.OnConnectionAttemptReceived += new IndicationReceptionHandler(this.turnManager_OnConnectionAttemptReceived);
-            turnManager.OnConnectionBindSucceed += new ConnectionBindSuccessHandler(this.turnManager_OnConnectionBindSucceed);
+            turnManager.OnAllocateSucceed += new TurnAllocateSuccessHandler(this.turnManager_OnAllocateSucceed);
+            turnManager.OnAllocateFailed += new StunMessageReceptionHandler(this.turnManager_OnAllocateFailed);
+            turnManager.OnConnectionAttemptReceived += new StunIndicationReceptionHandler(this.turnManager_OnConnectionAttemptReceived);
+            turnManager.OnConnectionBindSucceed += new TurnConnectionBindSuccessHandler(this.turnManager_OnConnectionBindSucceed);
 
             turnManager.Connect();
             turnManager.Allocate(this.TurnUsername, this.TurnPassword);
@@ -416,22 +480,25 @@ namespace Jabber.Client
         /// <param name="sid"></param>
         public void DestroyTurnSession(String sid)
         {
-            if (this.turnSessions.ContainsKey(sid))
+            lock (this)
             {
-                if (this.turnSessions[sid].TurnAllocation != null)
-                    this.turnSessions[sid].TurnAllocation.StopAutoRefresh();
+                if (this.turnSessions.ContainsKey(sid))
+                {
+                    if (this.turnSessions[sid].TurnAllocation != null)
+                        this.turnSessions[sid].TurnAllocation.StopAutoRefresh();
 
-                this.turnSessions[sid].TurnManager.OnAllocateSucceed -= this.turnManager_OnAllocateSucceed;
-                this.turnSessions[sid].TurnManager.OnAllocateFailed -= this.turnManager_OnAllocateFailed;
-                this.turnSessions[sid].TurnManager.OnConnectionAttemptReceived -= this.turnManager_OnConnectionAttemptReceived;
-                this.turnSessions[sid].TurnManager.OnConnectionBindSucceed -= this.turnManager_OnConnectionBindSucceed;
-                this.turnSessions[sid].TurnManager.Disconnect();
+                    this.turnSessions[sid].TurnManager.OnAllocateSucceed -= this.turnManager_OnAllocateSucceed;
+                    this.turnSessions[sid].TurnManager.OnAllocateFailed -= this.turnManager_OnAllocateFailed;
+                    this.turnSessions[sid].TurnManager.OnConnectionAttemptReceived -= this.turnManager_OnConnectionAttemptReceived;
+                    this.turnSessions[sid].TurnManager.OnConnectionBindSucceed -= this.turnManager_OnConnectionBindSucceed;
+                    this.turnSessions[sid].TurnManager.Disconnect();
 
-                this.turnSessions[sid].TurnManager = null;
-                this.turnSessions[sid].TurnAllocation = null;
+                    this.turnSessions[sid].TurnManager = null;
+                    this.turnSessions[sid].TurnAllocation = null;
 
-                this.localCandidates.Remove(sid);
-                this.turnSessions.Remove(sid);
+                    this.localCandidates.Remove(sid);
+                    this.turnSessions.Remove(sid);
+                }
             }
         }
 
@@ -469,7 +536,7 @@ namespace Jabber.Client
                 String contentName = null;
 
                 if (this.OnDescriptionGathering != null)
-                    this.OnDescriptionGathering(this, doc, this.StartingSessionSid, out jingleDescription, out contentName);
+                    this.OnDescriptionGathering(this, doc, this.StartingSessionSid, ref jingleDescription, ref contentName);
 
                 jingleIq = this.JingleManager.SessionRequest(this.StartingSessionRecipient,
                                                              this.StartingSessionAction,
@@ -498,8 +565,7 @@ namespace Jabber.Client
 
                 this.DestroyTurnSession(this.StartingSessionSid);
 
-                this.StartingSessionSid = null;
-                this.StartingSessionRecipient = null;
+                this.CancelStartingSession();
             }
         }
 
@@ -527,8 +593,7 @@ namespace Jabber.Client
             if (this.OnConnectionTryEnded != null)
                 this.OnConnectionTryEnded(this, this.StartingSessionSid);
 
-            this.StartingSessionSid = null;
-            this.StartingSessionRecipient = null;
+            this.CancelStartingSession();
         }
         #endregion
     }

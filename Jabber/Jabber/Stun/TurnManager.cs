@@ -15,17 +15,12 @@ using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 using Jabber.Stun.Attributes;
+using Bedrock.Net;
+using NetLib.DNS;
+using NetLib.DNS.Records;
 
 namespace Jabber.Stun
 {
-    public delegate void AllocateSuccessHandler(Object sender, TurnAllocation allocation, StunMessage sentMsg, StunMessage receivedMsg);
-
-    public delegate void CreatePermissionSuccessHandler(Object sender, TurnAllocation allocation, TurnPermission permission, StunMessage sentMsg, StunMessage receivedMsg);
-
-    public delegate void ChannelBindSuccessHandler(Object sender, TurnAllocation allocation, TurnChannel channel, StunMessage sentMsg, StunMessage receivedMsg);
-
-    public delegate void ConnectionBindSuccessHandler(Object sender, Socket connectedSocket, StunMessage receivedMsg);
-
     /// <summary>
     /// TODO: Documentation Class
     /// </summary>
@@ -35,31 +30,31 @@ namespace Jabber.Stun
         /// <summary>
         /// TODO: Documentation Event
         /// </summary>
-        public event AllocateSuccessHandler OnAllocateSucceed;
+        public event TurnAllocateSuccessHandler OnAllocateSucceed;
         /// <summary>
         /// TODO: Documentation Event
         /// </summary>
-        public event MessageReceptionHandler OnAllocateFailed;
+        public event StunMessageReceptionHandler OnAllocateFailed;
         /// <summary>
         /// TODO: Documentation Event
         /// </summary>
-        public event CreatePermissionSuccessHandler OnCreatePermissionSucceed;
+        public event TurnCreatePermissionSuccessHandler OnCreatePermissionSucceed;
         /// <summary>
         /// TODO: Documentation Event
         /// </summary>
-        public event ChannelBindSuccessHandler OnChannelBindSucceed;
+        public event TurnChannelBindSuccessHandler OnChannelBindSucceed;
         /// <summary>
         /// TODO: Documentation Event
         /// </summary>
-        public event ConnectionBindSuccessHandler OnConnectionBindSucceed;
+        public event TurnConnectionBindSuccessHandler OnConnectionBindSucceed;
         /// <summary>
         /// TODO: Documentation Event
         /// </summary>
-        public event IndicationReceptionHandler OnConnectionAttemptReceived;
+        public event StunIndicationReceptionHandler OnConnectionAttemptReceived;
         /// <summary>
         /// TODO: Documentation Event
         /// </summary>
-        public event IndicationReceptionHandler OnDataReceived;
+        public event StunIndicationReceptionHandler OnDataReceived;
         #endregion
 
         #region PROPERTIES
@@ -103,12 +98,14 @@ namespace Jabber.Stun
         {
             this.Allocations = new Dictionary<XorMappedAddress, TurnAllocation>(new XorMappedAddressComparer());
 
-            this.StunClient = new StunClient(turnServerEP, protocolType,
-                                             clientCertificate, remoteCertificateValidationHandler);
+            this.StunClient = new StunClient(turnServerEP,
+                                             protocolType,
+                                             clientCertificate,
+                                             remoteCertificateValidationHandler);
 
-            this.StunClient.OnReceivedError += new MessageReceptionHandler(StunClient_OnReceivedError);
-            this.StunClient.OnReceivedIndication += new IndicationReceptionHandler(StunClient_OnReceivedIndication);
-            this.StunClient.OnReceivedSuccessResponse += new MessageReceptionHandler(StunClient_OnReceivedSuccessResponse);
+            this.StunClient.OnReceivedError += new StunMessageReceptionHandler(StunClient_OnReceivedError);
+            this.StunClient.OnReceivedIndication += new StunIndicationReceptionHandler(StunClient_OnReceivedIndication);
+            this.StunClient.OnReceivedSuccessResponse += new StunMessageReceptionHandler(StunClient_OnReceivedSuccessResponse);
         }
 
         /// <summary>
@@ -258,9 +255,7 @@ namespace Jabber.Stun
         public void Disconnect()
         {
             foreach (var allocation in this.Allocations)
-            {
                 this.RefreshAllocation(allocation.Value, (UInt32)0);
-            }
 
             this.StunClient.Disconnect();
             this.StunClient = null;

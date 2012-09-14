@@ -11,23 +11,29 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.ComponentModel.Design;
 using System.Globalization;
 using System.Xml;
+using Bedrock;
 using Jabber.Connection;
 using Jabber.Protocol;
 using Jabber.Protocol.Client;
 using Jabber.Protocol.IQ;
-using Bedrock;
 
 namespace Jabber.Client
 {
-    public delegate void SessionIdHandler(object sender, String sid);
-
     /// <summary>
     /// Manages Jingle sessions with peers
     /// </summary>
     public partial class JingleManager : StreamComponent
     {
+        #region MEMBERS
+        /// <summary>
+        /// TODO: Documentation Member
+        /// </summary>
+        private RosterManager m_roster = null;
+        #endregion
+
         #region PROPERTIES
         /// <summary>
         /// Session informations about every opened sessions using their SID as key
@@ -37,6 +43,35 @@ namespace Jabber.Client
         /// TODO: Documentation Property
         /// </summary>
         private IQTracker Tracker { get; set; }
+        /// <summary>
+        /// TODO: Documentation Property
+        /// </summary>
+        [DefaultValue(false)]
+        public Boolean AllowRosterSessionInitiateOnly { get; set; }
+        /// <summary>
+        /// The RosterManager for this view
+        /// </summary>
+        [Category("Managers")]
+        public RosterManager RosterManager
+        {
+            get
+            {
+                // If we are running in the designer, let's try to auto-hook a RosterManager
+                if (m_roster == null && this.DesignMode)
+                {
+                    IDesignerHost host = (IDesignerHost)base.GetService(typeof(IDesignerHost));
+                    this.RosterManager = (RosterManager)StreamComponent.GetComponentFromHost(host, typeof(RosterManager));
+                }
+                return m_roster;
+            }
+            set
+            {
+                if ((object)m_roster == (object)value)
+                    return;
+
+                m_roster = value;
+            }
+        }
         #endregion
 
         #region EVENTS
@@ -146,87 +181,122 @@ namespace Jabber.Client
 
             if (jingle != null)
             {
-                switch (jingle.Action)
+                if (jingle.Action == ActionType.session_terminate)
                 {
-                    case ActionType.session_initiate:
-                        this.Stream.Write(iq.GetAcknowledge(this.Stream.Document));
+                    this.Stream.Write(iq.GetAcknowledge(this.Stream.Document));
 
-                        if (!this.Sessions.ContainsKey(jingle.Sid))
-                        {
-                            JingleSession jingleSession = new JingleSession();
-                            jingleSession.SID = jingle.Sid;
-                            jingleSession.Remote = jingle;
+                    if (this.OnReceivedSessionTerminate != null)
+                        this.OnReceivedSessionTerminate(this, iq);
 
-                            this.Sessions.Add(jingle.Sid, jingleSession);
-                        }
+                    if (this.Sessions.ContainsKey(jingle.Sid))
+                        this.Sessions.Remove(jingle.Sid);
 
-                        if (this.OnReceivedSessionInitiate != null)
-                            this.OnReceivedSessionInitiate(this, iq);
-
-                        if(!iq.Handled)
-                            this.Stream.Write(this.SessionTerminate(iq.From, jingle.Sid, ReasonType.decline));
-
-                        break;
-
-                    case ActionType.session_accept:
-                        this.Stream.Write(iq.GetAcknowledge(this.Stream.Document));
-
-                        if (!this.Sessions.ContainsKey(jingle.Sid))
-                        {
-                            JingleSession jingleSession = new JingleSession();
-                            jingleSession.SID = jingle.Sid;
-                            jingleSession.Remote = jingle;
-
-                            this.Sessions.Add(jingle.Sid, jingleSession);
-                        }
-
-                        if (this.OnReceivedSessionAccept != null)
-                            this.OnReceivedSessionAccept(this, iq);
-
-                        if (!iq.Handled)
-                            this.Stream.Write(this.SessionTerminate(iq.From, jingle.Sid, ReasonType.cancel));
-
-                        break;
-
-                    case ActionType.session_terminate:
-                        this.Stream.Write(iq.GetAcknowledge(this.Stream.Document));
-
-                        if (this.OnReceivedSessionTerminate != null)
-                            this.OnReceivedSessionTerminate(this, iq);
-
-                        if (this.Sessions.ContainsKey(jingle.Sid))
-                            this.Sessions.Remove(jingle.Sid);
-
+                    iq.Handled = true;
+                }
+                else
+                {
+                    if (!this.AllowSessionInitiateFrom(iq.From))
+                    {
+                        this.SessionTerminate(iq.From, jingle.Sid, ReasonType.security_error);
                         iq.Handled = true;
-                        break;
+                    }
+                    else
+                    {
+                        switch (jingle.Action)
+                        {
+                            case ActionType.session_initiate:
+                                this.Stream.Write(iq.GetAcknowledge(this.Stream.Document));
 
-                    case ActionType.session_info:
-                        if (this.Sessions.ContainsKey(jingle.Sid))
-                            this.Stream.Write(iq.GetAcknowledge(this.Stream.Document));
-                        else
-                            this.Stream.Write(new UnknownSession(this.Stream.Document));
+                                if (!this.Sessions.ContainsKey(jingle.Sid))
+                                {
+                                    JingleSession jingleSession = new JingleSession();
+                                    jingleSession.SID = jingle.Sid;
+                                    jingleSession.Remote = jingle;
 
-                        if (this.OnReceivedSessionInfo != null)
-                            this.OnReceivedSessionInfo(this, iq);
+                                    this.Sessions.Add(jingle.Sid, jingleSession);
+                                }
 
-                        break;
+                                if (this.OnReceivedSessionInitiate != null)
+                                    this.OnReceivedSessionInitiate(this, iq);
 
-                    case ActionType.transport_info:
-                        if (this.Sessions.ContainsKey(jingle.Sid))
-                            this.Stream.Write(iq.GetAcknowledge(this.Stream.Document));
-                        else
-                            this.Stream.Write(new UnknownSession(this.Stream.Document));
+                                if (!iq.Handled)
+                                {
+                                    this.SessionTerminate(iq.From, jingle.Sid, ReasonType.decline);
+                                    iq.Handled = true;
+                                }
 
-                        if (this.OnReceivedTransportInfo != null)
-                            this.OnReceivedTransportInfo(this, iq);
+                                break;
 
-                        break;
+                            case ActionType.session_accept:
+                                this.Stream.Write(iq.GetAcknowledge(this.Stream.Document));
+
+                                if (!this.Sessions.ContainsKey(jingle.Sid))
+                                {
+                                    JingleSession jingleSession = new JingleSession();
+                                    jingleSession.SID = jingle.Sid;
+                                    jingleSession.Remote = jingle;
+
+                                    this.Sessions.Add(jingle.Sid, jingleSession);
+                                }
+
+                                if (this.OnReceivedSessionAccept != null)
+                                    this.OnReceivedSessionAccept(this, iq);
+
+                                if (!iq.Handled)
+                                {
+                                    this.SessionTerminate(iq.From, jingle.Sid, ReasonType.cancel);
+                                    iq.Handled = true;
+                                }
+
+                                break;
+
+                            case ActionType.session_info:
+                                if (this.Sessions.ContainsKey(jingle.Sid))
+                                    this.Stream.Write(iq.GetAcknowledge(this.Stream.Document));
+                                else
+                                    this.Stream.Write(new UnknownSession(this.Stream.Document));
+
+                                if (this.OnReceivedSessionInfo != null)
+                                    this.OnReceivedSessionInfo(this, iq);
+
+                                break;
+
+                            case ActionType.transport_info:
+                                if (this.Sessions.ContainsKey(jingle.Sid))
+                                    this.Stream.Write(iq.GetAcknowledge(this.Stream.Document));
+                                else
+                                    this.Stream.Write(new UnknownSession(this.Stream.Document));
+
+                                if (this.OnReceivedTransportInfo != null)
+                                    this.OnReceivedTransportInfo(this, iq);
+
+                                break;
+                        }
+                    }
                 }
             }
         }
         #endregion
 
-        #region JINGLE
+        #region SESSIONS
+        /// <summary>
+        /// TODO: Documentation CanInitiateSession
+        /// </summary>
+        /// <param name="jid"></param>
+        /// <returns></returns>
+        public Boolean AllowSessionInitiateFrom(JID jid)
+        {
+            if (this.AllowRosterSessionInitiateOnly)
+            {
+                if (this.RosterManager != null)
+                {
+                    Item rosterItem = this.RosterManager[jid.BareJID];
+
+                    return rosterItem != null;
+                }
+            }
+            return true;
+        }
         /// <summary>
         /// Returns the Jingle session which matches the given SID or null if no session is found in sessions dictionary
         /// </summary>
@@ -246,7 +316,9 @@ namespace Jabber.Client
             if (this.Sessions.ContainsKey(sid))
                 this.Sessions.Remove(sid);
         }
+        #endregion
 
+        #region JINGLE
         /// <summary>
         /// Constructs a Jingle IQ Paquet containing Jingle most common arguments
         /// </summary>
@@ -306,22 +378,11 @@ namespace Jabber.Client
         /// </summary>
         /// <param name="to"></param>
         /// <param name="sid"></param>
-        /// <returns></returns>
-        public JingleIQ SessionTerminate(JID to, String sid)
-        {
-            return this.SessionTerminate(to, sid, null);
-        }
-
-        /// <summary>
-        /// TODO: Documentation SessionTerminate
-        /// </summary>
-        /// <param name="to"></param>
-        /// <param name="sid"></param>
         /// <param name="reasonType"></param>
         /// <returns></returns>
-        public JingleIQ SessionTerminate(JID to, String sid, ReasonType? reasonType)
+        public void SessionTerminate(JID to, String sid, ReasonType? reasonType)
         {
-            JingleIQ jingleIq = new JingleIQ(new XmlDocument());
+            JingleIQ jingleIq = new JingleIQ(this.Stream.Document);
             jingleIq.From = this.Stream.JID;
             jingleIq.To = to;
             jingleIq.Type = IQType.set;
@@ -405,7 +466,7 @@ namespace Jabber.Client
                 jingleIq.Instruction.Reason = reason;
             }
 
-            return jingleIq;
+            this.Stream.Write(jingleIq);
         }
 
         /// <summary>
@@ -414,9 +475,9 @@ namespace Jabber.Client
         /// <param name="to"></param>
         /// <param name="sid"></param>
         /// <returns></returns>
-        public JingleIQ SessionInfo(JID to, String sid)
+        public void SessionInfo(JID to, String sid)
         {
-            return this.SessionInfo(to, sid, null);
+            this.SessionInfo(to, sid, null);
         }
 
         /// <summary>
@@ -426,14 +487,14 @@ namespace Jabber.Client
         /// <param name="sid"></param>
         /// <param name="payload"></param>
         /// <returns></returns>
-        public JingleIQ SessionInfo(JID to, String sid, Element payload)
+        public void SessionInfo(JID to, String sid, Element payload)
         {
             JingleIQ jingleIq;
 
             if (payload != null)
                 jingleIq = new JingleIQ(payload.OwnerDocument);
             else
-                jingleIq = new JingleIQ(new XmlDocument());
+                jingleIq = new JingleIQ(this.Stream.Document);
 
             jingleIq.From = this.Stream.JID;
             jingleIq.To = to;
@@ -444,7 +505,7 @@ namespace Jabber.Client
             if (payload != null)
                 jingleIq.Instruction.AddChild(payload);
 
-            return jingleIq;
+            this.Stream.Write(jingleIq);
         }
         #endregion
     }

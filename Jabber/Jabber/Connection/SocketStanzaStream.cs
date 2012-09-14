@@ -13,9 +13,11 @@
  * --------------------------------------------------------------------------*/
 using System;
 using System.Diagnostics;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Xml;
-
+using Bedrock;
 using Bedrock.Net;
 using Jabber.Protocol;
 
@@ -125,9 +127,9 @@ namespace Jabber.Connection
             bool first = (m_elements == null);
             m_elements = new AsynchElementStream();
             m_elements.OnDocumentStart += new ProtocolHandler(m_elements_OnDocumentStart);
-            m_elements.OnDocumentEnd += new Bedrock.ObjectHandler(m_elements_OnDocumentEnd);
+            m_elements.OnDocumentEnd += new ObjectHandler(m_elements_OnDocumentEnd);
             m_elements.OnElement += new ProtocolHandler(m_elements_OnElement);
-            m_elements.OnError += new Bedrock.ExceptionHandler(m_elements_OnError);
+            m_elements.OnError += new ExceptionHandler(m_elements_OnError);
 
             m_listener.StreamInit(m_elements);
 
@@ -183,8 +185,7 @@ namespace Jabber.Connection
             case ProxyType.None:
                 m_sock = new AsyncSocket(null, this, (bool)m_listener[Options.SSL], false);
 
-                ((AsyncSocket)m_sock).LocalCertificate = m_listener[Options.LOCAL_CERTIFICATE] as
-                    System.Security.Cryptography.X509Certificates.X509Certificate2;
+                ((AsyncSocket)m_sock).LocalCertificate = m_listener[Options.LOCAL_CERTIFICATE] as X509Certificate2;
 
                 ((AsyncSocket)m_sock).CertificateGui = (bool)m_listener[Options.CERTIFICATE_GUI];
                 break;
@@ -196,8 +197,8 @@ namespace Jabber.Connection
             if (proxy != null)
             {
                 proxy.Socket = new AsyncSocket(null, proxy, (bool)m_listener[Options.SSL], false);
-                ((AsyncSocket)proxy.Socket).LocalCertificate = m_listener[Options.LOCAL_CERTIFICATE] as
-                    System.Security.Cryptography.X509Certificates.X509Certificate2;
+
+                ((AsyncSocket)proxy.Socket).LocalCertificate = m_listener[Options.LOCAL_CERTIFICATE] as X509Certificate2;
 
                 proxy.Host = m_listener[Options.PROXY_HOST] as string;
                 proxy.Port = (int)m_listener[Options.PROXY_PORT];
@@ -210,7 +211,8 @@ namespace Jabber.Connection
             Debug.Assert(to != null);
 
             string host = (string)m_listener[Options.NETWORK_HOST];
-            if ((host == null) || (host == ""))
+
+            if (String.IsNullOrEmpty(host))
             {
 #if __MonoCS__
                 host = to;
@@ -239,8 +241,8 @@ namespace Jabber.Connection
             if (m_accept == null)
             {
                 m_accept = new AsyncSocket(null, this, (bool)m_listener[Options.SSL], false);
-                ((AsyncSocket)m_accept).LocalCertificate = m_listener[Options.LOCAL_CERTIFICATE] as
-                    System.Security.Cryptography.X509Certificates.X509Certificate2;
+
+                ((AsyncSocket)m_accept).LocalCertificate = m_listener[Options.LOCAL_CERTIFICATE] as X509Certificate2;
 
                 Address addr = new Address((string)m_listener[Options.NETWORK_HOST],
                     (int)m_listener[Options.PORT]);
@@ -257,7 +259,7 @@ namespace Jabber.Connection
         {
             get
             {
-                return (m_accept != null);
+                return m_accept != null;
             }
         }
 
@@ -448,10 +450,7 @@ namespace Jabber.Connection
         /// <param name="chain">The chain of CAs for the cert</param>
         /// <param name="sslPolicyErrors">A bitfield for the erorrs in the certificate.</param>
         /// <returns>True if the cert should be accepted anyway.</returns>
-        bool ISocketEventListener.OnInvalidCertificate(BaseSocket sock,
-            System.Security.Cryptography.X509Certificates.X509Certificate certificate,
-            System.Security.Cryptography.X509Certificates.X509Chain chain,
-            System.Net.Security.SslPolicyErrors sslPolicyErrors)
+        bool ISocketEventListener.OnInvalidCertificate(BaseSocket sock, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
             return m_listener.OnInvalidCertificate(sock, certificate, chain, sslPolicyErrors);
         }

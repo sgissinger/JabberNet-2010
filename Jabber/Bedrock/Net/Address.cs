@@ -81,31 +81,27 @@ namespace Bedrock.Net
             foreach (SRVRecord rec in srv)
             {
                 if (rec.Priority < minpri)
-                {
                     minpri = rec.Priority;
-                }
             }
 
             int weight = 0;
             foreach (SRVRecord rec in srv)
             {
                 if (rec.Priority == minpri)
-                {
                     weight += rec.Weight;
-                }
             }
 
             int pos = rnd.Next(weight);
             weight = 0;
+
             foreach (SRVRecord rec in srv)
             {
                 if (rec.Priority == minpri)
                 {
                     weight += rec.Weight;
+
                     if ((pos < weight) || (weight == 0))
-                    {
                         return rec;
-                    }
                 }
             }
 

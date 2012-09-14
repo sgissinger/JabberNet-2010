@@ -17,9 +17,6 @@ using System.Windows.Forms;
 
 namespace Jabber.Stun
 {
-    public delegate void HolePunchSuccessHandler(Object sender, Socket connectedSocket, Object punchData);
-    public delegate void HolePunchFailureHandler(Object sender, Object punchData);
-
     /// <summary>
     /// TODO: Documentation Class
     /// </summary>
