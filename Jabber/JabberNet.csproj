@@ -117,6 +117,10 @@
     <OutputPath>bin\Release\</OutputPath>
     <DocumentationFile />
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DebugType>pdbonly</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    <FileAlignment>512</FileAlignment>
+    <BaseAddress>4194304</BaseAddress>
   </PropertyGroup>
   <PropertyGroup>
     <AssemblyName>JabberNet</AssemblyName>

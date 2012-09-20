@@ -157,27 +157,33 @@ namespace Jabber.Stun
                 Int32 nbTries = 0;
                 Boolean quit = false;
 
-                while (true)
+                try
                 {
-                    nbTries++;
-
-                    client = new TcpClient();
-                    client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, 1);
-                    
-                    if (this.HostEP != null)
-                        client.Client.Bind(this.HostEP);
-
-                    IAsyncResult result = client.Client.BeginConnect(peerEP.Address, peerEP.Port, null, null);
-
-                    result.AsyncWaitHandle.WaitOne(3000, true);
-
-                    if (nbTries == 3 || client.Client.Connected)
+                    while (!quit)
                     {
-                        quit = true;
-                        break;
-                    }
+                        nbTries++;
 
-                    client.Client.Close();
+                        client = new TcpClient();
+
+                        client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, 1);
+
+                        if (this.HostEP != null)
+                            client.Client.Bind(this.HostEP);
+
+                        IAsyncResult result = client.Client.BeginConnect(peerEP.Address, peerEP.Port, null, null);
+
+                        result.AsyncWaitHandle.WaitOne(3000, true);
+
+                        if (nbTries == 3 || client.Client.Connected)
+                            quit = true;
+
+                        client.Client.Close();
+                    }
+                }
+                catch (Exception)
+                {
+                    quit = true;
+                    client = null;
                 }
 
                 if (quit)

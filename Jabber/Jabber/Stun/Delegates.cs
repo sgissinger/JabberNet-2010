@@ -23,7 +23,7 @@ namespace Jabber.Stun
     /// Used in JingleIceManager class
     public delegate void JingleDescriptionGatheringHandler(object sender, XmlDocument ownerDoc, String sid, ref Element jingleDescription, ref String contentName);
 
-    public delegate void JingleIceCandidatesGatheringHandler(object sender, JingleIce jingleIce, IPEndPoint hostEP, TurnAllocation allocation);
+    public delegate void JingleIceCandidatesGatheringHandler(object sender, JingleIce jingleIce, IPEndPoint hostEP, Boolean useTurnOnly, TurnAllocation allocation);
 
     public delegate void JingleHolePunchSucceedHandler(object sender, Socket connectedSocket, Jingle jingle);
 

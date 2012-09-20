@@ -109,12 +109,7 @@ namespace Muzzle.Controls
         public void InvokeOrNot(MethodInvoker invokableMethod)
         {
             if (this.InvokeRequired)
-            {
-                this.Invoke(new MethodInvoker(() =>
-                {
-                    invokableMethod();
-                }));
-            }
+                this.Invoke(invokableMethod);
             else
                 invokableMethod();
         }

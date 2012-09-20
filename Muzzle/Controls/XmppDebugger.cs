@@ -180,10 +180,10 @@ namespace Muzzle.Controls
 
         private void Write(Color color, string tag, string text)
         {
-            Debug.WriteLine(tag + " " + text);
-
             this.InvokeOrNot(() =>
             {
+                Debug.WriteLine(tag + " " + text);
+
                 this.rtDebug.AppendMaybeScroll(color, tag, text);
 
                 if (this.NbLines > this.MaxLines)
@@ -304,19 +304,25 @@ namespace Muzzle.Controls
 
         private void Search(string txt)
         {
-            string t = (txt == null) ? m_last : txt;
-            if (t == "")
+            string t = txt == null ? m_last : txt;
+
+            if (String.IsNullOrEmpty(t))
                 return;
+
             m_last = t;
             int start = rtDebug.SelectionStart + 1;
-            if ((start < 0) || (start > rtDebug.Text.Length))
+
+            if (start < 0 || start > rtDebug.Text.Length)
                 start = 0;
+
             int offset = rtDebug.Text.IndexOf(t, start);
+
             if (offset < 0)
             {
                 Console.Beep();
                 offset = 0;
             }
+
             rtDebug.Select(offset, t.Length);
             rtDebug.ScrollToCaret();
         }

@@ -284,6 +284,7 @@ namespace Jabber.Stun
     public class TurnSession
     {
         public TurnManager TurnManager { get; set; }
+        public Boolean UseTurnOnly { get; set; }
         public TurnAllocation TurnAllocation { get; set; }
     }
 

@@ -201,6 +201,24 @@ namespace Jabber.Client
         }
 
         /// <summary>
+        /// Return the total number of presences including each connected resource
+        /// </summary>
+        public Int32 Count
+        {
+            get
+            {
+                Int32 res = 0;
+
+                foreach (UserPresenceManager item in m_items.Values)
+                {
+                    res += item.Count;
+                }
+
+                return res;
+            }
+        }   
+
+        /// <summary>
         /// Get the features associated with the JID.  If a bare JID is passed in, this will be 
         /// a union of all of the features for all of the resources of this user.  Otherwise,
         /// it will be the features for the given resource.

@@ -933,9 +933,6 @@ namespace Muzzle.Controls
 
             foreach (ItemNode n in nodelist)
                 n.ChangePresence(pres);
-
-            if (this.ShowOnlyOnline)
-                this.ApplyFilter();
         }
         #endregion
 

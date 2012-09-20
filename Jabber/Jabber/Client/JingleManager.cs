@@ -19,6 +19,7 @@ using Jabber.Connection;
 using Jabber.Protocol;
 using Jabber.Protocol.Client;
 using Jabber.Protocol.IQ;
+using System.IO;
 
 namespace Jabber.Client
 {
@@ -305,6 +306,16 @@ namespace Jabber.Client
         public JingleSession FindSession(String sid)
         {
             return this.Sessions.ContainsKey(sid) ? this.Sessions[sid] : null;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sid"></param>
+        /// <returns></returns>
+        public Boolean SessionExists(String sid)
+        {
+            return this.Sessions.ContainsKey(sid);
         }
 
         /// <summary>

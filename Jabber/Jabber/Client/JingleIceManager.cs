@@ -59,6 +59,7 @@ namespace Jabber.Client
         public JID StartingSessionRecipient { get; private set; }
 
         [DefaultValue("")]
+        public String StunServerHostDomain { get; set; }
         public String StunServerSrvDomain { get; set; }
         public IPAddress StunServerIP { get; set; }
         public Int32 StunServerPort { get; set; }
@@ -72,8 +73,18 @@ namespace Jabber.Client
         {
             get
             {
-                if (!String.IsNullOrEmpty(this.StunServerSrvDomain) &&
+                if (!String.IsNullOrEmpty(this.StunServerHostDomain) &&
                     this.StunServerIP == null)
+                {
+                    DnsRequest request = new DnsRequest(this.StunServerHostDomain);
+                    DnsResponse response = request.GetResponse(DnsRecordType.A);
+
+                    ARecord stunARecord = (ARecord)response.GetRecords(DnsRecordType.A)[0];
+
+                    this.StunServerIP = stunARecord.IPAddress;
+                }
+                else if (!String.IsNullOrEmpty(this.StunServerSrvDomain) &&
+                         this.StunServerIP == null)
                 {
                     String stunDomain = null;
                     Int32 stunPort = 0;
@@ -288,7 +299,8 @@ namespace Jabber.Client
         /// TODO: Documentation InitiateSession
         /// </summary>
         /// <param name="to"></param>
-        public void InitiateSession(JID to)
+        /// <param name="useTurnOnly"></param>
+        public void InitiateSession(JID to, Boolean useTurnOnly)
         {
             if (this.StartingSessionRecipient == null)
             {
@@ -301,7 +313,7 @@ namespace Jabber.Client
 
                 if (this.TurnSupported)
                 {
-                    this.CreateTurnSession(this.StartingSessionSid);
+                    this.CreateTurnSession(this.StartingSessionSid, useTurnOnly);
                 }
                 else
                 {
@@ -348,7 +360,7 @@ namespace Jabber.Client
 
                 if (this.TurnSupported)
                 {
-                    this.CreateTurnSession(this.StartingSessionSid);
+                    this.CreateTurnSession(this.StartingSessionSid, false);
                 }
                 else
                 {
@@ -433,7 +445,8 @@ namespace Jabber.Client
         {
             JingleSession jingleSession = this.JingleManager.FindSession(sid);
 
-            if (jingleSession.Remote.Action == ActionType.session_initiate)
+            if (jingleSession != null &&
+                jingleSession.Remote.Action == ActionType.session_initiate)
             {
                 JingleContent jingleContent = jingleSession.Remote.GetContent(0);
                 JingleIce jingleIce = jingleContent.GetElement<JingleIce>(0);
@@ -459,7 +472,8 @@ namespace Jabber.Client
         /// TODO: Documentation CreateTurnSession
         /// </summary>
         /// <param name="sid"></param>
-        private void CreateTurnSession(String sid)
+        /// <param name="useTurnOnly"></param>
+        private void CreateTurnSession(String sid, Boolean useTurnOnly)
         {
             TurnManager turnManager = new TurnManager(this.StunServerEP, ProtocolType.Tcp, this.TurnClientCertificate, this.TurnRemoteCertificateValidation);
 
@@ -471,7 +485,7 @@ namespace Jabber.Client
             turnManager.Connect();
             turnManager.Allocate(this.TurnUsername, this.TurnPassword);
 
-            this.turnSessions.Add(sid, new TurnSession() { TurnManager = turnManager });
+            this.turnSessions.Add(sid, new TurnSession() { TurnManager = turnManager, UseTurnOnly =useTurnOnly });
         }
 
         /// <summary>
@@ -525,7 +539,7 @@ namespace Jabber.Client
                 };
 
                 if (this.OnIceCandidatesGathering != null)
-                    this.OnIceCandidatesGathering(this, jingleIce, (sender as TurnManager).HostEP, allocation);
+                    this.OnIceCandidatesGathering(this, jingleIce, (sender as TurnManager).HostEP, this.turnSessions[this.StartingSessionSid].UseTurnOnly, allocation);
 
                 this.localCandidates.Add(this.StartingSessionSid, jingleIce.GetCandidates());
 
