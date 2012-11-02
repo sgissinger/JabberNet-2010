@@ -300,7 +300,8 @@ namespace Jabber.Client
         /// </summary>
         /// <param name="to"></param>
         /// <param name="useTurnOnly"></param>
-        public void InitiateSession(JID to, Boolean useTurnOnly)
+        /// <returns></returns>
+        public String InitiateSession(JID to, Boolean useTurnOnly)
         {
             if (this.StartingSessionRecipient == null)
             {
@@ -319,7 +320,10 @@ namespace Jabber.Client
                 {
                     throw new NotSupportedException();
                 }
+
+                return this.StartingSessionSid;
             }
+            return null;
         }
 
         /// <summary>

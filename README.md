@@ -1,3 +1,6 @@
+Jabber-NET 2010
+===============
+
 This project is based on [ffailla-jabber-net] VS2010 fork of the original [jabber-net] library
 
 ## .NET Framework

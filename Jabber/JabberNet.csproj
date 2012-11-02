@@ -121,6 +121,7 @@
     <DebugSymbols>true</DebugSymbols>
     <FileAlignment>512</FileAlignment>
     <BaseAddress>4194304</BaseAddress>
+    <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
   <PropertyGroup>
     <AssemblyName>JabberNet</AssemblyName>
@@ -195,6 +196,7 @@
     <Compile Include="Jabber\Connection\XmppStream.Designer.cs">
       <DependentUpon>XmppStream.cs</DependentUpon>
     </Compile>
+    <Compile Include="Jabber\Protocol\IQ\Commands.cs" />
     <Compile Include="Jabber\Protocol\IQ\Jingle.cs" />
     <Compile Include="Jabber\Protocol\IQ\JingleErrors.cs" />
     <Compile Include="Jabber\Protocol\IQ\JingleIce.cs" />

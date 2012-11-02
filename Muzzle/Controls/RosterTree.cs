@@ -74,37 +74,6 @@ namespace Muzzle.Controls
 
         #region PROPERTIES
         /// <summary>
-        /// The text filter applied to roster items
-        /// </summary>
-        [Category("Filtering")]
-        [DefaultValue("")]
-        [Description("When set to a value, the roster items displayed in the tree are filtered on their username, nickname and resource")]
-        public String Filter { get; set; }
-
-        /// <summary>
-        /// The availability filter applied to roster items
-        /// </summary>
-        [Category("Filtering")]
-        [DefaultValue(false)]
-        [Description("When set to true, only available roster items are displayed in the tree")]
-        public Boolean ShowOnlyOnline { get; set; }
-
-        /// <summary>
-        /// Overrides default property to make it useable with the tooltip object
-        /// and avoiding exceptions when base property was setted to true
-        /// </summary>
-        [DefaultValue(false)]
-        public new Boolean ShowNodeToolTips { get; set; }
-
-        /// <summary>
-        /// The name of the default group
-        /// </summary>
-        [Category("Managers")]
-        [DefaultValue("Unfiled")]
-        [Description("The name of the default group when roster items are not in any group")]
-        public String Unfiled { get; set; }
-
-        /// <summary>
         /// The RosterManager for this view
         /// </summary>
         [Category("Managers")]
@@ -145,7 +114,7 @@ namespace Muzzle.Controls
             get
             {
                 // If we are running in the designer, let's try to auto-hook a PresenceManager
-                if (m_pres == null&& this.DesignMode)
+                if (m_pres == null && this.DesignMode)
                 {
                     IDesignerHost host = (IDesignerHost)base.GetService(typeof(IDesignerHost));
                     this.PresenceManager = (PresenceManager)StreamComponent.GetComponentFromHost(host, typeof(PresenceManager));
@@ -191,6 +160,37 @@ namespace Muzzle.Controls
                     m_client.OnDisconnect += new ObjectHandler(m_client_OnDisconnect);
             }
         }
+
+        /// <summary>
+        /// The text filter applied to roster items
+        /// </summary>
+        [Category("Filtering")]
+        [DefaultValue("")]
+        [Description("When set to a value, the roster items displayed in the tree are filtered on their username, nickname and resource")]
+        public String Filter { get; set; }
+
+        /// <summary>
+        /// The availability filter applied to roster items
+        /// </summary>
+        [Category("Filtering")]
+        [DefaultValue(false)]
+        [Description("When set to true, only available roster items are displayed in the tree")]
+        public Boolean ShowOnlyOnline { get; set; }
+
+        /// <summary>
+        /// Overrides default property to make it useable with the tooltip object
+        /// and avoiding exceptions when base property was setted to true
+        /// </summary>
+        [DefaultValue(false)]
+        public new Boolean ShowNodeToolTips { get; set; }
+
+        /// <summary>
+        /// The name of the default group
+        /// </summary>
+        [Category("Managers")]
+        [DefaultValue("Unfiled")]
+        [Description("The name of the default group when roster items are not in any group")]
+        public String Unfiled { get; set; }
 
         /// <summary>
         /// Color to draw status text with. Not applicable until .Net 2.0.

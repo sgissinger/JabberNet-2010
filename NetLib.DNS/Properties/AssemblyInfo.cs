@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 
 [assembly: AssemblyTitle("NetLib.DNS")]
 [assembly: AssemblyDescription("Allows for a complete DNS record lookup on a given domain using the Windows API")]
-[assembly: AssemblyVersion("1.1.*")]
+[assembly: AssemblyVersion("1.1.0.0")]
 
 [assembly: AssemblyCompany("The ASP Emporium (http://www.aspemporium.com/)")]
 [assembly: AssemblyProduct("NetLib.DNS")]

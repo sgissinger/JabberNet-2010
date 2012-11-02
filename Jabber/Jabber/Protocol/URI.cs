@@ -177,6 +177,11 @@ namespace Jabber.Protocol
         /// Discover info about an entity item.
         /// </summary>
         public const string DISCO_INFO  = "http://jabber.org/protocol/disco#info";
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public const string ADHOC_COMMANDS = "http://jabber.org/protocol/commands";
         #endregion
 
         #region X

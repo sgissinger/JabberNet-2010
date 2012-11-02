@@ -8,10 +8,6 @@
  * Jabber-Net is licensed under the LGPL.
  * See LICENSE.txt for details.
  * --------------------------------------------------------------------------*/
-
-using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Xml;
 using Jabber.Protocol.Client;
 
@@ -50,8 +46,8 @@ namespace Jabber.Protocol.IQ
         /// <param name="prefix"></param>
         /// <param name="qname"></param>
         /// <param name="doc"></param>
-        public Ping(string prefix, XmlQualifiedName qname, XmlDocument doc) :
-            base(prefix, qname, doc)
+        public Ping(string prefix, XmlQualifiedName qname, XmlDocument doc)
+            : base(prefix, qname, doc)
         { }
     }
 }
