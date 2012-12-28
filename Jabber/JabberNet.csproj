@@ -169,6 +169,12 @@
     <Compile Include="Jabber\Client\JingleManager.Designer.cs">
       <DependentUpon>JingleManager.cs</DependentUpon>
     </Compile>
+    <Compile Include="Jabber\Client\RpcManager.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="Jabber\Client\RpcManager.Designer.cs">
+      <DependentUpon>RpcManager.cs</DependentUpon>
+    </Compile>
     <Compile Include="Jabber\Client\PresenceManager.Designer.cs">
       <DependentUpon>PresenceManager.cs</DependentUpon>
     </Compile>
@@ -196,7 +202,7 @@
     <Compile Include="Jabber\Connection\XmppStream.Designer.cs">
       <DependentUpon>XmppStream.cs</DependentUpon>
     </Compile>
-    <Compile Include="Jabber\Protocol\IQ\Commands.cs" />
+    <Compile Include="Jabber\Protocol\IQ\Rpc.cs" />
     <Compile Include="Jabber\Protocol\IQ\Jingle.cs" />
     <Compile Include="Jabber\Protocol\IQ\JingleErrors.cs" />
     <Compile Include="Jabber\Protocol\IQ\JingleIce.cs" />
@@ -604,6 +610,9 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <Reference Include="CookComputing.XmlRpcV2, Version=2.5.0.0, Culture=neutral, PublicKeyToken=a7d6e17aa302004d, processorArchitecture=MSIL">
+      <HintPath>..\..\..\Visual Studio 2010\Projects\Aloes.Library\packages\xmlrpcnet.2.5.0\lib\net20\CookComputing.XmlRpcV2.dll</HintPath>
+    </Reference>
     <Reference Include="System.Data" />
     <Reference Include="zlib.net, Version=1.0.3.0, Culture=neutral, PublicKeyToken=47d7877cb3620160">
       <SpecificVersion>False</SpecificVersion>
@@ -641,6 +650,9 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Jabber\Client\PingManager.bmp" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Jabber\Client\RpcManager.bmp" />
   </ItemGroup>
   <Import Condition="'$(BuildMono)'==''" Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>

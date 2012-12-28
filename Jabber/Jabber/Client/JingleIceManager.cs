@@ -489,7 +489,7 @@ namespace Jabber.Client
             turnManager.Connect();
             turnManager.Allocate(this.TurnUsername, this.TurnPassword);
 
-            this.turnSessions.Add(sid, new TurnSession() { TurnManager = turnManager, UseTurnOnly =useTurnOnly });
+            this.turnSessions.Add(sid, new TurnSession() { TurnManager = turnManager, UseTurnOnly = useTurnOnly });
         }
 
         /// <summary>

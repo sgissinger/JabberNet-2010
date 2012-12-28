@@ -36,7 +36,7 @@ namespace Jabber.Protocol.IQ
             new QnameType("query",    URI.LAST,           typeof(Jabber.Protocol.IQ.Last)),
             new QnameType("item",     URI.BROWSE,         typeof(Jabber.Protocol.IQ.Browse)),
             new QnameType("ping",     URI.PING,           typeof(Jabber.Protocol.IQ.Ping)),
-            new QnameType("command",  URI.ADHOC_COMMANDS, typeof(Jabber.Protocol.IQ.Command)),
+            new QnameType("query",    URI.RPC,            typeof(Jabber.Protocol.IQ.Rpc)),
             new QnameType("geoloc",   URI.GEOLOC,         typeof(Jabber.Protocol.IQ.GeoLoc)),
 
             new QnameType("query",      URI.PRIVATE,   typeof(Jabber.Protocol.IQ.Private)),

@@ -181,7 +181,7 @@ namespace Jabber.Protocol
         /// <summary>
         /// 
         /// </summary>
-        public const string ADHOC_COMMANDS = "http://jabber.org/protocol/commands";
+        public const string RPC = "jabber:iq:rpc";
         #endregion
 
         #region X
