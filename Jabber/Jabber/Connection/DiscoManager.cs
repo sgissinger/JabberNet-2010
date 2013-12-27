@@ -601,6 +601,7 @@ namespace Jabber.Connection
             {
                 foreach (NodeCallback cb in callbacks)
                     cb.Call(this);
+
                 callbacks.Clear();
             }
         }
@@ -971,8 +972,10 @@ namespace Jabber.Connection
                 {
                     IQ iq = node.InfoIQ(m_stream.Document);
                     Jabber.Server.JabberService js = m_stream as Jabber.Server.JabberService;
+
                     if (js != null)
                         iq.From = js.ComponentID;
+
                     BeginIQ(iq, new Jabber.Connection.IqCB(GotInfo), node);
                 }
             }
@@ -986,8 +989,10 @@ namespace Jabber.Connection
                 {
                     IQ iq = node.ItemsIQ(m_stream.Document);
                     Jabber.Server.JabberService js = m_stream as Jabber.Server.JabberService;
+
                     if (js != null)
                         iq.From = js.ComponentID;
+
                     BeginIQ(iq, new Jabber.Connection.IqCB(GotItems), node);
                 }
             }
@@ -1058,9 +1063,7 @@ namespace Jabber.Connection
             foreach (DiscoNode n in dn.Children)
             {
                 if (n.Features == null)
-                {
                     RequestInfo(n);
-                }
             }
         }
 

@@ -87,7 +87,8 @@ namespace Jabber.Connection
             if (iq == null)
                 return;
 
-            if (iq.Type != IQType.result && iq.Type != IQType.error)
+            // Some XEP returns IQType.set IQs
+            if (iq.Type == IQType.get)
                 return;
 
             string id = iq.ID;
@@ -120,10 +121,9 @@ namespace Jabber.Connection
             if (cb != null)
             {
                 TrackerData td = new TrackerData(cb, cbArg, iq.To, iq.ID);
+
                 lock (m_pending)
-                {
                     m_pending[iq.ID] = td;
-                }
             }
             m_cli.Write(iq);
         }

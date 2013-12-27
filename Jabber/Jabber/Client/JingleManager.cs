@@ -19,7 +19,6 @@ using Jabber.Connection;
 using Jabber.Protocol;
 using Jabber.Protocol.Client;
 using Jabber.Protocol.IQ;
-using System.IO;
 
 namespace Jabber.Client
 {
@@ -43,12 +42,14 @@ namespace Jabber.Client
         /// <summary>
         /// TODO: Documentation Property
         /// </summary>
-        private IQTracker Tracker { get; set; }
+        [Browsable(false)]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public Boolean AllowSessionInitiate { get; set; }
         /// <summary>
         /// TODO: Documentation Property
         /// </summary>
         [DefaultValue(false)]
-        public Boolean AllowRosterSessionInitiateOnly { get; set; }
+        public Boolean AllowSessionInitiateByRosterOnly { get; set; }
         /// <summary>
         /// The RosterManager for this view
         /// </summary>
@@ -148,6 +149,7 @@ namespace Jabber.Client
         {
             InitializeComponent();
 
+            this.AllowSessionInitiate = true;
             this.Sessions = new Dictionary<String, JingleSession>(StringComparer.Create(CultureInfo.CurrentCulture, false));
 
             this.OnStreamChanged += new ObjectHandler(JingleManager_OnStreamChanged);
@@ -161,8 +163,6 @@ namespace Jabber.Client
         /// <param name="sender"></param>
         private void JingleManager_OnStreamChanged(object sender)
         {
-            //this.Tracker = new IQTracker(m_stream);
-
             JabberClient cli = m_stream as JabberClient;
 
             if (cli == null)
@@ -196,18 +196,13 @@ namespace Jabber.Client
                 }
                 else
                 {
-                    if (!this.AllowSessionInitiateFrom(iq.From))
+                    switch (jingle.Action)
                     {
-                        this.SessionTerminate(iq.From, jingle.Sid, ReasonType.security_error);
-                        iq.Handled = true;
-                    }
-                    else
-                    {
-                        switch (jingle.Action)
-                        {
-                            case ActionType.session_initiate:
-                                this.Stream.Write(iq.GetAcknowledge(this.Stream.Document));
+                        case ActionType.session_initiate:
+                            this.Stream.Write(iq.GetAcknowledge(this.Stream.Document));
 
+                            if (this.AllowSessionInitiateFrom(iq.From))
+                            {
                                 if (!this.Sessions.ContainsKey(jingle.Sid))
                                 {
                                     JingleSession jingleSession = new JingleSession();
@@ -225,20 +220,24 @@ namespace Jabber.Client
                                     this.SessionTerminate(iq.From, jingle.Sid, ReasonType.decline);
                                     iq.Handled = true;
                                 }
+                            }
+                            else
+                            {
+                                this.SessionTerminate(iq.From, jingle.Sid, ReasonType.security_error);
+                                iq.Handled = true;
+                            }
+                            break;
 
-                                break;
+                        case ActionType.session_accept:
+                            this.Stream.Write(iq.GetAcknowledge(this.Stream.Document));
 
-                            case ActionType.session_accept:
-                                this.Stream.Write(iq.GetAcknowledge(this.Stream.Document));
+                            if (!this.Sessions.ContainsKey(jingle.Sid))
+                            {
+                                JingleSession jingleSession = new JingleSession();
+                                jingleSession.SID = jingle.Sid;
+                                jingleSession.Remote = jingle;
 
-                                if (!this.Sessions.ContainsKey(jingle.Sid))
-                                {
-                                    JingleSession jingleSession = new JingleSession();
-                                    jingleSession.SID = jingle.Sid;
-                                    jingleSession.Remote = jingle;
-
-                                    this.Sessions.Add(jingle.Sid, jingleSession);
-                                }
+                                this.Sessions.Add(jingle.Sid, jingleSession);
 
                                 if (this.OnReceivedSessionAccept != null)
                                     this.OnReceivedSessionAccept(this, iq);
@@ -248,31 +247,35 @@ namespace Jabber.Client
                                     this.SessionTerminate(iq.From, jingle.Sid, ReasonType.cancel);
                                     iq.Handled = true;
                                 }
+                            }
+                            else
+                            {
+                                this.Stream.Write(new UnknownSession(this.Stream.Document));
+                                iq.Handled = true;
+                            }
+                            break;
 
-                                break;
+                        case ActionType.session_info:
+                            if (this.Sessions.ContainsKey(jingle.Sid))
+                                this.Stream.Write(iq.GetAcknowledge(this.Stream.Document));
+                            else
+                                this.Stream.Write(new UnknownSession(this.Stream.Document));
 
-                            case ActionType.session_info:
-                                if (this.Sessions.ContainsKey(jingle.Sid))
-                                    this.Stream.Write(iq.GetAcknowledge(this.Stream.Document));
-                                else
-                                    this.Stream.Write(new UnknownSession(this.Stream.Document));
+                            if (this.OnReceivedSessionInfo != null)
+                                this.OnReceivedSessionInfo(this, iq);
 
-                                if (this.OnReceivedSessionInfo != null)
-                                    this.OnReceivedSessionInfo(this, iq);
+                            break;
 
-                                break;
+                        case ActionType.transport_info:
+                            if (this.Sessions.ContainsKey(jingle.Sid))
+                                this.Stream.Write(iq.GetAcknowledge(this.Stream.Document));
+                            else
+                                this.Stream.Write(new UnknownSession(this.Stream.Document));
 
-                            case ActionType.transport_info:
-                                if (this.Sessions.ContainsKey(jingle.Sid))
-                                    this.Stream.Write(iq.GetAcknowledge(this.Stream.Document));
-                                else
-                                    this.Stream.Write(new UnknownSession(this.Stream.Document));
+                            if (this.OnReceivedTransportInfo != null)
+                                this.OnReceivedTransportInfo(this, iq);
 
-                                if (this.OnReceivedTransportInfo != null)
-                                    this.OnReceivedTransportInfo(this, iq);
-
-                                break;
-                        }
+                            break;
                     }
                 }
             }
@@ -287,16 +290,14 @@ namespace Jabber.Client
         /// <returns></returns>
         public Boolean AllowSessionInitiateFrom(JID jid)
         {
-            if (this.AllowRosterSessionInitiateOnly)
+            if (this.AllowSessionInitiateByRosterOnly &&
+                this.RosterManager != null)
             {
-                if (this.RosterManager != null)
-                {
-                    Item rosterItem = this.RosterManager[jid.BareJID];
+                Item rosterItem = this.RosterManager[jid.BareJID];
 
-                    return rosterItem != null;
-                }
+                return rosterItem != null;
             }
-            return true;
+            return this.AllowSessionInitiate;
         }
         /// <summary>
         /// Returns the Jingle session which matches the given SID or null if no session is found in sessions dictionary

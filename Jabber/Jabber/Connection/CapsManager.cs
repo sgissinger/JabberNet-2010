@@ -15,16 +15,14 @@ using System;
 using System.ComponentModel;
 using System.ComponentModel.Design;
 using System.Diagnostics;
+using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using System.Xml;
-
 using Jabber.Protocol;
 using Jabber.Protocol.Client;
 using Jabber.Protocol.IQ;
 using Jabber.Protocol.X;
-using System.IO;
-
 
 namespace Jabber.Connection
 {
@@ -112,6 +110,26 @@ namespace Jabber.Connection
         [Category("Cache")]
         [Browsable(false)]
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public Int32 CacheDurationDays
+        {
+            get
+            {
+                return m_cache != null ? m_cache.CacheDurationDays : 0;
+            }
+            set
+            {
+                if (m_cache != null)
+                    m_cache.CacheDurationDays = value;
+            }
+        }
+
+        /// <summary>
+        /// The file to store a cache of all received caps into.  If no cache file is supplied,
+        /// caps queries will not be generated.
+        /// </summary>
+        [Category("Cache")]
+        [Browsable(false)]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public string FileName
         {
             get
@@ -133,7 +151,7 @@ namespace Jabber.Connection
                     ElementFactory ef = new ElementFactory();
                     ef.AddType(new Jabber.Protocol.IQ.Factory());
 
-                    m_cache = new FileMap<DiscoInfo>(filename, ef);
+                    m_cache = new FileMap<DiscoInfo>(filename, this.CacheDurationDays, ef);
                 }
                 else
                     m_cache.FileName = filename;
@@ -419,10 +437,10 @@ namespace Jabber.Connection
             if (!c.NewStyle)
                 return;
             string ver = c.Version;
-            if ((ver == null) || (ver == ""))
+            if (String.IsNullOrEmpty(ver))
                 return;
             string node = c.Node;
-            if ((node == null) || (node == ""))
+            if (String.IsNullOrEmpty(node))
                 return;
 
             if (m_cache.Contains(ver))

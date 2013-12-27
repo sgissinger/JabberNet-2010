@@ -15,6 +15,7 @@ using System.ComponentModel.Design;
 using System.Globalization;
 using System.IO;
 using System.Net;
+using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -44,14 +45,14 @@ namespace Jabber.Client
     /// Client-Side 
     /// ===========
     /// An XML-RPC server instance is started by calling Initialize() method
-    /// and listens on http://127.0.0.1:11000/ by default.
+    /// and listens on http://127.0.0.1:xxxxx/ where xxxxx is an unused port.
     /// A "to" parameter must be added the proxy URL to set the recipient of the XML-RPC call.
     /// 
     /// Once an IXmlRpcProxy is created the Proxy Url property must be set with the "to" parameter 
     /// each time a call is made in order to route it to the right peer
     /// 
     /// JabberRpcClient rpcProxy = XmlRpcProxyGen.Create<JabberRpcClient>();
-    /// rpcProxy.Url = "http://127.0.0.1:11000/?to=bollos@example.com/watercloset";
+    /// rpcProxy.Url = "http://127.0.0.1:xxxxx/?to=bollos@example.com/watercloset";
     /// var result = rpcProxy.Discover();
     /// </summary>
     public partial class RpcManager : StreamComponent
@@ -73,6 +74,10 @@ namespace Jabber.Client
         /// TODO: Documentation Member
         /// </summary>
         private HttpListener methodCallSerializer = new HttpListener();
+        /// <summary>
+        /// TODO: Documentation Member
+        /// </summary>
+        private Int32 methodCallSerializerPort = 0;
         /// <summary>
         /// TODO: Documentation Member
         /// </summary>
@@ -132,26 +137,23 @@ namespace Jabber.Client
         /// <summary>
         /// TODO: Documentation Property
         /// </summary>
-        [DefaultValue("127.0.0.1")]
-        public String MethodCallSerializerIP { get; set; }
-        /// <summary>
-        /// TODO: Documentation Property
-        /// </summary>
-        [DefaultValue("11000")]
-        public String MethodCallSerializerPort { get; set; }
-        /// <summary>
-        /// TODO: Documentation Property
-        /// </summary>
         [Browsable(false)]
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public String MethodCallSerializerAddress
         {
             get
             {
+                if (this.methodCallSerializerPort == 0) // If no port configured, find a free one
+                {
+                    TcpListener listener = new TcpListener(IPAddress.Loopback, 0);
+                    listener.Start();
+                    this.methodCallSerializerPort = ((IPEndPoint)listener.LocalEndpoint).Port;
+                    listener.Stop();
+                }
+
                 return String.Format(CultureInfo.CurrentCulture,
-                                     "http://{0}:{1}/",
-                                     this.MethodCallSerializerIP,
-                                     this.MethodCallSerializerPort);
+                                     "http://127.0.0.1:{0}/",
+                                     this.methodCallSerializerPort);
             }
         }
         #endregion
@@ -178,8 +180,6 @@ namespace Jabber.Client
             this.IsRosterTrusted = true;
             this.CanReceiveRpcXml = true;
             this.CanSendRpcXml = true;
-            this.MethodCallSerializerIP = "127.0.0.1";
-            this.MethodCallSerializerPort = "11000";
 
             this.OnStreamChanged += new ObjectHandler(this.RpcManager_OnStreamChanged);
             this.Disposed += new EventHandler(this.RpcManager_Disposed);
@@ -207,63 +207,58 @@ namespace Jabber.Client
 
             if (cli == null)
                 return;
-
-            cli.OnIQ += new IQHandler(this.GotIQ);
         }
 
         /// <summary>
-        /// Analyses an IQ paquet and chooses to handle it or not
+        /// 
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="iq"></param>
-        private void GotIQ(object sender, IQ iq)
+        /// <param name="state"></param>
+        private void GotRpcCall(object sender, IQ iq, object state)
         {
-            if (!iq.Handled && iq.Query != null &&
-                iq.Query.NamespaceURI == URI.RPC)
+            if (!this.IsTrusted(iq.From))
+                return;
+
+            String rpcXmlString = Regex.Replace(iq.Query.FirstChild.OuterXml, " xmlns(.+?)>", ">");
+
+            switch (iq.Type)
             {
-                if (!this.IsTrusted(iq.From))
-                    return;
+                case IQType.set:
+                    if (this.CanReceiveRpcXml)
+                    {
+                        RpcIQ methodResponse = new RpcIQ(new XmlDocument());
+                        methodResponse.From = this.Stream.JID;
+                        methodResponse.To = iq.From;
+                        methodResponse.Type = IQType.result;
+                        methodResponse.ID = iq.ID; // Make IQ ID behaving like a transaction ID
+                        methodResponse.Instruction.SetXmlRpcPayload(this.InvokeXmlRpc(rpcXmlString));
 
-                String rpcXmlString = Regex.Replace(iq.Query.FirstChild.OuterXml, " xmlns(.+?)>", ">");
+                        this.BeginIQ(methodResponse, new IqCB(this.GotRpcCall), null);
 
-                switch (iq.Type)
-                {
-                    case IQType.set:
-                        if (this.CanReceiveRpcXml)
-                        {
-                            RpcIQ methodResponse = new RpcIQ(new XmlDocument());
-                            methodResponse.From = this.Stream.JID;
-                            methodResponse.To = iq.From;
-                            methodResponse.Type = IQType.result;
-                            methodResponse.ID = iq.ID; // Trick to make IQ ID behaving like a transaction ID
-                            methodResponse.Instruction.SetXmlRpcPayload(this.InvokeXmlRpc(rpcXmlString));
+                        iq.Handled = true;
+                    }
+                    break;
 
-                            this.Stream.Write(methodResponse);
+                case IQType.result:
+                    if (this.CanSendRpcXml && this.xmlRpcContexts.ContainsKey(iq.ID))
+                    {
+                        byte[] outputByteArray = Encoding.UTF8.GetBytes(rpcXmlString);
+                        MemoryStream outputStream = new MemoryStream(outputByteArray);
 
-                            iq.Handled = true;
-                        }
-                        break;
+                        HttpListenerResponse response = this.xmlRpcContexts[iq.ID].Response;
 
-                    case IQType.result:
-                        if (this.CanSendRpcXml && this.xmlRpcContexts.ContainsKey(iq.ID))
-                        {
-                            byte[] outputByteArray = Encoding.UTF8.GetBytes(rpcXmlString);
-                            MemoryStream outputStream = new MemoryStream(outputByteArray);
+                        response.ContentLength64 = outputStream.Length;
 
-                            HttpListenerResponse response = this.xmlRpcContexts[iq.ID].Response;
+                        Util.CopyStream(outputStream, response.OutputStream);
 
-                            response.ContentLength64 = outputStream.Length;
+                        response.OutputStream.Flush();
 
-                            Util.CopyStream(outputStream, response.OutputStream);
+                        this.xmlRpcContexts.Remove(iq.ID);
 
-                            response.OutputStream.Flush();
-
-                            this.xmlRpcContexts.Remove(iq.ID);
-
-                            iq.Handled = true;
-                        }
-                        break;
-                }
+                        iq.Handled = true;
+                    }
+                    break;
             }
         }
         #endregion
@@ -278,6 +273,7 @@ namespace Jabber.Client
             {
                 this.methodCallSerializerIsRunning = true;
                 this.methodCallSerializerThread = new Thread(new ThreadStart(this.MethodCallSerializerThreadStart));
+                this.methodCallSerializerThread.IsBackground = true;
                 this.methodCallSerializerThread.Start();
             }
         }
@@ -286,7 +282,7 @@ namespace Jabber.Client
         /// TODO: Documentation RegisterXmlRpcServiceType
         /// </summary>
         /// <param name="type"></param>
-        public void RegisterXmlRpcServiceType(Type type)
+        public void RegisterXmlRpcServerType(Type type)
         {
             if (!this.xmlRpcServiceTypes.Contains(type))
                 this.xmlRpcServiceTypes.Add(type);
@@ -316,6 +312,8 @@ namespace Jabber.Client
         /// </summary>
         private void MethodCallSerializerThreadStart()
         {
+
+            //IPAddress.Loopback, 0
             this.methodCallSerializer.Prefixes.Add(this.MethodCallSerializerAddress);
             this.methodCallSerializer.Start();
 
@@ -352,7 +350,8 @@ namespace Jabber.Client
                     methodCall.Instruction.SetXmlRpcPayload(inputString);
 
                     this.xmlRpcContexts.Add(methodCall.ID, context);
-                    this.Stream.Write(methodCall);
+
+                    this.BeginIQ(methodCall, new IqCB(this.GotRpcCall), null);
                 }
                 catch (HttpListenerException)
                 {

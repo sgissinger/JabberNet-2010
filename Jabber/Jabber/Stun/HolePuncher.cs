@@ -140,6 +140,7 @@ namespace Jabber.Stun
             {
                 this.TcpPunchThreadStart(successCallback, failureCallback);
             });
+            this.PunchThread.IsBackground = true;
             this.PunchThread.Start();
         }
 

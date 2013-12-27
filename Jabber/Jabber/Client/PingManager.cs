@@ -41,7 +41,7 @@ namespace Jabber.Client
         {
             InitializeComponent();
 
-            this.OnStreamChanged += new ObjectHandler(self_OnStreamChanged);
+            this.OnStreamChanged += new ObjectHandler(PingManager_OnStreamChanged);
         }
         #endregion
 
@@ -50,7 +50,7 @@ namespace Jabber.Client
         /// Entry point for XMPP stream events
         /// </summary>
         /// <param name="sender"></param>
-        private void self_OnStreamChanged(object sender)
+        private void PingManager_OnStreamChanged(object sender)
         {
             JabberClient cli = m_stream as JabberClient;
 

@@ -14,8 +14,8 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Xml;
-
 using Jabber.Protocol;
 
 namespace Jabber.Connection
@@ -38,12 +38,14 @@ namespace Jabber.Connection
         /// </summary>
         /// <param name="fileName">Valid file name, either absoulte, or relative 
         /// to the current working directory.</param>
+        /// <param name="cacheDurationDays">Duration of the cache</param>
         /// <param name="factory">Element factory to create elements of a given type.  If null,
         /// Elements will always be created, and T MUST be Element.</param>
-        public FileMap(string fileName, ElementFactory factory)
+        public FileMap(string fileName, Int32 cacheDurationDays, ElementFactory factory)
         {
-            Factory = factory;
-            FileName = fileName;
+            this.Factory = factory;
+            this.CacheDurationDays = cacheDurationDays;
+            this.FileName = fileName;
         }
 
         /// <summary>
@@ -90,12 +92,47 @@ namespace Jabber.Connection
             }
         }
 
+        public DateTime? CreationDate
+        {
+            get
+            {
+                XmlElement fm = null;
+
+                try
+                {
+                    XmlDocument doc = new XmlDocument();
+                    doc.Load(m_fileName);
+                    fm = doc.DocumentElement;
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine("WARNING: " + ex.ToString());
+                }
+
+                DateTime date = DateTime.MinValue;
+                Boolean parsed = false;
+
+                if (fm != null && fm.HasAttribute("creationDate"))
+                    parsed = DateTime.TryParse(fm.GetAttribute("creationDate"), out date);
+
+                return !parsed || date == DateTime.MinValue ? null : (DateTime?)date;
+            }
+        }
+
+        public Int32 CacheDurationDays { get; set; }
+
         private void Flush()
         {
             Debug.Assert(m_cache != null, "m_cache should be initialized in constructor");
 
             XmlDocument doc = new XmlDocument();
             XmlElement fm = doc.CreateElement("fm", NS);
+
+            if (!this.CreationDate.HasValue)
+                fm.SetAttribute("creationDate", DateTime.Now.ToShortDateString());
+            else
+                fm.SetAttribute("creationDate", this.CreationDate.Value.ToShortDateString());
+
             doc.AppendChild(fm);
 
             XmlElement val;
@@ -122,14 +159,23 @@ namespace Jabber.Connection
                 m_cache = new Dictionary<string, T>();
                 try
                 {
+                    if (this.CreationDate.HasValue &&
+                        this.CreationDate.Value.AddDays(this.CacheDurationDays) < DateTime.Now)
+                    {
+                        File.Open(m_fileName, FileMode.Truncate);
+                    }
+
                     XmlDocument doc = new XmlDocument();
                     doc.Load(m_fileName);
                     XmlElement fm = doc.DocumentElement;
+
                     foreach (XmlElement val in fm.GetElementsByTagName("val"))
                     {
                         string name = val.GetAttribute("name");
-                        if (name == "")
+
+                        if (String.IsNullOrEmpty(name))
                             continue;
+
                         foreach (XmlNode child in val.ChildNodes)
                         {
                             if (child is XmlElement)

@@ -29,7 +29,7 @@ namespace Muzzle.Controls
         private void InitializeComponent()
         {
             this.rtSend = new System.Windows.Forms.RichTextBox();
-            this.splitter1 = new System.Windows.Forms.Splitter();
+            this.splitter = new System.Windows.Forms.Splitter();
             this.rtDebug = new Muzzle.Controls.BottomScrollRichText();
             this.SuspendLayout();
             // 
@@ -43,14 +43,14 @@ namespace Muzzle.Controls
             this.rtSend.Text = "";
             this.rtSend.KeyUp += new System.Windows.Forms.KeyEventHandler(this.rtSend_KeyUp);
             // 
-            // splitter1
+            // splitter
             // 
-            this.splitter1.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.splitter1.Location = new System.Drawing.Point(0, 107);
-            this.splitter1.Name = "splitter1";
-            this.splitter1.Size = new System.Drawing.Size(150, 3);
-            this.splitter1.TabIndex = 1;
-            this.splitter1.TabStop = false;
+            this.splitter.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.splitter.Location = new System.Drawing.Point(0, 107);
+            this.splitter.Name = "splitter";
+            this.splitter.Size = new System.Drawing.Size(150, 3);
+            this.splitter.TabIndex = 1;
+            this.splitter.TabStop = false;
             // 
             // rtDebug
             // 
@@ -69,7 +69,7 @@ namespace Muzzle.Controls
             // XmppDebugger
             // 
             this.Controls.Add(this.rtDebug);
-            this.Controls.Add(this.splitter1);
+            this.Controls.Add(this.splitter);
             this.Controls.Add(this.rtSend);
             this.Name = "XmppDebugger";
             this.KeyUp += new System.Windows.Forms.KeyEventHandler(this.XmppDebugger_KeyUp);
@@ -79,7 +79,7 @@ namespace Muzzle.Controls
         #endregion
 
         private System.Windows.Forms.RichTextBox rtSend;
-        private System.Windows.Forms.Splitter splitter1;
+        private System.Windows.Forms.Splitter splitter;
         private Muzzle.Controls.BottomScrollRichText rtDebug;
     }
 }

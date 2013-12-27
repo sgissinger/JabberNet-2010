@@ -33,6 +33,7 @@ namespace Muzzle.Controls
         private string m_send = "SEND:";
         private string m_recv = "RECV:";
         private string m_err = "ERROR:";
+        private bool m_readOnly = false;
         private string m_last = String.Empty;
 
         /// <summary>
@@ -42,8 +43,8 @@ namespace Muzzle.Controls
         [DefaultValue(typeof(Color), "Blue")]
         public Color SendColor
         {
-            get { return m_sendColor; }
-            set { m_sendColor = value; }
+            get { return this.m_sendColor; }
+            set { this.m_sendColor = value; }
         }
 
         /// <summary>
@@ -53,8 +54,8 @@ namespace Muzzle.Controls
         [DefaultValue(typeof(Color), "Orange")]
         public Color ReceiveColor
         {
-            get { return m_recvColor; }
-            set { m_recvColor = value; }
+            get { return this.m_recvColor; }
+            set { this.m_recvColor = value; }
         }
 
         /// <summary>
@@ -64,8 +65,8 @@ namespace Muzzle.Controls
         [DefaultValue(typeof(Color), "Red")]
         public Color ErrorColor
         {
-            get { return m_errColor; }
-            set { m_errColor = value; }
+            get { return this.m_errColor; }
+            set { this.m_errColor = value; }
         }
 
         /// <summary>
@@ -75,8 +76,8 @@ namespace Muzzle.Controls
         [DefaultValue(typeof(Color), "WindowText")]
         public Color TextColor
         {
-            get { return rtDebug.ForeColor; }
-            set { rtDebug.ForeColor = value; }
+            get { return this.rtDebug.ForeColor; }
+            set { this.rtDebug.ForeColor = value; }
         }
 
         /// <summary>
@@ -86,8 +87,8 @@ namespace Muzzle.Controls
         [DefaultValue(typeof(Color), "Green")]
         public Color OtherColor
         {
-            get { return m_otherColor; }
-            set { m_otherColor = value; }
+            get { return this.m_otherColor; }
+            set { this.m_otherColor = value; }
         }
 
         /// <summary>
@@ -97,8 +98,41 @@ namespace Muzzle.Controls
         [DefaultValue(500)]
         public int MaxLines
         {
-            get { return rtDebug.MaxLines; }
-            set { rtDebug.MaxLines = value; }
+            get { return this.rtDebug.MaxLines; }
+            set { this.rtDebug.MaxLines = value; }
+        }
+
+        /// <summary>
+        /// The string to prefix on sent bytes.
+        /// </summary>
+        [Category("Text")]
+        [DefaultValue("SEND:")]
+        public string SendPrefix
+        {
+            get { return this.m_send; }
+            set { this.m_send = value; }
+        }
+
+        /// <summary>
+        /// The string to prefix on sent bytes.
+        /// </summary>
+        [Category("Text")]
+        [DefaultValue("RECV:")]
+        public string ReceivePrefix
+        {
+            get { return this.m_recv; }
+            set { this.m_recv = value; }
+        }
+
+        /// <summary>
+        /// The string to prefix on errors.
+        /// </summary>
+        [Category("Text")]
+        [DefaultValue("ERROR:")]
+        public string ErrorPrefix
+        {
+            get { return this.m_err; }
+            set { this.m_err = value; }
         }
 
         /// <summary>
@@ -109,36 +143,20 @@ namespace Muzzle.Controls
         public int NbLines { get; private set; }
 
         /// <summary>
-        /// The string to prefix on sent bytes.
-        /// </summary>
-        [Category("Text")]
-        [DefaultValue("SEND:")]
-        public string SendPrefix
-        {
-            get { return m_send; }
-            set { m_send = value; }
-        }
-
-        /// <summary>
-        /// The string to prefix on sent bytes.
-        /// </summary>
-        [Category("Text")]
-        [DefaultValue("RECV:")]
-        public string ReceivePrefix
-        {
-            get { return m_recv; }
-            set { m_recv = value; }
-        }
-
-        /// <summary>
         /// The string to prefix on errors.
         /// </summary>
         [Category("Text")]
-        [DefaultValue("ERROR:")]
-        public string ErrorPrefix
+        [DefaultValue(false)]
+        public bool ReadOnly
         {
-            get { return m_err; }
-            set { m_err = value; }
+            get { return this.m_readOnly; }
+            set 
+            {
+                this.rtSend.Visible = !value;
+                this.splitter.Visible = !value;
+
+                this.m_readOnly = value;
+            }
         }
 
         /// <summary>
@@ -148,9 +166,8 @@ namespace Muzzle.Controls
         {
             InitializeComponent();
 
-            this.OnStreamChanged += new Bedrock.ObjectHandler(XmppDebugger_OnStreamChanged);
-
-            this.Disposed += new EventHandler(XmppDebugger_Disposed);
+            this.OnStreamChanged += new Bedrock.ObjectHandler(this.XmppDebugger_OnStreamChanged);
+            this.Disposed += new EventHandler(this.XmppDebugger_Disposed);
         }
 
         private void XmppDebugger_Disposed(object sender, EventArgs e)
@@ -161,21 +178,21 @@ namespace Muzzle.Controls
 
             this.OnStreamChanged -= this.XmppDebugger_OnStreamChanged;
 
-            m_stream.OnReadText -= this.m_stream_OnReadText;
-            m_stream.OnWriteText -= this.m_stream_OnWriteText;
-            m_stream.OnError -= this.m_stream_OnError;
-            m_stream.OnConnect -= this.m_stream_OnConnect;
+            this.m_stream.OnReadText -= this.m_stream_OnReadText;
+            this.m_stream.OnWriteText -= this.m_stream_OnWriteText;
+            this.m_stream.OnError -= this.m_stream_OnError;
+            this.m_stream.OnConnect -= this.m_stream_OnConnect;
         }
 
         private void XmppDebugger_OnStreamChanged(object sender)
         {
-            if (m_stream == null)
+            if (this.m_stream == null)
                 return;
 
-            m_stream.OnConnect += new Jabber.Connection.StanzaStreamHandler(m_stream_OnConnect);
-            m_stream.OnReadText += new Bedrock.TextHandler(m_stream_OnReadText);
-            m_stream.OnWriteText += new Bedrock.TextHandler(m_stream_OnWriteText);
-            m_stream.OnError += new Bedrock.ExceptionHandler(m_stream_OnError);
+            this.m_stream.OnConnect += new Jabber.Connection.StanzaStreamHandler(this.m_stream_OnConnect);
+            this.m_stream.OnReadText += new Bedrock.TextHandler(this.m_stream_OnReadText);
+            this.m_stream.OnWriteText += new Bedrock.TextHandler(this.m_stream_OnWriteText);
+            this.m_stream.OnError += new Bedrock.ExceptionHandler(this.m_stream_OnError);
         }
 
         private void Write(Color color, string tag, string text)
@@ -202,12 +219,12 @@ namespace Muzzle.Controls
         /// <param name="error"></param>
         public void WriteError(string error)
         {
-            Write(m_errColor, m_err, error);
+            this.Write(this.m_errColor, this.m_err, error);
         }
 
         private void m_stream_OnError(object sender, Exception ex)
         {
-            WriteError(ex.ToString());
+            this.WriteError(ex.ToString());
         }
 
         private void m_stream_OnConnect(object sender, Jabber.Connection.StanzaStream stream)
@@ -215,7 +232,7 @@ namespace Muzzle.Controls
             this.InvokeOrNot(() =>
             {
                 this.NbLines = 0;
-                rtDebug.Clear();
+                this.rtDebug.Clear();
             });
         }
 
@@ -225,7 +242,7 @@ namespace Muzzle.Controls
             if (txt == " ")
                 return;
 
-            Write(m_recvColor, m_recv, txt);
+            this.Write(this.m_recvColor, this.m_recv, txt);
         }
 
         private void m_stream_OnWriteText(object sender, string txt)
@@ -234,7 +251,7 @@ namespace Muzzle.Controls
             if (txt == " ")
                 return;
 
-            Write(m_sendColor, m_send, txt);
+            this.Write(this.m_sendColor, this.m_send, txt);
         }
 
         /// <summary>
@@ -242,8 +259,8 @@ namespace Muzzle.Controls
         /// </summary>
         public void Clear()
         {
-            rtDebug.Clear();
-            rtSend.Clear();
+            this.rtDebug.Clear();
+            this.rtSend.Clear();
         }
 
         /// <summary>
@@ -253,7 +270,7 @@ namespace Muzzle.Controls
         /// <param name="text">The text after the tag</param>
         public void Write(string tag, string text)
         {
-            Write(m_otherColor, tag, text);
+            this.Write(this.m_otherColor, tag, text);
         }
 
         private XmlElement ValidateXML()
@@ -261,45 +278,41 @@ namespace Muzzle.Controls
             try
             {
                 XmlDocument doc = new XmlDocument();
-                doc.LoadXml(rtSend.Text);
+                doc.LoadXml(this.rtSend.Text);
                 XmlElement elem = doc.DocumentElement;
+
                 if (elem != null)
-                {
                     return elem;
-                }
             }
             catch (XmlException ex)
             {
                 int offset = ex.LinePosition;
-                for (int i = 0; (i < ex.LineNumber - 1) && (i < rtSend.Lines.Length); i++)
-                {
-                    offset += rtSend.Lines[i].Length + 2;
-                }
-                rtSend.Select(offset, 1);
+
+                for (int i = 0; (i < ex.LineNumber - 1) && (i < this.rtSend.Lines.Length); i++)
+                    offset += this.rtSend.Lines[i].Length + 2;
+
+                this.rtSend.Select(offset, 1);
             }
             return null;
         }
 
         private void ValidateAndSend()
         {
-            XmlElement elem = ValidateXML();
+            XmlElement elem = this.ValidateXML();
+
             if (elem != null)
             {
-                Write(elem);
-                rtSend.Clear();
+                this.Write(elem);
+                this.rtSend.Clear();
             }
         }
 
         private void rtSend_KeyUp(object sender, KeyEventArgs e)
         {
             if ((e.KeyCode == Keys.Enter) && e.Control)
-            {
-                ValidateAndSend();
-            }
+                this.ValidateAndSend();
             else if ((e.KeyCode == Keys.Delete) && e.Control)
-            {
-                Clear();
-            }
+                this.Clear();
         }
 
         private void Search(string txt)
@@ -310,12 +323,12 @@ namespace Muzzle.Controls
                 return;
 
             m_last = t;
-            int start = rtDebug.SelectionStart + 1;
+            int start = this.rtDebug.SelectionStart + 1;
 
-            if (start < 0 || start > rtDebug.Text.Length)
+            if (start < 0 || start > this.rtDebug.Text.Length)
                 start = 0;
 
-            int offset = rtDebug.Text.IndexOf(t, start);
+            int offset = this.rtDebug.Text.IndexOf(t, start);
 
             if (offset < 0)
             {
@@ -323,35 +336,31 @@ namespace Muzzle.Controls
                 offset = 0;
             }
 
-            rtDebug.Select(offset, t.Length);
-            rtDebug.ScrollToCaret();
+            this.rtDebug.Select(offset, t.Length);
+            this.rtDebug.ScrollToCaret();
         }
 
         private void rtDebug_KeyUp(object sender, KeyEventArgs e)
         {
             if ((e.KeyCode == Keys.Delete) && e.Control)
-            {
-                Clear();
-            }
+                this.Clear();
             else if ((e.KeyCode == Keys.F) && e.Control)
             {
                 InputBox inp = new InputBox();
-                if (inp.ShowDialog("Find text", "Find:", "") != DialogResult.OK)
+
+                if (inp.ShowDialog("Find text", "Find:", String.Empty) != DialogResult.OK)
                     return;
-                Search(inp.Value);
+
+                this.Search(inp.Value);
             }
             else if (e.KeyCode == Keys.F3)
-            {
-                Search(null);
-            }
+                this.Search(null);
         }
 
         private void XmppDebugger_KeyUp(object sender, KeyEventArgs e)
         {
             if ((e.KeyCode == Keys.Delete) && e.Control)
-            {
-                Clear();
-            }
+                this.Clear();
         }
     }
 }

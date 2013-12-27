@@ -161,6 +161,22 @@ namespace Jabber.Client
         }
 
         /// <summary>
+        /// Gets all roster's items
+        /// </summary>
+        [Browsable(false)]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public Item[] Items
+        {
+            get
+            {
+                Item[] result = new Item[m_items.Values.Count];
+                m_items.Values.CopyTo(result, 0);
+
+                return result;
+            }
+        }
+
+        /// <summary>
         /// Informs the client that is has new roster items.
         /// </summary>
         [Description("Convenience event for new roster items.")]

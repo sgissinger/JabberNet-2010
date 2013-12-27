@@ -169,6 +169,8 @@ namespace Jabber.Client
         public JingleIceManager()
         {
             InitializeComponent();
+
+            this.Disposed += new EventHandler(this.JingleIceManager_Disposed);
         }
 
         /// <summary>
@@ -179,6 +181,32 @@ namespace Jabber.Client
             : this()
         {
             container.Add(this);
+        }
+
+        /// <summary>
+        /// TODO: Documentation JingleIceManager_Disposed
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void JingleIceManager_Disposed(object sender, EventArgs e)
+        {
+            lock (this)
+            {
+                foreach (var item in this.turnSessions)
+                {
+                    if (item.Value.TurnAllocation != null)
+                        item.Value.TurnAllocation.StopAutoRefresh();
+
+                    item.Value.TurnManager.OnAllocateSucceed -= this.turnManager_OnAllocateSucceed;
+                    item.Value.TurnManager.OnAllocateFailed -= this.turnManager_OnAllocateFailed;
+                    item.Value.TurnManager.OnConnectionAttemptReceived -= this.turnManager_OnConnectionAttemptReceived;
+                    item.Value.TurnManager.OnConnectionBindSucceed -= this.turnManager_OnConnectionBindSucceed;
+                    item.Value.TurnManager.Disconnect();
+
+                    item.Value.TurnManager = null;
+                    item.Value.TurnAllocation = null;
+                }
+            }
         }
         #endregion
 
@@ -303,7 +331,7 @@ namespace Jabber.Client
         /// <returns></returns>
         public String InitiateSession(JID to, Boolean useTurnOnly)
         {
-            if (this.StartingSessionRecipient == null)
+            if (this.StartingSessionRecipient == null && to != this.Stream.JID)
             {
                 this.StartingSessionRecipient = to;
                 this.StartingSessionSid = JingleUtilities.GenerateSid;
@@ -333,14 +361,23 @@ namespace Jabber.Client
         /// <param name="sid"></param>
         public void TerminateSession(JID to, String sid)
         {
-            this.jingleManager.SessionTerminate(to, sid, ReasonType.success);
+            this.TerminateSession(to, sid, ReasonType.success);
+        }
 
-            if (this.TurnSupported)
-                this.DestroyTurnSession(sid);
-            else
-                throw new NotSupportedException();
+        /// <summary>
+        /// TODO: Documentation TerminateSession
+        /// </summary>
+        /// <param name="to"></param>
+        /// <param name="sid"></param>
+        /// <param name="reasonType"></param>
+        private void TerminateSession(JID to, String sid, ReasonType? reasonType)
+        {
+            this.StartingSessionRecipient = null;
+            this.StartingSessionSid = null;
+            this.StartingSessionAction = ActionType.UNSPECIFIED;
 
-            this.CancelStartingSession(sid);
+            if (to != null && !String.IsNullOrEmpty(sid))
+                this.jingleManager.SessionTerminate(to, sid, reasonType);
         }
 
         /// <summary>
@@ -352,10 +389,9 @@ namespace Jabber.Client
         {
             if (this.StartingSessionRecipient == null)
             {
-                this.StartingSessionRecipient = iq.From;
-
                 Jingle jingle = iq.Query as Jingle;
 
+                this.StartingSessionRecipient = iq.From;
                 this.StartingSessionSid = jingle.Sid;
                 this.StartingSessionAction = ActionType.session_accept;
 
@@ -370,7 +406,6 @@ namespace Jabber.Client
                 {
                     throw new NotSupportedException();
                 }
-
                 iq.Handled = true;
             }
         }
